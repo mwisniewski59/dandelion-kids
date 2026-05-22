@@ -151,10 +151,22 @@ a{color:inherit;text-decoration:none}
 .stat-pills{display:flex;gap:8px;flex-wrap:wrap}
 .stat-pill{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:8px 14px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm)}
 .stat-pill strong{color:var(--text);font-family:'DM Mono',monospace;font-size:14px;font-weight:600}
-.stat-pill-ready{background:var(--good);border-color:var(--good);color:#fff !important;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:.3px;box-shadow:0 3px 10px rgba(45,106,45,.3)}
+.stat-pill-ready{background:var(--good);border-color:var(--good);color:#fff !important;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:.3px;box-shadow:0 3px 10px rgba(45,106,45,.3);flex-wrap:wrap}
 .stat-pill-ready strong{color:#fff !important;font-size:15px}
+.pill-sub-row{display:flex;gap:6px;margin-left:8px;flex-wrap:wrap}
+.pill-sub{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:3px 8px;border-radius:8px;
+  font-size:11px;font-weight:700;
+  background:rgba(255,255,255,.9);
+  letter-spacing:.2px;
+}
+.pill-sub-credit{color:#8a6900;background:#fff5cc}
+.pill-sub-cash{color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4)}
+.pill-sub-pickup{color:#a64825;background:#fde8de}
+.pill-sub-donate{color:var(--good);background:#fff}
 
-.kanban{display:grid;grid-template-columns:repeat(6, minmax(220px, 1fr));gap:14px;overflow-x:auto;padding-bottom:8px;align-items:start}
+.kanban{display:grid;grid-template-columns:repeat(7, minmax(220px, 1fr));gap:14px;overflow-x:auto;padding-bottom:8px;align-items:start}
 .col{background:#f4ede0;border-radius:18px;padding:14px;min-height:520px;max-height:calc(100vh - 220px);display:flex;flex-direction:column;gap:10px;overflow-y:auto}
 .col-head{display:flex;align-items:center;justify-content:space-between;padding:2px 8px 10px;border-bottom:1.5px solid #e4d9c2;margin-bottom:4px}
 .col-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;letter-spacing:.3px;color:var(--text)}
@@ -190,44 +202,69 @@ a{color:inherit;text-decoration:none}
 .kcard-tag.donate-all{background:var(--accent);color:var(--dark)}
 .kcard-empty{text-align:center;padding:30px 12px;color:var(--muted);font-size:13px;font-style:italic}
 
-/* CUSTOMER REPLIED — make these cards demand attention.
-   Overrides ageClass border with green so the "ready to pay" signal wins.
-   The banner across the top is unmissable. */
-.kcard.replied{
-  border:2px solid var(--good) !important;
-  border-left:7px solid var(--good) !important;
-  background:linear-gradient(135deg,#e8f4e8 0%,#d4ecd4 100%) !important;
-  box-shadow:0 4px 16px rgba(45,106,45,.22);
-  padding-top:0;
-  overflow:hidden;
+/* "Ready to Pay" column — distinctive but calm green tint so the whole column
+   reads as actionable from across the screen. */
+.col.col-ready{
+  background:#eaf3e8;
+  border:1.5px solid #c5e0c5;
 }
-.kcard.replied:hover{
-  box-shadow:0 8px 24px rgba(45,106,45,.35);
-  transform:translateY(-2px);
+.col.col-ready .col-name{color:var(--good)}
+.col.col-ready .col-count{background:var(--good);color:#fff}
+
+/* Card payment-choice color coding (only applied to replied cards in Ready to Pay) */
+.kcard.pay-credit{
+  border-left:6px solid var(--accent) !important;
+  background:#fffbeb !important;
 }
-.kcard-replied-banner{
-  background:var(--good);
-  color:#fff;
+.kcard.pay-cash{
+  border-left:6px solid var(--sky) !important;
+  background:#eaf3fb !important;
+}
+.kcard.pay-none{
+  border-left:6px solid var(--muted) !important;
+  background:#f5f3ee !important;
+}
+
+/* Payment choice pill — appears just below bag description on replied cards */
+.kcard-pay{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:8px;
+  font-size:11px;font-weight:700;
   font-family:'Plus Jakarta Sans',sans-serif;
-  font-weight:800;
-  font-size:10px;
-  letter-spacing:.6px;
-  text-align:center;
-  padding:5px 8px;
-  margin:-2px -15px 8px;       /* pull out to the card edges */
-  border-radius:0;
+  letter-spacing:.2px;
 }
-.kcard-replied-choice{
-  font-family:'DM Mono',monospace;
-  font-size:12px;
-  font-weight:600;
-  color:var(--good);
-  background:rgba(255,255,255,.6);
-  padding:6px 10px;
-  border-radius:8px;
-  margin:4px 0 2px;
-  line-height:1.3;
+.kcard-pay-credit{background:var(--accent);color:var(--dark)}
+.kcard-pay-cash{background:var(--sky);color:#fff}
+.kcard-pay-none{background:#e4e0d8;color:var(--muted)}
+
+/* Leftover decision icon — distinct from payment so staff can read both at a glance */
+.kcard-leftover{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:8px;
+  font-size:11px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  letter-spacing:.2px;
 }
+.kcard-leftover-pickup{background:#fde8de;color:#a64825;border:1px solid #f0c8c0}
+.kcard-leftover-donate{background:#e8f4e8;color:var(--good);border:1px solid #bfdfbe}
+
+.kcard-choices{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+
+/* Tiny export button in the top-right corner of every card */
+.kcard{position:relative}
+.kcard-export{
+  position:absolute;top:8px;right:8px;
+  width:26px;height:26px;border-radius:7px;
+  background:#fff;border:1.5px solid var(--border);
+  color:var(--muted);cursor:pointer;
+  font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  font-family:inherit;line-height:1;
+  transition:all .12s;opacity:.6;
+}
+.kcard:hover .kcard-export{opacity:1}
+.kcard-export:hover{background:var(--accent);border-color:var(--accent-dark);color:var(--dark);opacity:1;transform:scale(1.08)}
+.kcard-name{padding-right:32px}   /* leave room for the export button */
 
 /* Customer-replied hero banner on the detail page */
 .response-hero{
@@ -674,7 +711,7 @@ a{color:inherit;text-decoration:none}
      Columns are sized so you see ~1.4 columns at once — the current column
      plus a peek of the next, which makes the scroll discoverable. */
   .kanban {
-    grid-template-columns: repeat(6, 72vw);
+    grid-template-columns: repeat(7, 72vw);
     gap: 10px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -864,7 +901,7 @@ a{color:inherit;text-decoration:none}
   .nav-logo { font-size: 16px; margin-right: 8px; }
   .nav-btn { padding: 0 8px; font-size: 11px; }
   .page-title { font-size: 20px; }
-  .kanban { grid-template-columns: repeat(6, 80vw); }
+  .kanban { grid-template-columns: repeat(7, 80vw); }
   .review-total-val { font-size: 19px; }
 }
 
@@ -884,7 +921,7 @@ a{color:inherit;text-decoration:none}
      about a third of the screen. With 6 stages total, user scrolls
      once to see the second half. */
   .kanban {
-    grid-template-columns: repeat(6, calc((100vw - 60px) / 3));
+    grid-template-columns: repeat(7, calc((100vw - 60px) / 3));
     gap: 10px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -1598,12 +1635,17 @@ let settings = null;
 let activePricingTier = '';
 let combos = {};
 
-const STAGES = ['intake','tagging','pricing','awaiting_customer','awaiting_pickup','resolved'];
+// Kanban columns. 'ready_to_pay' is a UI-only virtual stage — drop-offs with
+// stage='awaiting_customer' AND customer_responded_at split into this column
+// so staff can see at a glance which ones need payment vs which are still
+// waiting on the customer. The database stage value is still 'awaiting_customer'.
+const STAGES = ['intake','tagging','pricing','awaiting_customer','ready_to_pay','awaiting_pickup','resolved'];
 const STAGE_NAMES = {
   intake: 'New Drop-Offs',
   tagging: 'Tagging',
   pricing: 'Pricing',
   awaiting_customer: 'Awaiting Reply',
+  ready_to_pay: 'Ready to Pay',
   awaiting_pickup: 'Awaiting Pickup',
   resolved: 'Resolved'
 };
@@ -1788,6 +1830,8 @@ function showView(v) {
 function renderStatPills() {
   const counts = {};
   STAGES.forEach(s => counts[s] = 0);
+  // Note: STAGES contains 'ready_to_pay' which never appears in DB.stage.
+  // We count actual DB stages here; the ready-to-pay split comes from response.
   for (const d of dropoffs) if (counts[d.stage] != null) counts[d.stage]++;
   const total = dropoffs.length;
   const totalThisMonth = dropoffs.filter(d => {
@@ -1795,18 +1839,37 @@ function renderStatPills() {
     const now = new Date();
     return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
   }).length;
-  // Count of replied drop-offs sitting in awaiting_customer needing payment
-  const readyToPay = dropoffs.filter(d =>
+
+  // Break down the replied-and-awaiting cohort by payment + leftover choice
+  const ready = dropoffs.filter(d =>
     d.stage === 'awaiting_customer' && d.customer_responded_at
-  ).length;
-  const readyPill = readyToPay > 0
-    ? `<div class="stat-pill stat-pill-ready">✓ Ready to Pay <strong>${readyToPay}</strong></div>`
-    : '';
+  );
+  const readyCredit = ready.filter(d => d.payment_choice === 'credit').length;
+  const readyCash = ready.filter(d => d.payment_choice === 'cash').length;
+  const readyPickup = ready.filter(d => d.leftover_choice === 'pickup').length;
+  const readyDonate = ready.filter(d => d.leftover_choice === 'donate').length;
+
+  // Build the Ready-to-Pay pill cluster only when there's something there.
+  // Uses subtle colored pills that mirror the kanban color coding (yellow=credit, blue=cash).
+  let readyCluster = '';
+  if (ready.length > 0) {
+    const subPills = [];
+    if (readyCredit > 0) subPills.push(`<span class="pill-sub pill-sub-credit">⭐ ${readyCredit} credit</span>`);
+    if (readyCash > 0) subPills.push(`<span class="pill-sub pill-sub-cash">💵 ${readyCash} cash</span>`);
+    if (readyPickup > 0) subPills.push(`<span class="pill-sub pill-sub-pickup">📦 ${readyPickup} pickup</span>`);
+    if (readyDonate > 0) subPills.push(`<span class="pill-sub pill-sub-donate">🎁 ${readyDonate} donate</span>`);
+    readyCluster = `
+      <div class="stat-pill stat-pill-ready">
+        ✓ Ready to Pay <strong>${ready.length}</strong>
+        ${subPills.length ? `<span class="pill-sub-row">${subPills.join('')}</span>` : ''}
+      </div>`;
+  }
+
   const html = `
-    ${readyPill}
+    ${readyCluster}
     <div class="stat-pill">This Month <strong>${totalThisMonth}</strong></div>
     <div class="stat-pill">Active <strong>${total - counts.resolved}</strong></div>
-    <div class="stat-pill" style="color:#a96b00">Awaiting <strong>${counts.awaiting_customer}</strong></div>
+    <div class="stat-pill" style="color:#a96b00">Awaiting Reply <strong>${counts.awaiting_customer - ready.length}</strong></div>
   `;
   $('statPills').innerHTML = html;
 }
@@ -1860,6 +1923,98 @@ function renderDashView() {
   else renderSheet();
 }
 
+// ============================================================
+//  Export drop-off to Excel (single .xlsx, single sheet, flattened)
+// ============================================================
+// Triggered from the ⤓ icon in the top-right of every kanban card.
+// Produces a flat-rows .xlsx with:
+//   • Header row: column labels
+//   • Row 2: the drop-off metadata + customer info
+//   • Rows 3+: one row per priced item (if any), repeating drop-off ID in col 1
+// This lets staff import the file into accounting or send a snapshot to a manager.
+function exportDropoffToExcel(dropoffId) {
+  const d = getDropoff(dropoffId);
+  if (!d) { toast('Drop-off not found'); return; }
+  const c = d.customer || {};
+  const lines = Array.isArray(d.pricing_lines) ? d.pricing_lines : [];
+
+  // Stage label — also account for the virtual "ready_to_pay" view
+  let stageLabel = STAGE_NAMES[d.stage] || d.stage;
+  if (d.stage === 'awaiting_customer' && d.customer_responded_at) stageLabel = 'Ready to Pay';
+
+  // Helpers
+  const ts = (iso) => iso ? new Date(iso).toLocaleString() : '';
+  const yn = (b) => b ? 'Yes' : 'No';
+
+  // Single flat sheet with header + drop-off row + item rows below.
+  // Columns are chosen so the file makes sense whether or not items exist.
+  const header = [
+    'Drop-off ID',
+    'Customer Name','Customer Email','Customer Phone','Venmo Handle',
+    'Drop Type','Bag Description','Donate-All','Stage',
+    'Dropped At','Tagged At','Priced At','Offer Sent','Customer Responded','Paid At','Resolved At',
+    'Item Count (tagged)','Total Cash (Venmo)','Total Store Credit',
+    'Payment Choice','Leftover Choice','Notes',
+    'Item Brand','Item Type','Item Size','Item Tier','Item Condition','Item Qty','Item Unit Price','Item Line Total','Item Retail Price'
+  ];
+
+  const rows = [header];
+
+  // Metadata row — empty item columns at the end
+  const metaRow = [
+    d.id.slice(0,8),
+    c.name || '', c.email || '', c.phone || '', c.venmo_handle || '',
+    d.drop_type || '', d.bag_description || '', yn(d.donate_all), stageLabel,
+    ts(d.dropped_at), ts(d.tagged_at), ts(d.priced_at), ts(d.offer_sent_at),
+    ts(d.customer_responded_at), ts(d.paid_at), ts(d.resolved_at),
+    d.item_count || '', d.venmo_amount != null ? Number(d.venmo_amount) : '',
+    d.credit_amount != null ? Number(d.credit_amount) : '',
+    d.payment_choice || '', d.leftover_choice || '', d.notes || '',
+    '','','','','','','','',''   // empty item columns
+  ];
+  rows.push(metaRow);
+
+  // One row per priced item — keeps drop-off ID in col 1 so it filters cleanly
+  for (const l of lines) {
+    rows.push([
+      d.id.slice(0,8),
+      '','','','','','','','',   // skip metadata cols (already in row 2)
+      '','','','','','','',
+      '','','',                   // skip totals
+      '','','',                   // skip choice/notes
+      l.brand || '', l.type || '', l.size || '', l.tier || '', l.condition || '',
+      l.qty != null ? Number(l.qty) : '',
+      l.price != null ? Number(l.price) : '',
+      (l.qty && l.price) ? Number(l.qty) * Number(l.price) : '',
+      l.retail_price != null ? Number(l.retail_price) : ''
+    ]);
+  }
+
+  // Build workbook
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // Column widths for readability
+  ws['!cols'] = [
+    {wch:12},                                                  // Drop-off ID
+    {wch:22},{wch:28},{wch:16},{wch:16},                       // Customer
+    {wch:10},{wch:24},{wch:10},{wch:18},                       // Type/bag/donate/stage
+    {wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20}, // timestamps
+    {wch:14},{wch:14},{wch:14},                                // counts + totals
+    {wch:14},{wch:14},{wch:30},                                // choices/notes
+    {wch:14},{wch:14},{wch:10},{wch:14},{wch:12},{wch:6},{wch:11},{wch:11},{wch:12}  // items
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Drop-off');
+
+  // Filename: customer name + date + ID for uniqueness
+  const safeName = (c.name || 'dropoff').replace(/[^\w\-]+/g, '_').slice(0, 30);
+  const dateStr = new Date(d.dropped_at).toISOString().slice(0,10);
+  const fname = `${safeName}_${dateStr}_${d.id.slice(0,6)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+
+  toast(`Exported ${lines.length} item${lines.length === 1 ? '' : 's'} for ${c.name || 'drop-off'}`);
+}
+
 function renderKanban() {
   const search = ($('searchInput').value || '').toLowerCase().trim();
   const cols = STAGES.map(s => ({ stage: s, items: [] }));
@@ -1868,7 +2023,12 @@ function renderKanban() {
       const hay = `${d.customer?.name||''} ${d.customer?.email||''} ${d.bag_description||''}`.toLowerCase();
       if (!hay.includes(search)) continue;
     }
-    const c = cols.find(x => x.stage === d.stage);
+    // Route awaiting_customer + replied → virtual "ready_to_pay" column
+    let targetStage = d.stage;
+    if (d.stage === 'awaiting_customer' && d.customer_responded_at) {
+      targetStage = 'ready_to_pay';
+    }
+    const c = cols.find(x => x.stage === targetStage);
     if (c) c.items.push(d);
   }
 
@@ -1881,7 +2041,6 @@ function renderKanban() {
     let items = col.items;
     let overflow = 0;
     if (col.stage === 'resolved' && totalCount > RESOLVED_CAP) {
-      // Sort by most recently resolved (or by drop date as fallback) and slice
       items = col.items.slice().sort((a, b) => {
         const at = new Date(a.resolved_at || a.dropped_at).getTime();
         const bt = new Date(b.resolved_at || b.dropped_at).getTime();
@@ -1892,20 +2051,13 @@ function renderKanban() {
     const overflowHtml = overflow > 0
       ? `<div class="kcard-empty" style="padding:14px 10px;border-top:1.5px dashed var(--border);margin-top:6px;cursor:pointer;color:var(--accent-dark);font-weight:700;font-style:normal" onclick="setDashView('sheet')">+ ${overflow} more — view all in spreadsheet →</div>`
       : '';
-    // For the Awaiting Customer column, show how many have replied vs are still waiting.
-    // This makes it instantly clear when there's work to do.
-    let columnCountHtml = `<span class="col-count">${totalCount}</span>`;
-    if (col.stage === 'awaiting_customer') {
-      const repliedCount = col.items.filter(d => d.customer_responded_at).length;
-      if (repliedCount > 0) {
-        columnCountHtml = `<span class="col-count col-count-ready">✓ ${repliedCount} ready to pay</span><span class="col-count" style="margin-left:6px">${totalCount}</span>`;
-      }
-    }
+    // Ready to Pay column gets a distinctive green color treatment
+    const colExtraClass = col.stage === 'ready_to_pay' ? ' col-ready' : '';
     return `
-      <div class="col">
+      <div class="col${colExtraClass}">
         <div class="col-head">
           <span class="col-name">${esc(STAGE_NAMES[col.stage])}</span>
-          <span>${columnCountHtml}</span>
+          <span class="col-count">${totalCount}</span>
         </div>
         ${items.length === 0
           ? `<div class="kcard-empty">Nothing here</div>`
@@ -1927,35 +2079,43 @@ function kanbanCardHtml(d) {
   const donateTag = d.donate_all ? '<span class="kcard-tag donate-all">Donate-All</span>' : '';
   const amt = (d.venmo_amount != null) ? `<span class="kcard-amt">${fmt$(d.venmo_amount)}</span>` : '';
 
-  // Has the customer replied? If so, this card needs to JUMP off the screen.
+  // For drop-offs sitting in Ready to Pay (replied awaiting_customer), surface
+  // the customer's payment choice with a distinct color tag, and the leftover
+  // decision with a clear icon.
   const hasReplied = d.stage === 'awaiting_customer' && d.customer_responded_at;
-  let repliedBanner = '';
-  let repliedClass = '';
-  let repliedDetail = '';
+  let cardExtraClass = '';
+  let paymentTag = '';
+  let leftoverIcon = '';
+  let choiceLine = '';
   if (hasReplied) {
-    repliedClass = 'replied';
-    // Banner across the top of the card
-    repliedBanner = `<div class="kcard-replied-banner">✓ CUSTOMER REPLIED — READY TO PAY</div>`;
-    // Show what they chose
-    const choiceText = d.payment_choice === 'credit'
-        ? `Store Credit ${fmt$(d.credit_amount || 0)}`
-      : d.payment_choice === 'cash'
-        ? `Cash via Venmo ${fmt$(d.venmo_amount || 0)}`
-      : d.payment_choice === 'none'
-        ? 'No payment (took nothing)'
-      : '';
-    const leftoverText = d.leftover_choice === 'pickup' ? ' · will pick up leftovers'
-        : d.leftover_choice === 'donate' ? ' · donating leftovers'
-        : '';
-    repliedDetail = `<div class="kcard-replied-choice">${esc(choiceText)}${esc(leftoverText)}</div>`;
+    if (d.payment_choice === 'credit') {
+      cardExtraClass = ' pay-credit';
+      paymentTag = `<span class="kcard-pay kcard-pay-credit">⭐ Store Credit · ${fmt$(d.credit_amount || 0)}</span>`;
+    } else if (d.payment_choice === 'cash') {
+      cardExtraClass = ' pay-cash';
+      paymentTag = `<span class="kcard-pay kcard-pay-cash">💵 Cash via Venmo · ${fmt$(d.venmo_amount || 0)}</span>`;
+    } else if (d.payment_choice === 'none') {
+      cardExtraClass = ' pay-none';
+      paymentTag = `<span class="kcard-pay kcard-pay-none">∅ No payment</span>`;
+    }
+    if (d.leftover_choice === 'pickup') {
+      leftoverIcon = `<span class="kcard-leftover kcard-leftover-pickup">📦 Pickup</span>`;
+    } else if (d.leftover_choice === 'donate') {
+      leftoverIcon = `<span class="kcard-leftover kcard-leftover-donate">🎁 Donate</span>`;
+    }
+    choiceLine = `<div class="kcard-choices">${paymentTag}${leftoverIcon}</div>`;
   }
 
+  // Export button — top-right corner of every card. stopPropagation so it doesn't
+  // also open the drop-off detail when clicked.
+  const exportBtn = `<button class="kcard-export" onclick="event.stopPropagation();exportDropoffToExcel('${d.id}')" title="Export this drop-off to Excel">⤓</button>`;
+
   return `
-    <div class="kcard ${ageClass(d)} ${repliedClass}" onclick="openDropoff('${d.id}')">
-      ${repliedBanner}
+    <div class="kcard ${ageClass(d)}${cardExtraClass}" onclick="openDropoff('${d.id}')">
+      ${exportBtn}
       <div class="kcard-name">${esc(name)}</div>
       <div class="kcard-bag">${esc(d.bag_description || '—')}</div>
-      ${repliedDetail}
+      ${choiceLine}
       <div class="kcard-meta">
         <div>${typeTag} ${donateTag}</div>
         <div>${ageStr}</div>
@@ -2470,8 +2630,13 @@ function renderDetail() {
       </div>
     </div>
 
+    <!-- Export button — works at any stage -->
+    <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="exportDropoffToExcel('${d.id}')">⤓ Export to Excel</button>
+    </div>
+
     <!-- Danger Zone — kept low-key and at the bottom so it doesn't invite accidental clicks -->
-    <div style="margin-top:32px;padding-top:20px;border-top:1px dashed var(--border)">
+    <div style="margin-top:18px;padding-top:20px;border-top:1px dashed var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fdf3f0;border:1px solid #f0c8c0;border-radius:12px;padding:14px 18px">
         <div style="flex:1;min-width:200px">
           <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--err);margin-bottom:3px">Danger Zone</div>
