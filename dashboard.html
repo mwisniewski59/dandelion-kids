@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"/>
 <title>Dandelion Kids — Staff</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -38,6 +38,7 @@ a{color:inherit;text-decoration:none}
 
 /* ── NAV ── */
 .nav{background:#fffdf8;display:flex;align-items:center;padding:0 28px;height:64px;border-bottom:1.5px solid var(--border);position:sticky;top:0;z-index:200;gap:6px;box-shadow:0 2px 12px rgba(58,50,42,.04)}
+.nav-tabs{display:flex;align-items:stretch;gap:6px;flex:1;min-width:0}
 .nav-logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;color:var(--text);margin-right:32px;letter-spacing:-.5px;white-space:nowrap;display:flex;align-items:center;gap:8px}
 .nav-logo::before{content:'🌼';font-size:22px}
 .nav-logo span{color:var(--accent-dark)}
@@ -490,37 +491,82 @@ a{color:inherit;text-decoration:none}
   }
   .page-header > div { width: 100%; }
 
-  /* Nav: turn into a horizontally scrollable strip with logo on the left */
+  /* Nav: two-row layout on mobile.
+     Row 1 = logo + sign-out
+     Row 2 = nav buttons as a horizontally-scrollable pill row with prominent active state. */
   .nav {
-    padding: 0 14px;
+    padding: 0;
     height: auto;
-    min-height: 56px;
+    min-height: 0;
     flex-wrap: wrap;
     gap: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
+    align-items: stretch;
+    border-bottom: 1.5px solid var(--border);
+    box-shadow: 0 2px 12px rgba(58,50,42,.04);
   }
+  /* Row 1: logo (left) and sign-out (right) — flex children of .nav */
   .nav-logo {
     font-size: 17px;
-    margin-right: 12px;
-    height: 56px;
-    display: flex;
-    align-items: center;
+    margin: 0;
+    height: 52px;
+    padding: 0 14px;
+    flex: 1 1 auto;
+    order: 1;
   }
   .nav-logo::before { font-size: 18px; }
-  .nav-btn {
-    height: 56px;
-    padding: 0 10px;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
   .nav-right {
-    margin-left: auto;
+    order: 2;
+    margin: 0;
+    height: 52px;
+    padding: 0 14px;
     flex-shrink: 0;
-    gap: 6px;
+    align-self: center;
   }
-  .nav-email { display: none; }   /* Hide email on mobile — saves space */
-  .nav-logout { font-size: 11px; padding: 6px 10px; }
+  .nav-email { display: none; }
+  .nav-logout { font-size: 11px; padding: 6px 12px; min-height: 32px; }
+
+  /* Row 2: nav-tabs wrapper takes the full second row, scrolls horizontally */
+  .nav-tabs {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 10px 10px;
+    gap: 6px;
+    border-top: 1px solid var(--border);
+    background: #fcf8ee;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }   /* hide scrollbar, swipe handles it */
+
+  /* Nav buttons become pills with prominent active state */
+  .nav-btn {
+    height: auto;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    border-bottom: none !important;
+    border-radius: 99px;
+    margin: 0;
+    background: #fff;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    transition: all .15s;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .nav-btn.active {
+    background: var(--accent);
+    color: var(--dark);
+    border-color: var(--accent-dark);
+    box-shadow: 0 2px 8px rgba(245,203,92,.4);
+  }
 
   /* Toolbar: full-width search, buttons wrap below */
   .toolbar { gap: 8px; margin-bottom: 14px; }
@@ -543,9 +589,11 @@ a{color:inherit;text-decoration:none}
   .stage-cta-hint { text-align: center; }
 
   /* ── KANBAN ── horizontal-scroll but with snap points so each
-     column lines up cleanly when you swipe sideways */
+     column lines up cleanly when you swipe sideways.
+     Columns are sized so you see ~1.4 columns at once — the current column
+     plus a peek of the next, which makes the scroll discoverable. */
   .kanban {
-    grid-template-columns: repeat(6, 85vw);
+    grid-template-columns: repeat(6, 72vw);
     gap: 10px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -553,14 +601,18 @@ a{color:inherit;text-decoration:none}
   }
   .col {
     scroll-snap-align: start;
-    min-height: 320px;
+    min-height: 280px;
     max-height: none;
-    padding: 12px;
+    padding: 10px;
   }
-  .col-name { font-size: 13px; }
-  .kcard { padding: 12px 14px; }
-  .kcard-name { font-size: 15px; }   /* slightly bigger for legibility */
-  .kcard-bag { font-size: 13px; }
+  .col-name { font-size: 12px; }
+  .col-count { font-size: 11px; padding: 2px 8px; }
+  .kcard { padding: 10px 12px; gap: 4px; }
+  .kcard-name { font-size: 14px; }
+  .kcard-bag { font-size: 12px; }
+  .kcard-meta { font-size: 10px; }
+  .kcard-amt { font-size: 12px; }
+  .kcard-tag { font-size: 9px; padding: 1px 6px; }
 
   /* Hint that the kanban scrolls horizontally — a subtle right-edge fade */
   #dashView .kanban-wrap, .kanban {
@@ -683,11 +735,28 @@ a{color:inherit;text-decoration:none}
   /* ── INSIGHTS ── */
   .insight-row { gap: 12px; }
 
-  /* ── SHEET VIEW (spreadsheet) ── make it horizontally scrollable */
+  /* ── SHEET VIEW (spreadsheet) ── make it horizontally scrollable
+     AND let the whole page handle vertical scroll (no nested scroll area). */
   .sheet-wrap, .sheet-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  .sheet-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+  .sheet-table { font-size: 12px; }
+  .sheet-table thead th { padding: 8px 10px; font-size: 10px; }
+  .sheet-table tbody td { padding: 8px 10px; font-size: 12px; }
+
+  /* ── CUSTOMER LIST ── compact table; horizontally scrollable */
+  #custList, .cust-list-wrap, .cust-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cust-list { font-size: 12px; }
+  .cust-list thead th { padding: 9px 10px; font-size: 10px; }
+  .cust-list tbody td { padding: 10px 10px; font-size: 12px; white-space: nowrap; }
 
   /* ── COMBO DROPDOWNS (brand/type/size pickers) ── */
   .combo-list { max-height: 240px; }
@@ -708,8 +777,39 @@ a{color:inherit;text-decoration:none}
   .nav-logo { font-size: 16px; margin-right: 8px; }
   .nav-btn { padding: 0 8px; font-size: 11px; }
   .page-title { font-size: 20px; }
-  .kanban { grid-template-columns: repeat(6, 90vw); }
+  .kanban { grid-template-columns: repeat(6, 80vw); }
   .review-total-val { font-size: 19px; }
+}
+
+/* Landscape phone (sideways tilt) — narrow viewport height but wider
+   than 720px so the mobile block above doesn't catch it. We want kanban
+   columns to fill the screen instead of being stuck at 220px minimums. */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Pull nav tighter so kanban gets more vertical room. Single row OK in landscape. */
+  .nav { min-height: 48px; height: 48px; padding: 0 14px; }
+  .nav-logo { height: 48px; font-size: 16px; margin-right: 12px; }
+  .nav-tabs { flex: 1; min-width: 0; overflow-x: auto; gap: 4px; }
+  .nav-btn { height: 48px; padding: 0 12px; font-size: 12px; }
+  .page { padding: 12px 14px 40px; }
+  .page-header { margin-bottom: 12px; }
+
+  /* Kanban: 3 columns visible at once on landscape — each column gets
+     about a third of the screen. With 6 stages total, user scrolls
+     once to see the second half. */
+  .kanban {
+    grid-template-columns: repeat(6, calc((100vw - 60px) / 3));
+    gap: 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .col {
+    scroll-snap-align: start;
+    min-height: 220px;
+    max-height: calc(100vh - 160px);
+  }
+
+  /* Form inputs in landscape — keep 16px to avoid iOS zoom */
+  input, textarea, select { font-size: 16px !important; }
 }
 </style>
 </head>
@@ -739,12 +839,14 @@ a{color:inherit;text-decoration:none}
 <div id="appView" style="display:none">
   <nav class="nav">
     <div class="nav-logo">Dandelion <span>Kids</span></div>
-    <button class="nav-btn active" id="navDash" onclick="showView('dash')">Dashboard</button>
-    <button class="nav-btn" id="navInsights" onclick="showView('insights')">Insights</button>
-    <button class="nav-btn" id="navCustomers" onclick="showView('customers')">Customers</button>
-    <button class="nav-btn" id="navPricing" onclick="showView('pricing')">Pricing</button>
-    <button class="nav-btn" id="navRules" onclick="showView('rules')">Rules</button>
-    <button class="nav-btn" id="navSettings" onclick="showView('settings')">Settings</button>
+    <div class="nav-tabs">
+      <button class="nav-btn active" id="navDash" onclick="showView('dash')">Dashboard</button>
+      <button class="nav-btn" id="navInsights" onclick="showView('insights')">Insights</button>
+      <button class="nav-btn" id="navCustomers" onclick="showView('customers')">Customers</button>
+      <button class="nav-btn" id="navPricing" onclick="showView('pricing')">Pricing</button>
+      <button class="nav-btn" id="navRules" onclick="showView('rules')">Rules</button>
+      <button class="nav-btn" id="navSettings" onclick="showView('settings')">Settings</button>
+    </div>
     <div class="nav-right">
       <span class="nav-email" id="navEmail"></span>
       <button class="nav-logout" onclick="doLogout()">Sign out</button>
