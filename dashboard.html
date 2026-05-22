@@ -465,6 +465,252 @@ a{color:inherit;text-decoration:none}
 
 /* ── COPY HELPER ── */
 .copy-link-box{font-family:'DM Mono',monospace;font-size:12px;background:#faf6ef;padding:12px 14px;border-radius:10px;color:var(--text);word-break:break-all;border:1.5px solid var(--border)}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE PASS — iPhone Safari priority, applies under 720px wide.
+   Everything above this block is the desktop layout; these rules
+   only override at narrow widths.
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+
+  /* Prevent iOS Safari from zooming when focusing inputs — needs ≥16px font */
+  input, textarea, select, .finput, .fselect {
+    font-size: 16px !important;
+  }
+
+  /* Tighter page padding everywhere */
+  .page { padding: 16px 14px 80px; }
+  .page-title { font-size: 22px; line-height: 1.15; }
+  .page-sub { font-size: 13px }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .page-header > div { width: 100%; }
+
+  /* Nav: turn into a horizontally scrollable strip with logo on the left */
+  .nav {
+    padding: 0 14px;
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .nav-logo {
+    font-size: 17px;
+    margin-right: 12px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+  }
+  .nav-logo::before { font-size: 18px; }
+  .nav-btn {
+    height: 56px;
+    padding: 0 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .nav-right {
+    margin-left: auto;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+  .nav-email { display: none; }   /* Hide email on mobile — saves space */
+  .nav-logout { font-size: 11px; padding: 6px 10px; }
+
+  /* Toolbar: full-width search, buttons wrap below */
+  .toolbar { gap: 8px; margin-bottom: 14px; }
+  .toolbar input { width: 100%; min-width: 0; }
+  .toolbar .btn, .toolbar select { flex: 1 1 auto; }
+
+  /* Stat pills — slightly smaller, wrap freely */
+  .stat-pill { font-size: 11px; padding: 6px 10px; }
+  .stat-pill strong { font-size: 12px; }
+
+  /* All buttons get minimum 44px tappable height (Apple HIG minimum) */
+  .btn { min-height: 44px; padding-top: 0; padding-bottom: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 12px; }
+  .btn-lg { min-height: 48px; }
+  .btn-stage-cta { min-height: 50px; padding: 12px 20px; font-size: 14px; width: 100%; }
+
+  /* Stage CTA wrap (top-right on desktop) becomes full-width on mobile */
+  .stage-cta-wrap { align-items: stretch; width: 100%; }
+  .stage-cta-wrap .btn { width: 100%; }
+  .stage-cta-hint { text-align: center; }
+
+  /* ── KANBAN ── horizontal-scroll but with snap points so each
+     column lines up cleanly when you swipe sideways */
+  .kanban {
+    grid-template-columns: repeat(6, 85vw);
+    gap: 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 14px;
+  }
+  .col {
+    scroll-snap-align: start;
+    min-height: 320px;
+    max-height: none;
+    padding: 12px;
+  }
+  .col-name { font-size: 13px; }
+  .kcard { padding: 12px 14px; }
+  .kcard-name { font-size: 15px; }   /* slightly bigger for legibility */
+  .kcard-bag { font-size: 13px; }
+
+  /* Hint that the kanban scrolls horizontally — a subtle right-edge fade */
+  #dashView .kanban-wrap, .kanban {
+    position: relative;
+  }
+
+  /* Toggle buttons / view switch */
+  .view-toggle { width: 100%; }
+
+  /* ── DETAIL PAGE ── */
+  .detail-wrap { gap: 14px; }
+  .card { padding: 18px; border-radius: 18px; }
+  .card-title { font-size: 11px; margin-bottom: 12px; }
+  .kv { font-size: 13px; padding: 8px 0; gap: 6px; }
+  .kv .k { font-size: 11px; }
+
+  /* Stage bar (the breadcrumb-style stage indicator) — let it scroll
+     instead of cramming */
+  .stage-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    padding-bottom: 6px;
+    margin: 0 -14px 14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .stage-step { font-size: 11px; padding: 6px 10px; flex-shrink: 0; }
+  .stage-arrow { flex-shrink: 0; }
+
+  /* ── PRICING FORM ── already collapses; tighten further */
+  .pricing-form-row { gap: 10px; margin-bottom: 10px; }
+  .price-stepper, .stepper { gap: 0; }
+  .price-stepper .step-btn, .stepper .step-btn {
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* ── LINE TABLE (items in pricing review) ── */
+  .line-table { font-size: 12px; }
+  .line-table thead th { padding: 8px 8px; font-size: 10px; }
+  .line-table tbody td { padding: 9px 8px; font-size: 12px; }
+  .line-table .item-brand { font-size: 13px; }
+  .line-table .item-meta { font-size: 11px; }
+  /* Hide the Tier column on phones — info is implied by price level */
+  .line-table thead th:nth-child(2),
+  .line-table tbody td:nth-child(2) { display: none; }
+
+  /* ── MODALS ── */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 22px 22px 0 0;
+    padding: 22px 18px 28px;
+    max-height: 92vh;
+  }
+  .modal-title { font-size: 18px; }
+  .modal-desc { font-size: 13px; line-height: 1.45; }
+  .modal-actions {
+    flex-direction: column-reverse;   /* Primary action ends up on top, easier reach */
+    align-items: stretch;
+    gap: 8px;
+  }
+  .modal-actions .btn { width: 100%; }
+  .modal-textarea { font-size: 13px; min-height: 140px; }
+  /* A drag handle at top of modals to feel like a native bottom sheet */
+  .modal::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: #e4e0d8;
+    border-radius: 2px;
+    margin: -6px auto 16px;
+  }
+
+  /* ── OFFER REVIEW (full-screen overlay) ── */
+  .review-container { padding: 18px 14px 40px; }
+  .review-topbar { margin-bottom: 14px; align-items: flex-start; }
+  .review-eyebrow { font-size: 10px; letter-spacing: 1.4px; }
+  .review-headline { font-size: 22px; }
+  .review-sub { font-size: 12px; line-height: 1.4; }
+  .review-close { width: 38px; height: 38px; font-size: 20px; }
+  .review-totals {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  /* Featured (Store Credit) total spans full width on mobile so it's clear */
+  .review-total-card.featured { grid-column: 1 / -1; }
+  .review-total-card { padding: 14px 16px; }
+  .review-total-val { font-size: 22px; }
+  .review-items-card { padding: 16px; }
+  .review-items-card .card-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .review-actions {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 14px;
+  }
+  .review-actions .review-step-pill { font-size: 11px; }
+  .review-actions .spacer { display: none; }
+  .review-actions > .btn,
+  .review-actions > .btn-stage-cta { width: 100%; }
+
+  /* ── CHIPS / FILTERS ── */
+  .chip { font-size: 12px; padding: 6px 12px; }
+
+  /* ── TOAST ── stretch closer to full width on mobile */
+  .toast {
+    left: 14px; right: 14px; bottom: 14px;
+    max-width: none;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .toast-action { padding: 8px 14px; }
+
+  /* ── INSIGHTS ── */
+  .insight-row { gap: 12px; }
+
+  /* ── SHEET VIEW (spreadsheet) ── make it horizontally scrollable */
+  .sheet-wrap, .sheet-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── COMBO DROPDOWNS (brand/type/size pickers) ── */
+  .combo-list { max-height: 240px; }
+
+  /* Bag description card — stack the input and save button */
+  /* (uses inline styles in the template, so flex-wrap already kicks in) */
+
+  /* Smaller filter rows on the sheet/kanban toolbar */
+  .filter-row { gap: 6px; }
+
+  /* Danger Zone button at the bottom of the detail page — make it full width.
+     (Modal danger buttons already get the full-width treatment via .modal-actions .btn.) */
+  #detailView .btn-danger { width: 100%; }
+}
+
+/* Even tighter at very small widths (older iPhone SE etc.) */
+@media (max-width: 380px) {
+  .nav-logo { font-size: 16px; margin-right: 8px; }
+  .nav-btn { padding: 0 8px; font-size: 11px; }
+  .page-title { font-size: 20px; }
+  .kanban { grid-template-columns: repeat(6, 90vw); }
+  .review-total-val { font-size: 19px; }
+}
 </style>
 </head>
 <body>
