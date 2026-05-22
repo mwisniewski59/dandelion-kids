@@ -151,12 +151,15 @@ a{color:inherit;text-decoration:none}
 .stat-pills{display:flex;gap:8px;flex-wrap:wrap}
 .stat-pill{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:8px 14px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm)}
 .stat-pill strong{color:var(--text);font-family:'DM Mono',monospace;font-size:14px;font-weight:600}
+.stat-pill-ready{background:var(--good);border-color:var(--good);color:#fff !important;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:.3px;box-shadow:0 3px 10px rgba(45,106,45,.3)}
+.stat-pill-ready strong{color:#fff !important;font-size:15px}
 
 .kanban{display:grid;grid-template-columns:repeat(6, minmax(220px, 1fr));gap:14px;overflow-x:auto;padding-bottom:8px;align-items:start}
 .col{background:#f4ede0;border-radius:18px;padding:14px;min-height:520px;max-height:calc(100vh - 220px);display:flex;flex-direction:column;gap:10px;overflow-y:auto}
 .col-head{display:flex;align-items:center;justify-content:space-between;padding:2px 8px 10px;border-bottom:1.5px solid #e4d9c2;margin-bottom:4px}
 .col-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;letter-spacing:.3px;color:var(--text)}
 .col-count{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);background:#fffdf8;padding:3px 10px;border-radius:10px;font-weight:600}
+.col-count-ready{background:var(--good);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;letter-spacing:.3px;padding:4px 10px}
 
 .kcard{background:#fffdf8;border:1.5px solid #ebe4d4;border-radius:14px;padding:13px 15px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:6px;position:relative;box-shadow:var(--shadow-sm)}
 .kcard:hover{border-color:var(--accent-dark);transform:translateY(-2px);box-shadow:0 8px 22px rgba(58,50,42,.1)}
@@ -186,6 +189,84 @@ a{color:inherit;text-decoration:none}
 .kcard-tag.std{background:var(--sky-bg);color:var(--sky)}
 .kcard-tag.donate-all{background:var(--accent);color:var(--dark)}
 .kcard-empty{text-align:center;padding:30px 12px;color:var(--muted);font-size:13px;font-style:italic}
+
+/* CUSTOMER REPLIED — make these cards demand attention.
+   Overrides ageClass border with green so the "ready to pay" signal wins.
+   The banner across the top is unmissable. */
+.kcard.replied{
+  border:2px solid var(--good) !important;
+  border-left:7px solid var(--good) !important;
+  background:linear-gradient(135deg,#e8f4e8 0%,#d4ecd4 100%) !important;
+  box-shadow:0 4px 16px rgba(45,106,45,.22);
+  padding-top:0;
+  overflow:hidden;
+}
+.kcard.replied:hover{
+  box-shadow:0 8px 24px rgba(45,106,45,.35);
+  transform:translateY(-2px);
+}
+.kcard-replied-banner{
+  background:var(--good);
+  color:#fff;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:800;
+  font-size:10px;
+  letter-spacing:.6px;
+  text-align:center;
+  padding:5px 8px;
+  margin:-2px -15px 8px;       /* pull out to the card edges */
+  border-radius:0;
+}
+.kcard-replied-choice{
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  color:var(--good);
+  background:rgba(255,255,255,.6);
+  padding:6px 10px;
+  border-radius:8px;
+  margin:4px 0 2px;
+  line-height:1.3;
+}
+
+/* Customer-replied hero banner on the detail page */
+.response-hero{
+  background:linear-gradient(135deg,#e8f4e8 0%,#d4ecd4 100%);
+  border:2px solid var(--good);
+  border-radius:18px;
+  padding:18px 22px;
+  margin-bottom:18px;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  box-shadow:0 4px 16px rgba(45,106,45,.18);
+}
+.response-hero-icon{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--good);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:800;
+  flex-shrink:0;
+  box-shadow:0 4px 12px rgba(45,106,45,.4);
+}
+.response-hero-content{flex:1;min-width:0}
+.response-hero-eyebrow{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:700;font-size:11px;
+  text-transform:uppercase;letter-spacing:1.4px;
+  color:var(--good);margin-bottom:4px;
+}
+.response-hero-headline{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:800;font-size:20px;letter-spacing:-.3px;
+  color:var(--dark);line-height:1.2;
+}
+.response-hero-sub{
+  font-size:13px;color:#3a5a3a;margin-top:4px;line-height:1.4;
+}
+.response-hero-sub strong{
+  font-family:'DM Mono',monospace;color:var(--dark);
+}
 
 /* ── DETAIL VIEW ── */
 .detail-wrap{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
@@ -770,6 +851,12 @@ a{color:inherit;text-decoration:none}
   /* Danger Zone button at the bottom of the detail page — make it full width.
      (Modal danger buttons already get the full-width treatment via .modal-actions .btn.) */
   #detailView .btn-danger { width: 100%; }
+
+  /* Response hero on mobile — slightly smaller icon, headline still prominent */
+  .response-hero { padding: 14px 16px; gap: 14px; }
+  .response-hero-icon { width: 40px; height: 40px; font-size: 20px; }
+  .response-hero-headline { font-size: 17px; }
+  .response-hero-sub { font-size: 12px; }
 }
 
 /* Even tighter at very small widths (older iPhone SE etc.) */
@@ -1161,7 +1248,14 @@ a{color:inherit;text-decoration:none}
 <div class="modal-overlay" id="offerModal">
   <div class="modal">
     <div class="modal-title">Send Offer to Customer</div>
-    <div class="modal-desc">Click <strong>Open in Gmail</strong> — Gmail opens in a new tab with the entire email pre-filled. Review it, click Send, then come back here and click <strong>Mark Offer Sent</strong>.</div>
+    <div class="modal-desc" style="background:#fff8e1;border:1.5px solid var(--accent);border-radius:12px;padding:12px 14px;line-height:1.5">
+      <strong style="display:block;margin-bottom:6px;color:var(--dark);font-family:'Plus Jakarta Sans',sans-serif">3 steps:</strong>
+      <ol style="margin:0 0 0 18px;padding:0;font-size:13px">
+        <li>Click <strong>✉️ Open in Gmail</strong> below — Gmail opens with the email pre-filled and body copied.</li>
+        <li>In Gmail, <strong>click into the email body and press Ctrl+V</strong>. The link will appear as a blue clickable button.</li>
+        <li>Click <strong>Send</strong> in Gmail, then come back here and click <strong>Mark Offer Sent</strong>.</li>
+      </ol>
+    </div>
     <div class="field">
       <label>To</label>
       <input id="offerTo" type="text" readonly style="background:#f8f6f1">
@@ -1180,7 +1274,7 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeOfferModal()">Cancel</button>
-      <button class="btn btn-ghost" onclick="copyOfferBody()">📋 Copy Email</button>
+      <button class="btn btn-ghost" onclick="copyOfferBodyAndToast()">📋 Copy Email</button>
       <button class="btn btn-stage-cta coral" onclick="openMailApp()">✉️ Open in Gmail</button>
       <button class="btn btn-stage-cta primary" id="offerMarkSentBtn" onclick="markOfferSentFromModal()">Mark Offer Sent →</button>
     </div>
@@ -1701,7 +1795,15 @@ function renderStatPills() {
     const now = new Date();
     return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
   }).length;
+  // Count of replied drop-offs sitting in awaiting_customer needing payment
+  const readyToPay = dropoffs.filter(d =>
+    d.stage === 'awaiting_customer' && d.customer_responded_at
+  ).length;
+  const readyPill = readyToPay > 0
+    ? `<div class="stat-pill stat-pill-ready">✓ Ready to Pay <strong>${readyToPay}</strong></div>`
+    : '';
   const html = `
+    ${readyPill}
     <div class="stat-pill">This Month <strong>${totalThisMonth}</strong></div>
     <div class="stat-pill">Active <strong>${total - counts.resolved}</strong></div>
     <div class="stat-pill" style="color:#a96b00">Awaiting <strong>${counts.awaiting_customer}</strong></div>
@@ -1790,11 +1892,20 @@ function renderKanban() {
     const overflowHtml = overflow > 0
       ? `<div class="kcard-empty" style="padding:14px 10px;border-top:1.5px dashed var(--border);margin-top:6px;cursor:pointer;color:var(--accent-dark);font-weight:700;font-style:normal" onclick="setDashView('sheet')">+ ${overflow} more — view all in spreadsheet →</div>`
       : '';
+    // For the Awaiting Customer column, show how many have replied vs are still waiting.
+    // This makes it instantly clear when there's work to do.
+    let columnCountHtml = `<span class="col-count">${totalCount}</span>`;
+    if (col.stage === 'awaiting_customer') {
+      const repliedCount = col.items.filter(d => d.customer_responded_at).length;
+      if (repliedCount > 0) {
+        columnCountHtml = `<span class="col-count col-count-ready">✓ ${repliedCount} ready to pay</span><span class="col-count" style="margin-left:6px">${totalCount}</span>`;
+      }
+    }
     return `
       <div class="col">
         <div class="col-head">
           <span class="col-name">${esc(STAGE_NAMES[col.stage])}</span>
-          <span class="col-count">${totalCount}</span>
+          <span>${columnCountHtml}</span>
         </div>
         ${items.length === 0
           ? `<div class="kcard-empty">Nothing here</div>`
@@ -1815,17 +1926,41 @@ function kanbanCardHtml(d) {
   const typeTag = d.drop_type === 'bulk' ? '<span class="kcard-tag bulk">Bulk</span>' : '<span class="kcard-tag std">Std</span>';
   const donateTag = d.donate_all ? '<span class="kcard-tag donate-all">Donate-All</span>' : '';
   const amt = (d.venmo_amount != null) ? `<span class="kcard-amt">${fmt$(d.venmo_amount)}</span>` : '';
-  const response = (d.stage === 'awaiting_customer' && d.customer_responded_at)
-    ? `<span class="kcard-tag" style="background:var(--good-bg);color:var(--good)">✓ Replied</span>` : '';
+
+  // Has the customer replied? If so, this card needs to JUMP off the screen.
+  const hasReplied = d.stage === 'awaiting_customer' && d.customer_responded_at;
+  let repliedBanner = '';
+  let repliedClass = '';
+  let repliedDetail = '';
+  if (hasReplied) {
+    repliedClass = 'replied';
+    // Banner across the top of the card
+    repliedBanner = `<div class="kcard-replied-banner">✓ CUSTOMER REPLIED — READY TO PAY</div>`;
+    // Show what they chose
+    const choiceText = d.payment_choice === 'credit'
+        ? `Store Credit ${fmt$(d.credit_amount || 0)}`
+      : d.payment_choice === 'cash'
+        ? `Cash via Venmo ${fmt$(d.venmo_amount || 0)}`
+      : d.payment_choice === 'none'
+        ? 'No payment (took nothing)'
+      : '';
+    const leftoverText = d.leftover_choice === 'pickup' ? ' · will pick up leftovers'
+        : d.leftover_choice === 'donate' ? ' · donating leftovers'
+        : '';
+    repliedDetail = `<div class="kcard-replied-choice">${esc(choiceText)}${esc(leftoverText)}</div>`;
+  }
+
   return `
-    <div class="kcard ${ageClass(d)}" onclick="openDropoff('${d.id}')">
+    <div class="kcard ${ageClass(d)} ${repliedClass}" onclick="openDropoff('${d.id}')">
+      ${repliedBanner}
       <div class="kcard-name">${esc(name)}</div>
       <div class="kcard-bag">${esc(d.bag_description || '—')}</div>
+      ${repliedDetail}
       <div class="kcard-meta">
-        <div>${typeTag} ${donateTag} ${response}</div>
+        <div>${typeTag} ${donateTag}</div>
         <div>${ageStr}</div>
       </div>
-      ${amt ? `<div style="text-align:right">${amt}</div>` : ''}
+      ${amt && !hasReplied ? `<div style="text-align:right">${amt}</div>` : ''}
     </div>
   `;
 }
@@ -2248,6 +2383,21 @@ function renderDetail() {
       ${d.leftover_choice ? `<div class="kv"><span class="k">Leftovers</span><span class="v">${esc(leftoverLabel)}</span></div>` : ''}
     </div>` : '';
 
+  // Hero banner at the top of the detail page — only shown when customer
+  // has replied and we haven't paid them yet. This is the "do this now" callout.
+  const responseHeroHtml = (d.customer_responded_at && d.stage === 'awaiting_customer') ? `
+    <div class="response-hero">
+      <div class="response-hero-icon">✓</div>
+      <div class="response-hero-content">
+        <div class="response-hero-eyebrow">Customer Replied · ${esc(fmtDateTime(d.customer_responded_at))}</div>
+        <div class="response-hero-headline">${esc(payLabel)}</div>
+        ${d.payment_choice === 'cash' && c.venmo_handle
+          ? `<div class="response-hero-sub">Venmo: <strong>${esc(c.venmo_handle)}</strong></div>`
+          : ''}
+        ${d.leftover_choice ? `<div class="response-hero-sub">Leftovers: ${esc(leftoverLabel)}</div>` : ''}
+      </div>
+    </div>` : '';
+
   const stageActions = stageActionsHtml(d);
   const pricingPanel = (d.stage === 'pricing' || d.stage === 'awaiting_customer' || d.stage === 'resolved') ? pricingPanelHtml(d) : '';
 
@@ -2261,6 +2411,8 @@ function renderDetail() {
     </div>
 
     <div class="stage-bar">${stageHtml}</div>
+
+    ${responseHeroHtml}
 
     <div class="card" style="margin-bottom:18px;background:${d.bag_description ? 'var(--card)' : '#fff8e1'};border-color:${d.bag_description ? 'var(--border)' : 'var(--accent)'}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -3555,9 +3707,9 @@ function copyOfferLink() {
   navigator.clipboard.writeText($('offerLinkBox').textContent).then(() => toast('Link copied'));
 }
 
-// Copy the offer email body to the clipboard (plain text + rich-text HTML).
-// This is a backup path — the primary "Open in Gmail" button pre-fills the
-// body via URL parameter, so most staff won't need to manually copy/paste.
+// Copy the offer email body to the clipboard as RICH TEXT (HTML + plain).
+// This is the key step — Gmail's URL-passed body does NOT auto-linkify URLs,
+// but pasted HTML content preserves the <a href> as a real clickable link.
 async function copyOfferBody() {
   const plain = $('offerBody').value;
   const html = $('offerBody').dataset.html || plain;
@@ -3568,29 +3720,43 @@ async function copyOfferBody() {
         'text/plain': new Blob([plain], { type: 'text/plain' })
       });
       await navigator.clipboard.write([item]);
-      toast('Email copied (with clickable link if pasted into Gmail)');
+      return true;
     } else {
       await navigator.clipboard.writeText(plain);
-      toast('Email body copied (plain text)');
+      return 'plain';
     }
   } catch (e) {
-    try { await navigator.clipboard.writeText(plain); toast('Email body copied'); }
-    catch { toast('Could not copy — select the body text manually'); }
+    try { await navigator.clipboard.writeText(plain); return 'plain'; }
+    catch { return false; }
   }
 }
 
-// Open Gmail's web compose with To, Subject, AND Body pre-filled.
-// Gmail's compose box auto-linkifies bare URLs in the body when the compose
-// window first renders — so the link is clickable in the email Gmail sends.
-// (Critical: the URL must be on its own line with no trailing punctuation
-// and no surrounding angle brackets, which Gmail's linkifier ignores.)
-function openMailApp() {
+// Standalone copy button — toasts a confirmation
+async function copyOfferBodyAndToast() {
+  const result = await copyOfferBody();
+  if (result === true) toast('Email copied with clickable link — paste into Gmail');
+  else if (result === 'plain') toast('Email body copied (plain text)');
+  else toast('Could not copy — select text manually');
+}
+
+// Open Gmail's compose tab with To and Subject pre-filled. Body is intentionally
+// left empty in the URL — Gmail's URL-passed body arrives as plain text without
+// link detection. The HTML body is copied to the clipboard first, so staff
+// completes the email with one Ctrl+V into the body field.
+async function openMailApp() {
+  const copyResult = await copyOfferBody();
   const to = encodeURIComponent($('offerTo').value);
   const subject = encodeURIComponent($('offerSubject').value);
-  const body = encodeURIComponent($('offerBody').value);
-  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+  // No body= parameter — paste handles it
+  const url = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${to}&su=${subject}`;
   window.open(url, '_blank');
-  toast('Gmail opened in a new tab', { durationMs: 3000 });
+  if (copyResult === true) {
+    toast('Gmail opened. Click in the body and press Ctrl+V — link will be clickable.', { durationMs: 6000 });
+  } else if (copyResult === 'plain') {
+    toast('Gmail opened. Click in the body and press Ctrl+V (plain text — link may not be clickable on this browser).', { durationMs: 6000 });
+  } else {
+    toast('Gmail opened, but copy failed. Copy the body manually from the dashboard.', { durationMs: 6000 });
+  }
 }
 
 // Legacy alias — older code paths may still reference this name.
