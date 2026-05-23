@@ -47,29 +47,35 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
 .lead{font-size:15px;color:var(--muted);margin-bottom:18px;line-height:1.55}
 .body-text{font-size:15px;color:var(--text);margin-bottom:16px;line-height:1.6}
 .body-text + .body-text{margin-top:-4px}
+
+/* POLICY HEADERS — make the drop-off TYPE the dominant visual element */
 .policy-title{
-  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:13px;
-  text-transform:uppercase;letter-spacing:1.4px;color:var(--accent-dark);margin-bottom:10px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;
+  text-transform:uppercase;letter-spacing:1.4px;color:var(--accent-dark);margin-bottom:6px;
+}
+.policy-type{
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:32px;letter-spacing:-1px;
+  color:var(--text);line-height:1;margin-bottom:6px;
+}
+.policy-type-sub{
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;
+  color:var(--accent-dark);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:18px;
 }
 .policy-headline{
-  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;
-  color:var(--text);margin-bottom:14px;line-height:1.35;
+  font-family:'DM Sans',sans-serif;font-weight:500;font-size:15px;
+  color:var(--text);margin-bottom:18px;line-height:1.55;
+  padding:12px 14px;background:#fffbed;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
 }
 
-/* TERMS LIST */
-.terms-list{
-  background:#fffbed;border:1.5px solid var(--accent);border-radius:var(--radius-sm);
-  padding:16px 18px;margin-bottom:18px;list-style:none;
-}
+/* TERMS — replace bulleted list with stacked "term rows" — no bullets, no flex/wrap weirdness */
+.terms-list{margin-bottom:18px;list-style:none;padding:0}
 .terms-list li{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:8px 0;border-bottom:1px solid rgba(245,203,92,.3);font-size:14px;line-height:1.55;
+  background:#fff;border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 16px;font-size:14px;line-height:1.55;color:var(--text);
+  margin-bottom:8px;
 }
-.terms-list li:last-child{border-bottom:none}
-.terms-list li::before{
-  content:'•';color:var(--accent-dark);font-weight:800;font-size:18px;flex-shrink:0;line-height:1.2;
-}
-.terms-list li strong{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700}
+.terms-list li:last-child{margin-bottom:0}
+.terms-list li strong{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;color:var(--text)}
 .terms-note{
   font-size:13px;color:var(--muted);font-style:italic;margin-top:-6px;margin-bottom:18px;line-height:1.5;
   padding:10px 14px;border-left:3px solid var(--accent);background:#fffbed;border-radius:0 8px 8px 0;
@@ -184,6 +190,10 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
   h1{font-size:22px}
   h2{font-size:18px}
   .choice-card{padding:16px}
+  .policy-type{font-size:36px}
+  .policy-type-sub{font-size:12px}
+  .policy-headline{font-size:14px}
+  .terms-list li{padding:12px 14px;font-size:14px}
 }
 </style>
 </head>
@@ -216,8 +226,9 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
   <!-- ===== STEP 2: STANDARD POLICY ===== -->
   <div class="step-card" id="step-2" hidden>
     <div class="policy-title">Standard Drop-Off Policy</div>
-    <div class="policy-headline">For drop-offs of <strong>25 items or less</strong></div>
-    <p class="body-text" style="font-weight:600">I am agreeing to sell my clothing to Dandelion Kids for a price determined by them based on their pricing standards.</p>
+    <div class="policy-type">25 or Less</div>
+    <div class="policy-type-sub">For drop-offs of 25 items or less</div>
+    <div class="policy-headline">I am agreeing to sell my clothing to Dandelion Kids for a price determined by them based on their pricing standards.</div>
     <ul class="terms-list">
       <li>Dandelion Kids will <strong>decide what to buy</strong> and set the price.</li>
       <li>You will <strong>not</strong> receive an itemized list.</li>
@@ -233,8 +244,9 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
   <!-- ===== STEP 3: BULK POLICY ===== -->
   <div class="step-card" id="step-3" hidden>
     <div class="policy-title">Bulk Drop-Off Policy</div>
-    <div class="policy-headline">For drop-offs of <strong>26 items or more</strong></div>
-    <p class="body-text" style="font-weight:600">I am agreeing to sell my clothing to Dandelion Kids for <strong>$0.50 per item</strong> of clothing, and <strong>$0.25 per onesie or baby pants</strong>.</p>
+    <div class="policy-type">Bulk</div>
+    <div class="policy-type-sub">For drop-offs of 26 items or more</div>
+    <div class="policy-headline">I am agreeing to sell my clothing to Dandelion Kids for <strong>$0.50 per item</strong> of clothing, and <strong>$0.25 per onesie or baby pants</strong>.</div>
     <ul class="terms-list">
       <li>Dandelion Kids will <strong>decide what to buy</strong>.</li>
       <li>You will <strong>not</strong> receive an itemized list.</li>
