@@ -527,6 +527,31 @@ a{color:inherit;text-decoration:none}
 .sheet-table tbody tr:nth-child(even) td{background:#faf6ef}
 .sheet-table tbody tr:nth-child(even):hover td{background:#fdfbf4}
 .sheet-table td.num{text-align:right;font-family:'DM Mono',monospace;font-weight:600}
+
+/* Spreadsheet export column — narrow column, small button per row */
+.sheet-table .sheet-export-col{
+  width:42px;min-width:42px;max-width:42px;
+  padding:6px 8px;text-align:center;
+  background:#fffdf8;
+}
+.sheet-table tbody tr:nth-child(even) td.sheet-export-col{background:#faf6ef}
+.sheet-table tbody tr:hover td.sheet-export-col{background:#fdfbf4}
+.sheet-table thead th.sheet-export-col{background:var(--text)}
+.sheet-export-btn{
+  width:28px;height:28px;border-radius:7px;
+  background:#fff;border:1.5px solid var(--border);
+  color:var(--muted);cursor:pointer;
+  font-size:14px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:inherit;line-height:1;
+  transition:all .12s;
+}
+.sheet-export-btn:hover{
+  background:var(--accent);
+  border-color:var(--accent-dark);
+  color:var(--dark);
+  transform:scale(1.08);
+}
 .sheet-stage{display:inline-block;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.2px}
 .sheet-stage.intake{background:var(--sky-bg);color:var(--sky)}
 .sheet-stage.tagging{background:var(--evenbetter-bg);color:var(--evenbetter)}
@@ -994,7 +1019,8 @@ a{color:inherit;text-decoration:none}
       </div>
       <button class="btn btn-sm btn-ghost" onclick="loadDropoffs()">Refresh</button>
       <button class="btn btn-sm btn-ghost" onclick="copyIntakeLink()">Copy Intake Link</button>
-      <button class="btn btn-sm btn-accent" onclick="openExportModal()">⤓ Export CSV</button>
+      <button class="btn btn-sm btn-accent" onclick="openWalkInModal()">+ Walk-In Drop-Off</button>
+      <button class="btn btn-sm btn-ghost" onclick="openExportModal()">⤓ Export CSV</button>
     </div>
     <div class="kanban" id="kanban"></div>
     <div id="sheetView" style="display:none"></div>
@@ -1288,9 +1314,9 @@ a{color:inherit;text-decoration:none}
     <div class="modal-desc" style="background:#fff8e1;border:1.5px solid var(--accent);border-radius:12px;padding:12px 14px;line-height:1.5">
       <strong style="display:block;margin-bottom:6px;color:var(--dark);font-family:'Plus Jakarta Sans',sans-serif">3 steps:</strong>
       <ol style="margin:0 0 0 18px;padding:0;font-size:13px">
-        <li>Click <strong>✉️ Open in Gmail</strong> below — Gmail opens with the email pre-filled and body copied.</li>
-        <li>In Gmail, <strong>click into the email body and press Ctrl+V</strong>. The link will appear as a blue clickable button.</li>
-        <li>Click <strong>Send</strong> in Gmail, then come back here and click <strong>Mark Offer Sent</strong>.</li>
+        <li>Click <strong>✉️ Open in Gmail</strong> — Gmail opens with To and Subject filled, email body copied to clipboard.</li>
+        <li>In Gmail, <strong>click into the body and press Ctrl+V</strong> to paste. The link will be a clickable button.</li>
+        <li>Click <strong>Send</strong> in Gmail, then return here and click <strong>Mark Offer Sent</strong>.</li>
       </ol>
     </div>
     <div class="field">
@@ -1415,13 +1441,19 @@ a{color:inherit;text-decoration:none}
 
 <!-- OVERRIDE MODAL (customer didn't reply) -->
 <div class="modal-overlay" id="overrideModal">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-title">Manual Override</div>
-    <div class="modal-desc">Customer didn't reply to the offer email? Record their choice here on their behalf (or apply a default if you can't reach them). This will move the drop-off to <strong>Resolved</strong>.</div>
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Manual Resolution</div>
+    <div class="modal-desc">Walk-in pickup, in-store payment, or any other manual action. Set the choices below and pick where this drop-off should land.</div>
+
+    <!-- Read-only summary of calculated amounts so staff can reference them -->
+    <div id="ovAmountSummary" style="background:#fffbed;border:1.5px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5;display:none">
+      <strong style="font-family:'Plus Jakarta Sans',sans-serif;display:block;margin-bottom:4px">Calculated offer:</strong>
+      <span id="ovAmountText"></span>
+    </div>
 
     <div class="field">
-      <label>Payment Choice</label>
-      <select id="ovPayment" class="fselect">
+      <label>Payment Choice *</label>
+      <select id="ovPayment" class="fselect" onchange="onOvPaymentChange()">
         <option value="">— Pick one —</option>
         <option value="credit">Store Credit</option>
         <option value="cash">Cash via Venmo</option>
@@ -1429,32 +1461,142 @@ a{color:inherit;text-decoration:none}
       </select>
     </div>
 
+    <div class="field" id="ovVenmoField" style="display:none">
+      <label>Venmo Handle</label>
+      <input id="ovVenmoHandle" type="text" class="finput" placeholder="@their-venmo" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">If you already paid them in person, you can leave this blank.</div>
+    </div>
+
     <div class="field" id="ovLeftoverField">
       <label>Leftover Items</label>
-      <select id="ovLeftover" class="fselect">
+      <select id="ovLeftover" class="fselect" onchange="refreshOvPreview()">
         <option value="">— Pick one —</option>
-        <option value="donate">Donated (default after 7+ days no reply)</option>
-        <option value="pickup">Customer picked up</option>
-        <option value="took_all">Customer took all items</option>
+        <option value="donate">Donated</option>
+        <option value="pickup">Customer will pick up</option>
+        <option value="picked_up_now">Customer took leftovers today</option>
+        <option value="took_all">Customer took everything</option>
       </select>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">"Took leftovers today" resolves the drop-off in one step. "Will pick up" sends it to Awaiting Pickup.</div>
     </div>
 
     <div class="field">
-      <label>Override Reason (for the audit log)</label>
+      <label>Reason (for the audit log)</label>
       <select id="ovReason" class="fselect">
-        <option value="no_reply">Customer never replied</option>
-        <option value="phone_response">Customer responded by phone</option>
         <option value="in_person">Customer came in person</option>
+        <option value="phone_response">Customer responded by phone</option>
         <option value="email_response">Customer replied by email (not via link)</option>
+        <option value="no_reply">Customer never replied (applied default)</option>
         <option value="other">Other (see notes)</option>
       </select>
     </div>
 
+    <div class="field">
+      <label>Notes <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea id="ovNotes" rows="2" placeholder="e.g. Paid $40 cash on the spot, took 2 bags home" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+
     <div id="overrideErr" style="color:var(--err);font-size:13px;font-weight:600;display:none;margin-bottom:10px"></div>
+
+    <!-- Preview of what this resolution will do -->
+    <div id="ovPreview" style="background:#e6f3e5;border:1.5px solid #bfdfbe;border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5;display:none;color:#2c6038">
+      <strong style="font-family:'Plus Jakarta Sans',sans-serif;display:block;margin-bottom:4px">→ This will:</strong>
+      <span id="ovPreviewText"></span>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeOverrideModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitOverride()">Save & Resolve</button>
+      <button class="btn btn-primary" onclick="submitOverride()">Save Resolution</button>
+    </div>
+  </div>
+</div>
+
+<!-- WALK-IN DROP-OFF MODAL — same-day, fully manual; creates customer + dropoff in resolved state -->
+<div class="modal-overlay" id="walkInModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Walk-In Drop-Off</div>
+    <div class="modal-desc">Use this for a customer who came in person and you handled everything on the spot. Creates a new drop-off, customer record (if new), and resolves it in one step.</div>
+
+    <div style="background:#fffbed;border:1.5px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:18px;font-size:13px;line-height:1.5;color:#5a4a2a">
+      <strong>Note:</strong> This skips intake form, tagging, pricing, and the customer offer email. Use it only when you've completed the whole transaction in person.
+    </div>
+
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent-dark);margin-bottom:10px">Customer</div>
+
+    <div class="field">
+      <label>Name *</label>
+      <input id="wiName" type="text" placeholder="First and last name" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+      <div id="wiNameMatch" style="font-size:12px;color:var(--good);margin-top:6px;display:none">✓ Existing customer found — will link to their record</div>
+    </div>
+
+    <div class="field">
+      <label>Email <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input id="wiEmail" type="email" placeholder="customer@email.com" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+    </div>
+
+    <div class="field">
+      <label>Phone <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input id="wiPhone" type="tel" placeholder="(412) 555-0123" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+    </div>
+
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent-dark);margin:22px 0 10px">Drop-Off</div>
+
+    <div class="field">
+      <label>Type *</label>
+      <select id="wiDropType" class="fselect">
+        <option value="standard">Standard (25 or less)</option>
+        <option value="bulk">Bulk (26+ items)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Bag Description <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input id="wiBag" type="text" placeholder="e.g. blue Aldi reusable" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+    </div>
+
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent-dark);margin:22px 0 10px">Payment</div>
+
+    <div class="field">
+      <label>Payment Choice *</label>
+      <select id="wiPayment" class="fselect" onchange="onWiPaymentChange()">
+        <option value="">— Pick one —</option>
+        <option value="cash">Cash via Venmo</option>
+        <option value="credit">Store Credit</option>
+        <option value="none">Took No Payment</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Amount Paid (whole dollars, no $ sign) *</label>
+      <input id="wiAmount" type="number" min="0" step="0.01" placeholder="e.g. 25.00" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;outline:none;font-family:'DM Mono',monospace;font-weight:500">
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">The amount you actually paid the customer today.</div>
+    </div>
+
+    <div class="field" id="wiVenmoField" style="display:none">
+      <label>Venmo Handle</label>
+      <input id="wiVenmoHandle" type="text" placeholder="@their-venmo" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit">
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Leave blank if you paid in cash. Saved to their customer record.</div>
+    </div>
+
+    <div class="field">
+      <label>Leftovers</label>
+      <select id="wiLeftover" class="fselect">
+        <option value="took_all">Customer took everything (no leftovers)</option>
+        <option value="picked_up_now">Customer took leftovers today</option>
+        <option value="donate">Donated leftovers (no pickup)</option>
+        <option value="pickup">Customer will pick up later</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Notes <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea id="wiNotes" rows="2" placeholder="e.g. Negotiated price, returning customer, etc." style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+
+    <div id="wiErr" style="color:var(--err);font-size:13px;font-weight:600;display:none;margin-bottom:10px"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeWalkInModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitWalkIn()">Save Walk-In Drop-Off</button>
     </div>
   </div>
 </div>
@@ -2336,10 +2478,12 @@ function renderDropoffSheet() {
   ];
 
   const ind = k => k === sheetSortKey ? `<span class="sort-ind">${sheetSortDir === 'asc' ? '↑' : '↓'}</span>` : '';
-  const headers = cols.map(c => `<th onclick="sortSheet('${c.key}')">${esc(c.label)}${ind(c.key)}</th>`).join('');
+  // Build headers; prepend a tiny "Export" column (not sortable)
+  const headers = `<th class="sheet-export-col" style="cursor:default" title="Export individual drop-off"></th>`
+    + cols.map(c => `<th onclick="sortSheet('${c.key}')">${esc(c.label)}${ind(c.key)}</th>`).join('');
 
   const bodyHtml = rows.length === 0
-    ? `<tr><td colspan="${cols.length}" class="empty">No drop-offs match.</td></tr>`
+    ? `<tr><td colspan="${cols.length + 1}" class="empty">No drop-offs match.</td></tr>`
     : rows.map(d => sheetRowHtml(d, cols)).join('');
 
   $('sheetView').innerHTML = `
@@ -2399,12 +2543,14 @@ function renderItemSheet() {
   ];
 
   const ind = k => k === sheetSortKey ? `<span class="sort-ind">${sheetSortDir === 'asc' ? '↑' : '↓'}</span>` : '';
-  const headers = cols.map(c => `<th onclick="sortSheet('${c.key}')">${esc(c.label)}${ind(c.key)}</th>`).join('');
+  const headers = `<th class="sheet-export-col" style="cursor:default" title="Export individual drop-off"></th>`
+    + cols.map(c => `<th onclick="sortSheet('${c.key}')">${esc(c.label)}${ind(c.key)}</th>`).join('');
 
   const bodyHtml = itemRows.length === 0
-    ? `<tr><td colspan="${cols.length}" class="empty">No items match.</td></tr>`
+    ? `<tr><td colspan="${cols.length + 1}" class="empty">No items match.</td></tr>`
     : itemRows.map(r => `
         <tr onclick="openDropoff('${r._dropoff.id}')">
+          <td class="sheet-export-col"><button class="sheet-export-btn" onclick="event.stopPropagation();exportDropoffToExcel('${r._dropoff.id}')" title="Export this drop-off to Excel">⤓</button></td>
           <td>${esc(fmtDate(r._dropoff.dropped_at))}</td>
           <td><strong>${esc(r._dropoff.customer?.name || '')}</strong></td>
           <td><strong>${esc(r.brand)}</strong></td>
@@ -2480,7 +2626,10 @@ function sheetRowHtml(d, cols) {
       default:              return `<td>—</td>`;
     }
   };
-  return `<tr onclick="openDropoff('${d.id}')">${cols.map(c => cellFor(c.key)).join('')}</tr>`;
+  return `<tr onclick="openDropoff('${d.id}')">
+    <td class="sheet-export-col"><button class="sheet-export-btn" onclick="event.stopPropagation();exportDropoffToExcel('${d.id}')" title="Export this drop-off to Excel">⤓</button></td>
+    ${cols.map(c => cellFor(c.key)).join('')}
+  </tr>`;
 }
 
 function copyIntakeLink() {
@@ -2630,8 +2779,9 @@ function renderDetail() {
       </div>
     </div>
 
-    <!-- Export button — works at any stage -->
-    <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:8px">
+    <!-- Admin actions — available at every stage -->
+    <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="openOverrideModal()">⚙ Manual Resolution</button>
       <button class="btn btn-ghost btn-sm" onclick="exportDropoffToExcel('${d.id}')">⤓ Export to Excel</button>
     </div>
 
@@ -2690,10 +2840,9 @@ function stageActionsHtml(d) {
         `<button class="btn btn-stage-cta primary" onclick="markPaid()">${btnLabel}</button>
          <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="openOfferModal()">Resend Offer</button>`);
     }
-    // Offer sent but no customer response — show resend + manual override
+    // Offer sent but no customer response — show resend; manual resolution is available via the admin row below
     return wrap('Waiting on customer',
-      `<button class="btn btn-stage-cta coral" onclick="openOfferModal()">Resend Offer Email</button>
-       <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="openOverrideModal()">Override (No Reply)</button>`);
+      `<button class="btn btn-stage-cta coral" onclick="openOfferModal()">Resend Offer Email</button>`);
   }
   if (d.stage === 'awaiting_pickup') {
     const ageStr = d.paid_at ? ageDays(d.paid_at) + ' days since paid' : '';
@@ -3225,17 +3374,73 @@ async function markPickupDonated() {
 
 // ─── OVERRIDE MODAL (customer didn't reply via magic link) ───
 function openOverrideModal() {
-  $('ovPayment').value = '';
-  $('ovLeftover').value = 'donate';      // default: donate (matches store policy)
-  $('ovReason').value = 'no_reply';
-  $('overrideErr').style.display = 'none';
-  // Hide leftover field if it's a bulk drop or donate_all
   const d = getDropoff(currentDropoffId);
-  const hideLeftover = (d?.donate_all || d?.drop_type === 'bulk');
+  if (!d) return;
+  $('ovPayment').value = '';
+  $('ovLeftover').value = '';
+  $('ovVenmoHandle').value = d.customer?.venmo_handle || '';
+  $('ovReason').value = 'in_person';   // most common default for manual resolution
+  $('ovNotes').value = '';
+  $('overrideErr').style.display = 'none';
+  $('ovVenmoField').style.display = 'none';
+  $('ovPreview').style.display = 'none';
+
+  // Show calculated amounts if pricing is done
+  if (d.venmo_amount != null && d.credit_amount != null) {
+    $('ovAmountText').innerHTML =
+      `<strong>${fmt$(d.credit_amount)}</strong> in store credit · ` +
+      `<strong>${fmt$(d.venmo_amount)}</strong> cash via Venmo`;
+    $('ovAmountSummary').style.display = 'block';
+  } else {
+    $('ovAmountSummary').style.display = 'none';
+  }
+
+  // Hide leftover field if bulk or donate_all (already implied)
+  const hideLeftover = (d.donate_all || d.drop_type === 'bulk');
   $('ovLeftoverField').style.display = hideLeftover ? 'none' : 'block';
+
   $('overrideModal').classList.add('open');
 }
 function closeOverrideModal() { $('overrideModal').classList.remove('open'); }
+
+function onOvPaymentChange() {
+  const pay = $('ovPayment').value;
+  $('ovVenmoField').style.display = (pay === 'cash') ? 'block' : 'none';
+  refreshOvPreview();
+}
+
+// Live preview of what the override will actually do
+function refreshOvPreview() {
+  const d = getDropoff(currentDropoffId);
+  if (!d) return;
+  const pay = $('ovPayment').value;
+  let left = $('ovLeftover').value;
+  const hideLeftover = (d.donate_all || d.drop_type === 'bulk');
+  if (hideLeftover) left = d.drop_type === 'bulk' ? 'bulk' : 'donate';
+  if (!pay || (!left && !hideLeftover)) {
+    $('ovPreview').style.display = 'none';
+    return;
+  }
+  const payText = pay === 'credit' ? `Store credit (${fmt$(d.credit_amount || 0)})`
+                : pay === 'cash' ? `Cash via Venmo (${fmt$(d.venmo_amount || 0)})`
+                : 'No payment';
+  let targetStage, leftAction;
+  if (left === 'pickup') {
+    targetStage = 'Awaiting Pickup';
+    leftAction = 'Leftovers held for customer to pick up later';
+  } else {
+    targetStage = 'Resolved';
+    leftAction = left === 'donate' ? 'Leftovers donated'
+              : left === 'picked_up_now' ? 'Customer took leftovers today'
+              : left === 'took_all' ? 'Customer took everything'
+              : left === 'bulk' ? 'Bulk drop — all leftovers donated'
+              : 'No leftovers';
+  }
+  $('ovPreviewText').innerHTML =
+    `Mark as <strong>${payText}</strong><br>${esc(leftAction)}<br>` +
+    `Move to <strong>${targetStage}</strong>`;
+  $('ovPreview').style.display = 'block';
+}
 
 async function submitOverride() {
   const err = $('overrideErr');
@@ -3243,6 +3448,8 @@ async function submitOverride() {
   const payment = $('ovPayment').value;
   let leftover = $('ovLeftover').value;
   const reason = $('ovReason').value;
+  const notes = $('ovNotes').value.trim();
+  const venmoHandle = $('ovVenmoHandle').value.trim();
   const d = getDropoff(currentDropoffId);
 
   if (!payment) {
@@ -3260,26 +3467,214 @@ async function submitOverride() {
     return;
   }
 
+  // Decide target stage based on leftover choice
+  // "pickup" → awaiting_pickup (customer hasn't picked up yet)
+  // everything else → resolved (done)
+  const targetStage = (leftover === 'pickup') ? 'awaiting_pickup' : 'resolved';
+  // The "picked_up_now" choice is conceptually "they took leftovers today" — map
+  // that to "pickup" + a picked_up_at timestamp so the data model stays consistent.
+  const dbLeftover = (leftover === 'picked_up_now') ? 'pickup' : leftover;
+
   const now = new Date().toISOString();
-  const { error } = await sb.from('dropoffs').update({
+  const update = {
     payment_choice: payment,
-    leftover_choice: leftover,
+    leftover_choice: dbLeftover,
     customer_responded_at: now,
-    stage: 'resolved',
-    resolved_at: now,
+    stage: targetStage,
     paid_at: payment === 'none' ? null : now,
-    paid_by: me.email
-  }).eq('id', currentDropoffId);
+    paid_by: payment === 'none' ? null : me.email,
+    resolved_at: targetStage === 'resolved' ? now : null,
+  };
+  // If they took leftovers today, also stamp picked_up_at
+  if (leftover === 'picked_up_now') {
+    update.picked_up_at = now;
+    update.picked_up_by = me.email;
+  }
+  // Append override notes to existing notes (don't overwrite)
+  if (notes) {
+    const existing = d.notes || '';
+    update.notes = existing ? `${existing}\n[Manual: ${notes}]` : `[Manual: ${notes}]`;
+  }
+
+  const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
   if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
 
-  await logActivity('manual_override', {
-    payment, leftover, reason,
+  // If they entered a Venmo handle, save it to the customer record
+  if (venmoHandle && d.customer_id) {
+    await sb.from('customers').update({
+      venmo_handle: venmoHandle.startsWith('@') ? venmoHandle : '@' + venmoHandle
+    }).eq('id', d.customer_id);
+  }
+
+  await logActivity('manual_resolution', {
+    payment, leftover: dbLeftover, reason, notes,
+    target_stage: targetStage,
     overridden_by: me.email
   });
   closeOverrideModal();
   await loadDropoffs();
+  await loadCustomers();
   renderDetail();
-  toast('Override saved');
+  toast('Manual resolution saved');
+}
+
+// ============================================================
+//  Walk-In Drop-Off (same-day, fully manual, creates resolved drop-off)
+// ============================================================
+function openWalkInModal() {
+  $('wiName').value = '';
+  $('wiEmail').value = '';
+  $('wiPhone').value = '';
+  $('wiDropType').value = 'standard';
+  $('wiBag').value = '';
+  $('wiPayment').value = '';
+  $('wiAmount').value = '';
+  $('wiVenmoHandle').value = '';
+  $('wiLeftover').value = 'took_all';
+  $('wiNotes').value = '';
+  $('wiErr').style.display = 'none';
+  $('wiVenmoField').style.display = 'none';
+  $('wiNameMatch').style.display = 'none';
+  $('walkInModal').classList.add('open');
+  // Wire name lookup
+  $('wiName').oninput = onWiNameInput;
+  setTimeout(() => $('wiName').focus(), 50);
+}
+
+function closeWalkInModal() { $('walkInModal').classList.remove('open'); }
+
+function onWiPaymentChange() {
+  const v = $('wiPayment').value;
+  $('wiVenmoField').style.display = (v === 'cash') ? 'block' : 'none';
+}
+
+// Look up name against existing customers and pre-fill if a match is found
+let _wiNameTimer = null;
+function onWiNameInput() {
+  clearTimeout(_wiNameTimer);
+  _wiNameTimer = setTimeout(() => {
+    const q = $('wiName').value.trim().toLowerCase();
+    if (q.length < 3) { $('wiNameMatch').style.display = 'none'; return; }
+    const match = customers.find(c => (c.name || '').toLowerCase() === q);
+    if (match) {
+      // Auto-fill the email/phone if blank
+      if (!$('wiEmail').value && match.email) $('wiEmail').value = match.email;
+      if (!$('wiPhone').value && match.phone) $('wiPhone').value = match.phone;
+      if (!$('wiVenmoHandle').value && match.venmo_handle) $('wiVenmoHandle').value = match.venmo_handle;
+      $('wiNameMatch').style.display = 'block';
+    } else {
+      $('wiNameMatch').style.display = 'none';
+    }
+  }, 250);
+}
+
+async function submitWalkIn() {
+  const err = $('wiErr');
+  err.style.display = 'none';
+
+  const name = $('wiName').value.trim();
+  const email = $('wiEmail').value.trim();
+  const phone = $('wiPhone').value.trim();
+  const dropType = $('wiDropType').value;
+  const bag = $('wiBag').value.trim();
+  const payment = $('wiPayment').value;
+  const amountRaw = $('wiAmount').value.trim();
+  const venmoHandle = $('wiVenmoHandle').value.trim();
+  const leftover = $('wiLeftover').value;
+  const notes = $('wiNotes').value.trim();
+
+  // Validation
+  if (!name) { err.textContent = 'Name is required.'; err.style.display = 'block'; return; }
+  if (!payment) { err.textContent = 'Pick a payment choice.'; err.style.display = 'block'; return; }
+  if (payment !== 'none' && (!amountRaw || isNaN(Number(amountRaw)) || Number(amountRaw) < 0)) {
+    err.textContent = 'Enter a valid amount (or pick "Took No Payment").';
+    err.style.display = 'block';
+    return;
+  }
+  const amount = payment === 'none' ? 0 : Number(amountRaw);
+
+  // Try to find existing customer by name (case-insensitive) or email
+  let customerId = null;
+  const emailLc = email.toLowerCase();
+  const existingByEmail = email ? customers.find(c => (c.email || '').toLowerCase() === emailLc) : null;
+  const existingByName = customers.find(c => (c.name || '').toLowerCase() === name.toLowerCase());
+  const existing = existingByEmail || existingByName;
+
+  if (existing) {
+    customerId = existing.id;
+    // Update missing fields on the existing record
+    const updates = {};
+    if (email && !existing.email) updates.email = email;
+    if (phone && !existing.phone) updates.phone = phone;
+    if (venmoHandle) {
+      const v = venmoHandle.startsWith('@') ? venmoHandle : '@' + venmoHandle;
+      if (v !== existing.venmo_handle) updates.venmo_handle = v;
+    }
+    if (Object.keys(updates).length > 0) {
+      await sb.from('customers').update(updates).eq('id', customerId);
+    }
+  } else {
+    // Create new customer
+    const newCust = {
+      name,
+      email: email || null,
+      phone: phone || null,
+      venmo_handle: venmoHandle ? (venmoHandle.startsWith('@') ? venmoHandle : '@' + venmoHandle) : null,
+    };
+    const { data: created, error: cerr } = await sb.from('customers').insert(newCust).select().single();
+    if (cerr) { err.textContent = 'Could not create customer: ' + cerr.message; err.style.display = 'block'; return; }
+    customerId = created.id;
+  }
+
+  // Create the dropoff in resolved state
+  const now = new Date().toISOString();
+  const venmoAmt = payment === 'cash' ? amount : 0;
+  const creditAmt = payment === 'credit' ? amount : 0;
+  // Map leftover for DB (picked_up_now → pickup + timestamp)
+  const dbLeftover = (leftover === 'picked_up_now') ? 'pickup'
+                  : (dropType === 'bulk') ? 'bulk'
+                  : leftover;
+  const targetStage = (leftover === 'pickup') ? 'awaiting_pickup' : 'resolved';
+
+  const dropoff = {
+    customer_id: customerId,
+    drop_type: dropType,
+    bag_description: bag || null,
+    donate_all: (leftover === 'donate' || dropType === 'bulk'),
+    consented: true,
+    dropped_at: now,
+    stage: targetStage,
+    tagged_at: now,
+    tagged_by: me.email,
+    priced_at: now,
+    priced_by: me.email,
+    venmo_amount: venmoAmt,
+    credit_amount: creditAmt,
+    customer_responded_at: now,
+    payment_choice: payment,
+    leftover_choice: dbLeftover,
+    paid_at: payment === 'none' ? null : now,
+    paid_by: payment === 'none' ? null : me.email,
+    resolved_at: targetStage === 'resolved' ? now : null,
+    picked_up_at: (leftover === 'picked_up_now') ? now : null,
+    picked_up_by: (leftover === 'picked_up_now') ? me.email : null,
+    notes: notes ? `[Walk-in] ${notes}` : '[Walk-in drop-off]',
+  };
+
+  const { data: dropResult, error: derr } = await sb.from('dropoffs').insert(dropoff).select().single();
+  if (derr) { err.textContent = 'Could not save drop-off: ' + derr.message; err.style.display = 'block'; return; }
+
+  await sb.from('activity_log').insert({
+    dropoff_id: dropResult.id,
+    actor: me.email,
+    action: 'walk_in_created',
+    details: { payment, amount, leftover, drop_type: dropType }
+  });
+
+  closeWalkInModal();
+  await loadDropoffs();
+  await loadCustomers();
+  toast(`Walk-in drop-off for ${name} saved — ${fmt$(amount)} ${payment === 'credit' ? 'credit' : payment === 'cash' ? 'cash' : 'no payment'}`, { durationMs: 4500 });
 }
 
 async function reopenDropoff() {
@@ -3807,49 +4202,55 @@ async function openOfferModal() {
 
   const link = `${CFG.PUBLIC_BASE_URL.replace(/\/$/,'')}/offer.html?t=${token}`;
   const first = (c.name || '').split(' ')[0];
+  const fullName = c.name || first;
   const cash = fmt$(d.venmo_amount || 0);
   const credit = fmt$(d.credit_amount || 0);
-  const subject = `Your Dandelion Kids drop-off offer`;
-  // For donate_all customers, the offer page hides the leftover question — adjust copy.
-  const ctaCopy = d.donate_all
-    ? `Click here to choose how you'd like to be paid:`
-    : `Click here to choose how you'd like to be paid and what to do with anything we didn't buy:`;
-  // Plain-text body (clean URL on its own line — no angle brackets).
-  // Gmail will NOT auto-linkify this when sent as a plain-text email, so we
-  // also build an HTML version below and copy it as rich text to the clipboard.
-  // When staff pastes into Gmail's compose box, the link comes through clickable.
+  const subject = `Your Dandelion Kids Clothing Drop!`;
+
+  // Choose the leftover paragraph based on whether the customer pre-opted to donate.
+  // donate_all=true means they already chose "donate everything" on intake, so the
+  // email shouldn't ask about pickup again.
+  const leftoverParagraph = d.donate_all
+    ? `Since you let us know on intake that you'd like us to donate anything we don't buy, we'll go ahead and pass those items along to one of our local charity partners — no need to come back for pickup.`
+    : `Also, among the items you brought in, there are some pieces remaining that don't fit our current needs. Let us know if you would like to pick these items up. Any items not claimed within 7 days will be donated to one of our local charity partners.`;
+
+  const ctaCopy = `Click the link below to let us know which payment option you'd like — and what to do with your leftovers.`;
+
+  // Plain-text body. Gmail does NOT auto-linkify URL-passed bodies, so we
+  // also build an HTML version below and copy it as rich text to the
+  // clipboard for the paste workflow.
   const body =
-`Hi ${first},
+`Hi there, ${fullName}!
 
-Thanks for dropping off with Dandelion Kids! We've gone through your bag (${d.bag_description || ''}) and here's our offer:
+Thank you so much for your drop-off this week at Dandelion Kids! We got through your bag and there were a bunch of things we were able to grab.
 
-  • Cash via Venmo: ${cash}
-  • Store Credit:   ${credit}
+We'd like to offer you either ${credit} in store credit or ${cash} via Venmo. Just let us know which option you prefer.
+
+${leftoverParagraph}
 
 ${ctaCopy}
 
 ${link}
 
-This link expires in 7 days. Thanks!
+Thank you for entrusting us with these beautiful clothes and the stories they carry. We can't wait to see you in the store again soon!
 
-— Dandelion Kids`;
+Warmly,
+Colleen, Meghan & The Dandelion Kids Team`;
 
   // HTML version for rich-text clipboard. Gmail preserves the <a> tag when
   // pasted, so the link is clickable in the recipient's inbox.
   const escHtml = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const bodyHtml =
-`<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1a1a1a">
-<p>Hi ${escHtml(first)},</p>
-<p>Thanks for dropping off with Dandelion Kids! We've gone through your bag${d.bag_description ? ' (' + escHtml(d.bag_description) + ')' : ''} and here's our offer:</p>
-<ul>
-  <li><strong>Cash via Venmo:</strong> ${escHtml(cash)}</li>
-  <li><strong>Store Credit:</strong> ${escHtml(credit)}</li>
-</ul>
+`<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1a1a1a">
+<p>Hi there, ${escHtml(fullName)}!</p>
+<p>Thank you so much for your drop-off this week at Dandelion Kids! We got through your bag and there were a bunch of things we were able to grab.</p>
+<p>We'd like to offer you either <strong>${escHtml(credit)} in store credit</strong> or <strong>${escHtml(cash)} via Venmo</strong>. Just let us know which option you prefer.</p>
+<p>${escHtml(leftoverParagraph)}</p>
 <p>${escHtml(ctaCopy)}</p>
-<p><a href="${escHtml(link)}" style="display:inline-block;background:#1a1a1a;color:#e8c547;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Choose How You'd Like to Be Paid →</a></p>
+<p><a href="${escHtml(link)}" style="display:inline-block;background:#3a322a;color:#f5cb5c;padding:14px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">Choose Your Payment Option →</a></p>
 <p style="font-size:12px;color:#777">Or copy this link: <a href="${escHtml(link)}">${escHtml(link)}</a></p>
-<p>This link expires in 7 days. Thanks!</p>
-<p>— Dandelion Kids</p>
+<p>Thank you for entrusting us with these beautiful clothes and the stories they carry. We can't wait to see you in the store again soon!</p>
+<p style="margin-top:18px">Warmly,<br>Colleen, Meghan &amp; The Dandelion Kids Team</p>
 </div>`;
 
   $('offerTo').value = c.email || '';
@@ -3908,19 +4309,22 @@ async function copyOfferBodyAndToast() {
 // left empty in the URL — Gmail's URL-passed body arrives as plain text without
 // link detection. The HTML body is copied to the clipboard first, so staff
 // completes the email with one Ctrl+V into the body field.
+// Open Gmail's compose tab with To and Subject pre-filled. The full email body
+// (with clickable HTML link) is copied to the clipboard so staff pastes it
+// in one Ctrl+V. Paste preserves the <a href> tag, so the link arrives clickable.
 async function openMailApp() {
   const copyResult = await copyOfferBody();
   const to = encodeURIComponent($('offerTo').value);
   const subject = encodeURIComponent($('offerSubject').value);
-  // No body= parameter — paste handles it
+  // No body= parameter — paste handles it for clickable-link reliability
   const url = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${to}&su=${subject}`;
   window.open(url, '_blank');
   if (copyResult === true) {
-    toast('Gmail opened. Click in the body and press Ctrl+V — link will be clickable.', { durationMs: 6000 });
+    toast('Gmail opened. Click in the body and press Ctrl+V.', { durationMs: 5000 });
   } else if (copyResult === 'plain') {
-    toast('Gmail opened. Click in the body and press Ctrl+V (plain text — link may not be clickable on this browser).', { durationMs: 6000 });
+    toast('Gmail opened. Body copied as plain text — paste with Ctrl+V.', { durationMs: 5000 });
   } else {
-    toast('Gmail opened, but copy failed. Copy the body manually from the dashboard.', { durationMs: 6000 });
+    toast('Gmail opened, but copy failed. Copy the body manually.', { durationMs: 5000 });
   }
 }
 
