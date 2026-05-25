@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"/>
+<title>Sales — Dandelion Kids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf6ef;--card:#fffdf8;--border:#ebe4d4;--text:#3a322a;--muted:#8a8378;
+  --accent:#f5cb5c;--accent-dark:#e0b03b;--dark:#3a322a;
+  --good:#3a7a4a;--good-bg:#e6f3e5;
+  --sky:#6fa3d0;--sky-bg:#e0eef7;
+  --coral:#e88060;--coral-bg:#fde8df;
+  --mint:#7ab87a;
+  --err:#c54a3a;--err-bg:#fde4e0;
+  --radius:20px;--radius-sm:14px;--radius-xs:10px;
+  --shadow:0 6px 28px rgba(58,50,42,.06);
+  --shadow-sm:0 2px 10px rgba(58,50,42,.05);
+  --shadow-lg:0 18px 60px rgba(58,50,42,.10);
+}
+html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.page{max-width:1280px;margin:0 auto;padding:28px 24px 80px}
+
+/* ─── HEADER ─── */
+.head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.head-l{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:28px;letter-spacing:-1px;color:var(--text);display:flex;align-items:center;gap:8px}
+.brand::before{content:'🌼';font-size:26px}
+.brand span{color:var(--accent-dark)}
+.page-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:var(--muted);letter-spacing:.3px;text-transform:uppercase}
+.page-title::before{content:'·';margin-right:14px;font-weight:400;opacity:.5}
+.head-r{display:flex;gap:10px;align-items:center}
+.sync-status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:8px 14px;border-radius:999px;background:#fffdf8;border:1px solid var(--border)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(58,122,74,.15)}
+.sync-dot.stale{background:#d8a020;box-shadow:0 0 0 4px rgba(216,160,32,.15)}
+.sync-dot.err{background:var(--err);box-shadow:0 0 0 4px rgba(197,74,58,.15)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:var(--radius-xs);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:hover{background:#fff8e1;border-color:var(--accent)}
+.btn-link{padding:6px 10px;background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-family:inherit}
+.btn-link:hover{color:var(--text)}
+
+/* ─── KPI CARDS ─── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px 22px 20px;box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi-label{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px}
+.kpi-val{font-family:'DM Mono',monospace;font-weight:500;font-size:32px;line-height:1;letter-spacing:-1.2px;color:var(--text);margin-bottom:8px}
+.kpi-sub{font-size:12.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.kpi-sub strong{color:var(--text);font-weight:700}
+.kpi.accent{background:linear-gradient(135deg,#fff5d6 0%,#fffbed 100%);border-color:var(--accent)}
+.kpi.accent .kpi-val{color:var(--accent-dark)}
+.kpi.skel .kpi-val,.kpi.skel .kpi-sub{color:transparent;background:linear-gradient(90deg,#ebe4d4 0%,#f5efe0 50%,#ebe4d4 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px;display:inline-block;min-width:80px;height:18px}
+.kpi.skel .kpi-val{height:28px;min-width:120px}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* ─── SPLIT BAR (used vs new) ─── */
+.split-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:24px}
+@media (max-width:900px){.split-row{grid-template-columns:1fr}}
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.3px}
+.card-sub{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.8px}
+.range-tabs{display:flex;gap:4px;background:#f5efe0;padding:3px;border-radius:10px}
+.range-tab{padding:5px 10px;border:none;background:transparent;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-radius:7px;letter-spacing:.3px}
+.range-tab.on{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+
+.split-bar{height:48px;border-radius:12px;overflow:hidden;display:flex;background:#f5efe0;margin-bottom:14px;position:relative}
+.split-new{background:linear-gradient(135deg,#7ab87a 0%,#5a9c5a 100%);display:flex;align-items:center;padding:0 14px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;transition:flex .8s cubic-bezier(.4,0,.2,1)}
+.split-used{background:linear-gradient(135deg,#6fa3d0 0%,#4a82b0 100%);display:flex;align-items:center;justify-content:flex-end;padding:0 14px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;transition:flex .8s cubic-bezier(.4,0,.2,1)}
+.split-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px}
+.split-stat-l{padding:14px 16px;background:rgba(122,184,122,.08);border-radius:10px;border-left:3px solid var(--mint)}
+.split-stat-r{padding:14px 16px;background:rgba(111,163,208,.08);border-radius:10px;border-left:3px solid var(--sky)}
+.split-stat-l .label,.split-stat-r .label{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px}
+.split-stat-l .label{color:#4a7a4a}
+.split-stat-r .label{color:#3a6a90}
+.split-stat-l .val,.split-stat-r .val{font-family:'DM Mono',monospace;font-weight:500;font-size:20px;color:var(--text);letter-spacing:-.5px}
+.split-stat-l .units,.split-stat-r .units{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* ─── YOY MINI ─── */
+.yoy-row{display:flex;flex-direction:column;gap:14px}
+.yoy-stat{padding:16px 18px;border-radius:12px;background:#fdf8e8;border:1px solid var(--accent)}
+.yoy-stat .label{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent-dark);margin-bottom:6px}
+.yoy-stat .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.yoy-stat .now{font-family:'DM Mono',monospace;font-weight:500;font-size:22px;letter-spacing:-.5px}
+.yoy-stat .delta{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:13px;padding:3px 9px;border-radius:8px}
+.delta.up{background:var(--good-bg);color:var(--good)}
+.delta.down{background:var(--err-bg);color:var(--err)}
+.delta.flat{background:#f0ebe0;color:var(--muted)}
+.yoy-stat .ly{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ─── CHART ROW ─── */
+.charts-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:24px}
+@media (max-width:900px){.charts-row{grid-template-columns:1fr}}
+.chart-box{position:relative;height:280px;margin-top:6px}
+.chart-box canvas{max-width:100%}
+
+/* ─── TABLES ─── */
+.tables-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media (max-width:900px){.tables-row{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.8px;font-size:10.5px;color:var(--muted);padding:10px 8px;text-align:left;border-bottom:1.5px solid var(--border);white-space:nowrap}
+th.r{text-align:right}
+td{padding:11px 8px;border-bottom:1px solid #f0e8d4;vertical-align:middle}
+td.r{text-align:right;font-family:'DM Mono',monospace;font-weight:500}
+tr:last-child td{border-bottom:none}
+tr:hover{background:#fffbed}
+td.name{font-weight:600;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.brand{color:var(--muted);font-size:12.5px}
+.pill{display:inline-block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:2px 7px;border-radius:7px;background:#f5efe0;color:var(--muted)}
+.pill.new{background:rgba(122,184,122,.12);color:#3a7a4a}
+.pill.used{background:rgba(111,163,208,.12);color:#3a6a90}
+
+/* ─── ASK CLAUDE ─── */
+.ask-card{background:linear-gradient(135deg,#fffbed 0%,#fff5d6 100%);border:2px solid var(--accent);border-radius:24px;padding:28px;box-shadow:var(--shadow-lg);margin-bottom:24px;position:relative;overflow:hidden}
+.ask-card::before{
+  content:'';position:absolute;top:-100px;right:-100px;width:280px;height:280px;
+  background:radial-gradient(circle,rgba(245,203,92,.3) 0%,transparent 70%);
+  pointer-events:none;
+}
+.ask-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;position:relative}
+.ask-card-head h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.5px}
+.ask-card-head .ai-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-dark),#c98a1e);
+  box-shadow:0 0 12px rgba(245,203,92,.6);
+  animation:pulse-ai 2s ease-in-out infinite;
+}
+@keyframes pulse-ai{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+.ask-card-sub{font-size:13px;color:var(--muted);margin-bottom:18px;position:relative}
+
+.ask-input-row{display:flex;gap:10px;position:relative;margin-bottom:14px}
+.ask-input{flex:1;padding:14px 18px;border:1.5px solid var(--border);border-radius:14px;font-family:inherit;font-size:16px;background:#fff;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+.ask-input:focus{border-color:var(--accent-dark);box-shadow:0 0 0 4px rgba(245,203,92,.2)}
+.ask-btn{padding:14px 22px;background:var(--accent-dark);color:#fff;border:none;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.3px;transition:all .15s;display:flex;align-items:center;gap:6px;min-width:100px;justify-content:center}
+.ask-btn:hover{background:#c98a1e;transform:translateY(-1px)}
+.ask-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.ask-chips{display:flex;flex-wrap:wrap;gap:8px;position:relative}
+.chip{padding:7px 13px;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:999px;font-size:12.5px;color:var(--text);cursor:pointer;font-family:inherit;transition:all .15s;font-weight:500}
+.chip:hover{background:#fff;border-color:var(--accent-dark);color:var(--accent-dark)}
+
+.ask-answer{
+  margin-top:18px;padding:22px 24px;background:#fff;border:1.5px solid var(--border);border-radius:16px;
+  font-size:15px;line-height:1.65;color:var(--text);
+  white-space:pre-wrap;position:relative;
+}
+.ask-answer.loading{display:flex;align-items:center;gap:12px;color:var(--muted);font-style:italic}
+.ask-spinner{
+  width:18px;height:18px;border:2.5px solid #f0ebe0;border-top-color:var(--accent-dark);
+  border-radius:50%;animation:spin .8s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ask-meta{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.ask-tool-detail{margin-top:8px;font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;background:#fcfaf5;padding:8px 10px;border-radius:8px;border-left:2px solid var(--accent);overflow-x:auto}
+.ask-tool-detail summary{cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600}
+
+.ask-err{background:var(--err-bg);border-color:#f0c8c0;color:var(--err)}
+
+/* ─── EMPTY STATE ─── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty h3{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px}
+.empty p{font-size:14px}
+
+/* ─── BIG SCREEN ─── */
+@media (max-width:780px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi-val{font-size:26px}
+  .page{padding:20px 14px 60px}
+  .head{flex-direction:column;align-items:flex-start}
+  .ask-card{padding:22px}
+  .ask-card-head h2{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="head">
+    <div class="head-l">
+      <div class="brand">Dandelion <span>Kids</span></div>
+      <div class="page-title">Sales</div>
+    </div>
+    <div class="head-r">
+      <div class="sync-status" id="syncStatus">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">Loading…</span>
+      </div>
+      <button class="btn" id="refreshBtn" title="Trigger a fresh sync from Lightspeed">↻ Sync now</button>
+      <a class="btn-link" href="dashboard.html">← Back to drop-offs</a>
+    </div>
+  </div>
+
+  <!-- ─── KPI CARDS ─── -->
+  <div class="kpis" id="kpis">
+    <div class="kpi skel"><div class="kpi-label">Today</div><div class="kpi-val">·</div><div class="kpi-sub">·</div></div>
+    <div class="kpi skel"><div class="kpi-label">Week to date</div><div class="kpi-val">·</div><div class="kpi-sub">·</div></div>
+    <div class="kpi skel"><div class="kpi-label">Month to date</div><div class="kpi-val">·</div><div class="kpi-sub">·</div></div>
+    <div class="kpi skel accent"><div class="kpi-label">Year to date</div><div class="kpi-val">·</div><div class="kpi-sub">·</div></div>
+  </div>
+
+  <!-- ─── ASK CLAUDE ─── -->
+  <div class="ask-card">
+    <div class="ask-card-head"><span class="ai-dot"></span><h2>Ask about the data</h2></div>
+    <div class="ask-card-sub">A question in plain English. Get an answer grounded in your sales data.</div>
+    <div class="ask-input-row">
+      <input type="text" id="askInput" class="ask-input" placeholder="e.g. Which used item types are moving fastest right now?" maxlength="2000"/>
+      <button id="askBtn" class="ask-btn">Ask</button>
+    </div>
+    <div class="ask-chips" id="askChips">
+      <button class="chip" data-q="How did sales this week compare to the same week last year?">YoY this week</button>
+      <button class="chip" data-q="What were our top-selling new brands last month?">Top brands</button>
+      <button class="chip" data-q="Which used item types sold best in the last 30 days?">Used type mix</button>
+      <button class="chip" data-q="Are there new products with inventory that haven't sold in 60+ days?">Slow movers</button>
+      <button class="chip" data-q="When are we busiest? Hour by hour, day by day?">Staffing patterns</button>
+      <button class="chip" data-q="Compare last month to the month before. What changed?">Month over month</button>
+    </div>
+    <div id="askResult"></div>
+  </div>
+
+  <!-- ─── SPLIT + YOY ROW ─── -->
+  <div class="split-row">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">New vs. Used Revenue</div>
+          <div class="card-sub" id="splitSub">Last 30 days</div>
+        </div>
+        <div class="range-tabs" id="splitTabs">
+          <button class="range-tab" data-r="7">7d</button>
+          <button class="range-tab on" data-r="30">30d</button>
+          <button class="range-tab" data-r="90">90d</button>
+          <button class="range-tab" data-r="365">1y</button>
+        </div>
+      </div>
+      <div class="split-bar" id="splitBar">
+        <div class="split-new" style="flex:1">·</div>
+        <div class="split-used" style="flex:1">·</div>
+      </div>
+      <div class="split-stats">
+        <div class="split-stat-l">
+          <div class="label">New inventory</div>
+          <div class="val" id="newRev">—</div>
+          <div class="units" id="newUnits">—</div>
+        </div>
+        <div class="split-stat-r">
+          <div class="label">Used inventory</div>
+          <div class="val" id="usedRev">—</div>
+          <div class="units" id="usedUnits">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">YoY comparison</div>
+          <div class="card-sub">This week vs same week last year</div>
+        </div>
+      </div>
+      <div class="yoy-row" id="yoyRow">
+        <div class="yoy-stat"><div class="label">Revenue</div><div class="row"><div class="now" id="yoyRevNow">—</div><div class="delta flat" id="yoyRevDelta">—</div></div><div class="ly" id="yoyRevLY">—</div></div>
+        <div class="yoy-stat"><div class="label">Transactions</div><div class="row"><div class="now" id="yoyTxnNow">—</div><div class="delta flat" id="yoyTxnDelta">—</div></div><div class="ly" id="yoyTxnLY">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CHARTS ROW ─── -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">Daily revenue</div><div class="card-sub">Last 30 days · new + used</div></div>
+      </div>
+      <div class="chart-box"><canvas id="dailyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">Hour of day</div><div class="card-sub">Transactions, last 30 days</div></div>
+      </div>
+      <div class="chart-box"><canvas id="hourChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ─── PRICE DISTRIBUTION ROW ─── -->
+  <div class="charts-row" style="grid-template-columns:1fr 1fr">
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">Used items by price</div><div class="card-sub" id="priceUsedSub">Last 30 days · count of items sold per price band</div></div>
+      </div>
+      <div class="chart-box"><canvas id="priceUsedChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">New items by price</div><div class="card-sub" id="priceNewSub">Last 30 days · count of items sold per price band</div></div>
+      </div>
+      <div class="chart-box"><canvas id="priceNewChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ─── USED BY TYPE ROW (chart + table) ─── -->
+  <div class="charts-row" style="grid-template-columns:1.4fr 1fr">
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">Used items by type</div><div class="card-sub" id="usedTypeChartSub">Last 30 days · units sold</div></div>
+      </div>
+      <div class="chart-box" style="height:320px"><canvas id="usedTypeChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">Used type detail</div><div class="card-sub">Same data · with revenue</div></div>
+      </div>
+      <div style="overflow-x:auto"><table id="usedTypeTbl"><thead><tr>
+        <th>Type</th><th class="r">Units</th><th class="r">Revenue</th><th class="r">Avg price</th>
+      </tr></thead><tbody><tr><td colspan="4" class="empty">Loading…</td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ─── TOP NEW PRODUCTS (now full width) ─── -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-head">
+      <div><div class="card-title">Top new products</div><div class="card-sub">Last 30 days · by revenue</div></div>
+    </div>
+    <div style="overflow-x:auto"><table id="topNewTbl"><thead><tr>
+      <th>Product</th><th>Brand</th><th class="r">Units</th><th class="r">Revenue</th><th class="r">Margin</th>
+    </tr></thead><tbody><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div>
+  </div>
+
+  <!-- ─── SLOW MOVERS ─── -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-head">
+      <div><div class="card-title">Slow movers</div><div class="card-sub">New products with inventory · no sales in 60+ days</div></div>
+    </div>
+    <div style="overflow-x:auto"><table id="slowTbl"><thead><tr>
+      <th>Product</th><th>Brand</th><th>Type</th><th class="r">On hand</th><th class="r">Retail</th><th class="r">Days listed</th>
+    </tr></thead><tbody><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────
+const CFG = window.DANDELION_CONFIG;
+const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+const FN_BASE = CFG.SUPABASE_URL + '/functions/v1';
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmtUSD = n => '$' + (Number(n||0)).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtUSDc = n => '$' + (Number(n||0)).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct = n => (n>=0?'+':'') + n.toFixed(1) + '%';
+const fmtInt = n => Number(n||0).toLocaleString('en-US');
+
+function relTime(iso) {
+  if (!iso) return 'never';
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.round(ms/60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min/60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.round(hr/24)}d ago`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH GATE (uses existing Supabase Auth from dashboard.html)
+// If not signed in, redirect to dashboard.html (it has the login)
+// ─────────────────────────────────────────────────────────────
+async function requireAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = 'dashboard.html';
+    return null;
+  }
+  return session;
+}
+
+// ─────────────────────────────────────────────────────────────
+// LOAD DATA
+// ─────────────────────────────────────────────────────────────
+let currentSession = null;
+let charts = {};
+let splitRange = 30; // days
+
+async function loadAll() {
+  await Promise.all([
+    loadSyncStatus(),
+    loadKPIs(),
+    loadSplit(splitRange),
+    loadYoY(),
+    loadDailyChart(),
+    loadHourChart(),
+    loadPriceBuckets(splitRange),
+    loadUsedTypeBreakdown(splitRange),
+    loadTopNew(),
+    loadSlowMovers(),
+  ]);
+}
+
+// Sync status pill
+async function loadSyncStatus() {
+  const { data, error } = await sb.from('ls_sync_state').select('*').eq('id', 1).single();
+  if (error || !data) {
+    $('syncDot').classList.add('err');
+    $('syncText').textContent = 'No sync state';
+    return;
+  }
+  const lastSync = data.last_sync_at;
+  $('syncText').textContent = `Synced ${relTime(lastSync)} · ${fmtInt(data.total_sales_synced)} sales`;
+  $('syncDot').classList.remove('stale','err');
+  if (data.last_sync_status === 'error') $('syncDot').classList.add('err');
+  else if (!lastSync || (Date.now() - new Date(lastSync).getTime()) > 2*3600*1000) $('syncDot').classList.add('stale');
+}
+
+// KPIs — today / WTD / MTD / YTD
+async function loadKPIs() {
+  const sql = `
+    select
+      coalesce(sum(case when sale_date::date = current_date then total_payment end), 0) as today_rev,
+      coalesce(sum(case when sale_date::date = current_date then 1 end), 0) as today_txn,
+      coalesce(sum(case when sale_date >= date_trunc('week', current_date) then total_payment end), 0) as wtd_rev,
+      coalesce(sum(case when sale_date >= date_trunc('week', current_date) then 1 end), 0) as wtd_txn,
+      coalesce(sum(case when sale_date >= date_trunc('month', current_date) then total_payment end), 0) as mtd_rev,
+      coalesce(sum(case when sale_date >= date_trunc('month', current_date) then 1 end), 0) as mtd_txn,
+      coalesce(sum(case when sale_date >= date_trunc('year', current_date) then total_payment end), 0) as ytd_rev,
+      coalesce(sum(case when sale_date >= date_trunc('year', current_date) then 1 end), 0) as ytd_txn,
+      coalesce(sum(case when sale_date >= date_trunc('year', current_date) then used_item_count end), 0) as ytd_used_units
+    from ls_sales_enriched`;
+  const { data, error } = await sb.rpc('run_sql', { query_text: sql });
+  if (error || !data?.ok || !data.rows?.[0]) return renderKPIError();
+  const r = data.rows[0];
+  renderKPIs([
+    { label:'Today',       val:r.today_rev, sub:`${fmtInt(r.today_txn)} ${r.today_txn==1?'sale':'sales'}` },
+    { label:'Week to date',val:r.wtd_rev,  sub:`${fmtInt(r.wtd_txn)} sales` },
+    { label:'Month to date',val:r.mtd_rev, sub:`${fmtInt(r.mtd_txn)} sales` },
+    { label:'Year to date',val:r.ytd_rev,  sub:`${fmtInt(r.ytd_txn)} sales · <strong>${fmtInt(r.ytd_used_units)}</strong> used items`, accent:true },
+  ]);
+}
+function renderKPIs(items) {
+  $('kpis').innerHTML = items.map(it => `
+    <div class="kpi ${it.accent?'accent':''}">
+      <div class="kpi-label">${it.label}</div>
+      <div class="kpi-val">${fmtUSD(it.val)}</div>
+      <div class="kpi-sub">${it.sub}</div>
+    </div>`).join('');
+}
+function renderKPIError() {
+  $('kpis').innerHTML = `<div class="kpi" style="grid-column:1/-1"><div class="kpi-label" style="color:var(--err)">Couldn't load</div><div class="kpi-sub">Check that migrations 006 + 008 ran and run_sql RPC is reachable.</div></div>`;
+}
+
+// Used vs new split + range tabs
+async function loadSplit(days) {
+  const sql = `
+    select
+      coalesce(sum(used_item_revenue), 0) as used_rev,
+      coalesce(sum(new_item_revenue), 0) as new_rev,
+      coalesce(sum(used_item_count), 0) as used_units,
+      coalesce(sum(new_item_count), 0) as new_units
+    from ls_sales_enriched
+    where sale_date >= current_date - interval '${days} days'`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  if (!data?.ok || !data.rows?.[0]) return;
+  const r = data.rows[0];
+  const newR = Number(r.new_rev||0), usedR = Number(r.used_rev||0);
+  const total = newR + usedR || 1;
+  const newPct = (newR/total)*100;
+  const usedPct = (usedR/total)*100;
+  const bar = $('splitBar');
+  bar.innerHTML = `
+    <div class="split-new" style="flex:${newR}">${newR>0?Math.round(newPct)+'% new':''}</div>
+    <div class="split-used" style="flex:${usedR}">${usedR>0?Math.round(usedPct)+'% used':''}</div>`;
+  $('newRev').textContent = fmtUSD(newR);
+  $('newUnits').textContent = `${fmtInt(r.new_units)} items`;
+  $('usedRev').textContent = fmtUSD(usedR);
+  $('usedUnits').textContent = `${fmtInt(r.used_units)} items`;
+  const label = days===365 ? 'Last year' : `Last ${days} days`;
+  $('splitSub').textContent = label;
+}
+
+document.querySelectorAll('#splitTabs .range-tab').forEach(t => {
+  t.addEventListener('click', e => {
+    document.querySelectorAll('#splitTabs .range-tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    splitRange = Number(t.dataset.r);
+    loadSplit(splitRange);
+    loadPriceBuckets(splitRange);
+    loadUsedTypeBreakdown(splitRange);
+  });
+});
+
+// YoY same-week
+async function loadYoY() {
+  const sql = `
+    with tw as (
+      select coalesce(sum(total_payment),0) as rev, count(*) as txn
+      from ls_sales_enriched
+      where sale_date >= date_trunc('week', current_date)
+        and sale_date < date_trunc('week', current_date) + interval '7 days'
+    ), ly as (
+      select coalesce(sum(total_payment),0) as rev, count(*) as txn
+      from ls_sales_enriched
+      where sale_date >= date_trunc('week', current_date) - interval '1 year'
+        and sale_date < date_trunc('week', current_date) - interval '1 year' + interval '7 days'
+    )
+    select tw.rev as tw_rev, tw.txn as tw_txn, ly.rev as ly_rev, ly.txn as ly_txn from tw, ly`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  if (!data?.ok || !data.rows?.[0]) return;
+  const r = data.rows[0];
+  renderYoYStat('Rev', Number(r.tw_rev), Number(r.ly_rev), fmtUSD);
+  renderYoYStat('Txn', Number(r.tw_txn), Number(r.ly_txn), fmtInt);
+}
+function renderYoYStat(name, now, ly, fmt) {
+  $('yoy'+name+'Now').textContent = fmt(now);
+  $('yoy'+name+'LY').textContent = 'Last year: ' + fmt(ly);
+  const el = $('yoy'+name+'Delta');
+  if (ly === 0) { el.textContent = 'no LY data'; el.className = 'delta flat'; return; }
+  const pct = ((now - ly) / ly) * 100;
+  el.textContent = fmtPct(pct);
+  el.className = 'delta ' + (Math.abs(pct) < 1 ? 'flat' : pct > 0 ? 'up' : 'down');
+}
+
+// Daily chart
+async function loadDailyChart() {
+  const sql = `
+    select sale_day::date as day,
+           coalesce(sum(used_item_revenue),0) as used,
+           coalesce(sum(new_item_revenue),0) as new_
+    from ls_sales_enriched
+    where sale_date >= current_date - interval '30 days'
+    group by sale_day
+    order by sale_day`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  if (!data?.ok) return;
+  const rows = data.rows || [];
+  const labels = rows.map(r => new Date(r.day).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+  const newData = rows.map(r => Number(r.new_||0));
+  const usedData = rows.map(r => Number(r.used||0));
+  if (charts.daily) charts.daily.destroy();
+  charts.daily = new Chart($('dailyChart'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        { label:'New', data:newData, backgroundColor:'#7ab87a', borderRadius:6, stack:'s' },
+        { label:'Used', data:usedData, backgroundColor:'#6fa3d0', borderRadius:6, stack:'s' },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{family:'DM Sans', size:12}, color:'#3a322a', boxWidth:12, padding:14 } },
+                tooltip:{ callbacks:{ label:c=>c.dataset.label+': '+fmtUSDc(c.raw) }, titleFont:{family:'Plus Jakarta Sans',weight:700}, bodyFont:{family:'DM Sans'} } },
+      scales:{
+        x:{ stacked:true, grid:{ display:false }, ticks:{ font:{family:'DM Sans',size:10}, color:'#8a8378', maxRotation:0, autoSkip:true, maxTicksLimit:8 } },
+        y:{ stacked:true, grid:{ color:'#ebe4d4' }, ticks:{ font:{family:'DM Mono',size:10}, color:'#8a8378', callback:v=>fmtUSD(v) } }
+      }
+    }
+  });
+}
+
+// Hour chart
+async function loadHourChart() {
+  const sql = `
+    select hour_of_day::int as h, count(*) as txn
+    from ls_sales_enriched
+    where sale_date >= current_date - interval '30 days'
+    group by hour_of_day order by hour_of_day`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  if (!data?.ok) return;
+  // Build full 0-23 series
+  const byHour = new Map((data.rows||[]).map(r => [Number(r.h), Number(r.txn)]));
+  const labels = Array.from({length:24}, (_,i) => i===0?'12a':i<12?i+'a':i===12?'12p':(i-12)+'p');
+  const counts = labels.map((_,i) => byHour.get(i) || 0);
+  if (charts.hour) charts.hour.destroy();
+  charts.hour = new Chart($('hourChart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:counts, backgroundColor:'#f5cb5c', borderRadius:4 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>fmtInt(c.raw)+' sales' } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ font:{family:'DM Mono',size:9}, color:'#8a8378', maxRotation:0, autoSkip:false } },
+        y:{ grid:{ color:'#ebe4d4' }, ticks:{ font:{family:'DM Mono',size:10}, color:'#8a8378', precision:0 } }
+      }
+    }
+  });
+}
+
+// Top new products
+async function loadTopNew() {
+  const sql = `
+    select product_name, brand_name,
+           sum(quantity) as units, sum(line_total) as revenue, sum(margin) as margin
+    from ls_lines_enriched
+    where is_used = false and sold_at >= current_date - interval '30 days'
+    group by product_id, product_name, brand_name
+    order by sum(line_total) desc nulls last
+    limit 10`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  const tbody = $('topNewTbl').querySelector('tbody');
+  if (!data?.ok || !data.rows?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No new-product sales in the last 30 days yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.rows.map(r => `
+    <tr>
+      <td class="name" title="${escapeHtml(r.product_name||'')}">${escapeHtml(r.product_name||'—')}</td>
+      <td class="brand">${escapeHtml(r.brand_name||'—')}</td>
+      <td class="r">${fmtInt(r.units)}</td>
+      <td class="r">${fmtUSDc(r.revenue)}</td>
+      <td class="r">${fmtUSDc(r.margin)}</td>
+    </tr>`).join('');
+}
+
+// Used type mix — renders BOTH a horizontal bar chart and a detail table.
+// Range-aware: re-runs when the user clicks the 7/30/90/1y tabs.
+async function loadUsedTypeBreakdown(days) {
+  const label = days === 365 ? 'Last year' : `Last ${days} days`;
+  $('usedTypeChartSub').textContent = `${label} · units sold`;
+
+  const sql = `
+    select coalesce(product_type_name, product_name, 'Unspecified') as type_name,
+           sum(quantity) as units, sum(line_total) as revenue, avg(price) as avg_price
+    from ls_lines_enriched
+    where is_used = true and sold_at >= current_date - interval '${days} days'
+    group by type_name
+    order by sum(quantity) desc nulls last
+    limit 12`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  const tbody = $('usedTypeTbl').querySelector('tbody');
+
+  if (!data?.ok || !data.rows?.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">No used-item sales in ${label.toLowerCase()} yet.</td></tr>`;
+    if (charts.usedType) { charts.usedType.destroy(); charts.usedType = null; }
+    const ctx = $('usedTypeChart');
+    ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+    return;
+  }
+
+  // Render the table (sorted by units, matches chart order)
+  tbody.innerHTML = data.rows.map(r => `
+    <tr>
+      <td class="name">${escapeHtml(r.type_name)} <span class="pill used">used</span></td>
+      <td class="r">${fmtInt(r.units)}</td>
+      <td class="r">${fmtUSDc(r.revenue)}</td>
+      <td class="r">${fmtUSDc(r.avg_price)}</td>
+    </tr>`).join('');
+
+  // Render the horizontal bar chart
+  const labels = data.rows.map(r => r.type_name);
+  const units = data.rows.map(r => Number(r.units || 0));
+  if (charts.usedType) charts.usedType.destroy();
+  charts.usedType = new Chart($('usedTypeChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Units sold',
+        data: units,
+        backgroundColor: '#6fa3d0',
+        hoverBackgroundColor: '#4a82b0',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${fmtInt(c.raw)} units` },
+                   titleFont: {family:'Plus Jakarta Sans',weight:700}, bodyFont:{family:'DM Sans'} }
+      },
+      scales: {
+        x: { grid: { color:'#ebe4d4' }, ticks: { font:{family:'DM Mono',size:10}, color:'#8a8378', precision:0 } },
+        y: { grid: { display:false }, ticks: { font:{family:'DM Sans',size:12,weight:'600'}, color:'#3a322a' } }
+      }
+    }
+  });
+}
+
+// Price-point distribution — one chart for used, one for new.
+// Bucketing strategy chosen for kids' resale: fine detail at the low end
+// (where most volume lives) and coarser bands at the top so the chart
+// doesn't trail off into a long sparse tail.
+//   $1 buckets from $0 - $19.99   (20 buckets)
+//   $5 buckets from $20 - $49.99   (6 buckets)
+//   single $50+ bucket
+function priceBucket(p) {
+  const price = Number(p || 0);
+  if (price < 0) return null;
+  if (price < 20) return Math.floor(price); // 0-19 → bucket 0..19
+  if (price < 50) return 20 + Math.floor((price - 20) / 5); // 20-49 → bucket 20..25
+  return 26; // $50+
+}
+const BUCKET_LABELS = (() => {
+  const out = [];
+  for (let i = 0; i < 20; i++) out.push(`$${i}`);
+  for (let i = 0; i < 6; i++) out.push(`$${20 + i*5}-${24 + i*5}`);
+  out.push('$50+');
+  return out;
+})();
+
+async function loadPriceBuckets(days) {
+  const label = days === 365 ? 'Last year' : `Last ${days} days`;
+  $('priceUsedSub').textContent = `${label} · count of items sold per price band`;
+  $('priceNewSub').textContent = `${label} · count of items sold per price band`;
+
+  const sql = `
+    select is_used, price, sum(quantity) as units
+    from ls_lines_enriched
+    where sold_at >= current_date - interval '${days} days'
+      and price is not null
+    group by is_used, price
+    order by price`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  if (!data?.ok) return;
+
+  // Bucket on the client (simpler than building a huge CASE in SQL,
+  // and the price-point list returned is small even for a year)
+  const usedBuckets = new Array(BUCKET_LABELS.length).fill(0);
+  const newBuckets = new Array(BUCKET_LABELS.length).fill(0);
+  for (const r of data.rows || []) {
+    const b = priceBucket(r.price);
+    if (b === null) continue;
+    const n = Number(r.units || 0);
+    if (r.is_used) usedBuckets[b] += n;
+    else newBuckets[b] += n;
+  }
+
+  drawPriceChart('priceUsedChart', 'used', usedBuckets, '#6fa3d0', '#4a82b0');
+  drawPriceChart('priceNewChart',  'new',  newBuckets,  '#7ab87a', '#5a9c5a');
+}
+
+function drawPriceChart(canvasId, key, counts, color, hoverColor) {
+  const chartKey = canvasId;
+  if (charts[chartKey]) charts[chartKey].destroy();
+  const hasData = counts.some(n => n > 0);
+  if (!hasData) {
+    const ctx = $(canvasId);
+    ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+    charts[chartKey] = null;
+    return;
+  }
+  charts[chartKey] = new Chart($(canvasId), {
+    type: 'bar',
+    data: {
+      labels: BUCKET_LABELS,
+      datasets: [{
+        label: `${key} items sold`,
+        data: counts,
+        backgroundColor: color,
+        hoverBackgroundColor: hoverColor,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${fmtInt(c.raw)} ${key} items @ ${c.label}` },
+                   titleFont: {family:'Plus Jakarta Sans',weight:700}, bodyFont:{family:'DM Sans'} }
+      },
+      scales: {
+        x: { grid: { display:false },
+             ticks: { font:{family:'DM Mono',size:9}, color:'#8a8378', maxRotation:0, autoSkip:true, maxTicksLimit:14 } },
+        y: { grid: { color:'#ebe4d4' },
+             ticks: { font:{family:'DM Mono',size:10}, color:'#8a8378', precision:0 } }
+      }
+    }
+  });
+}
+
+// Slow movers
+async function loadSlowMovers() {
+  const sql = `
+    select p.name, b.name as brand, pt.name as type,
+           coalesce(sum(il.inventory_level), 0) as on_hand,
+           p.retail_price, p.created_at_ls
+    from ls_products p
+    left join ls_brands b on b.id = p.brand_id
+    left join ls_product_types pt on pt.id = p.product_type_id
+    left join ls_inventory_levels il on il.product_id = p.id
+    where p.deleted_at is null and p.is_active = true and p.is_used_sku = false
+      and not exists (
+        select 1 from ls_sale_line_items li
+        where li.product_id = p.id and li.sold_at >= current_date - interval '60 days'
+      )
+    group by p.id, p.name, b.name, pt.name, p.retail_price, p.created_at_ls
+    having coalesce(sum(il.inventory_level), 0) > 0
+    order by on_hand desc
+    limit 10`;
+  const { data } = await sb.rpc('run_sql', { query_text: sql });
+  const tbody = $('slowTbl').querySelector('tbody');
+  if (!data?.ok || !data.rows?.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No slow movers — every new product has sold recently. 🌼</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.rows.map(r => {
+    const days = r.created_at_ls ? Math.round((Date.now() - new Date(r.created_at_ls).getTime()) / 86400000) : '—';
+    return `<tr>
+      <td class="name">${escapeHtml(r.name||'—')}</td>
+      <td class="brand">${escapeHtml(r.brand||'—')}</td>
+      <td class="brand">${escapeHtml(r.type||'—')}</td>
+      <td class="r">${fmtInt(r.on_hand)}</td>
+      <td class="r">${fmtUSDc(r.retail_price)}</td>
+      <td class="r">${days}d</td>
+    </tr>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ─────────────────────────────────────────────────────────────
+// SYNC NOW BUTTON
+// ─────────────────────────────────────────────────────────────
+$('refreshBtn').addEventListener('click', async () => {
+  const btn = $('refreshBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⟳ Syncing…';
+  try {
+    const r = await fetch(FN_BASE + '/sync_lightspeed', {
+      method:'POST',
+      headers:{ Authorization:'Bearer ' + currentSession.access_token, 'Content-Type':'application/json' },
+      body:'{}'
+    });
+    const result = await r.json();
+    if (!r.ok || !result.ok) throw new Error(result.error || 'Sync failed');
+    btn.textContent = `✓ ${fmtInt(result.salesProcessed)} new`;
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2500);
+    await loadAll();
+  } catch (e) {
+    btn.textContent = '✗ ' + (e.message || 'Failed');
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 4000);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// ASK CLAUDE
+// ─────────────────────────────────────────────────────────────
+async function ask(question) {
+  const q = (question || $('askInput').value || '').trim();
+  if (!q) return;
+  const result = $('askResult');
+  const btn = $('askBtn');
+  btn.disabled = true;
+  const origBtn = btn.textContent;
+  btn.textContent = 'Thinking…';
+
+  result.innerHTML = `<div class="ask-answer loading"><div class="ask-spinner"></div>Analyzing your sales data…</div>`;
+
+  try {
+    const r = await fetch(FN_BASE + '/ask_claude', {
+      method:'POST',
+      headers:{
+        Authorization:'Bearer ' + currentSession.access_token,
+        'Content-Type':'application/json'
+      },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'Couldn\'t get an answer');
+
+    let toolHtml = '';
+    if (data.toolCalls?.length) {
+      toolHtml = `<details class="ask-tool-detail"><summary>Claude ran ${data.toolCalls.length} extra ${data.toolCalls.length===1?'query':'queries'}</summary>` +
+        data.toolCalls.map((t,i) => `<div style="margin-top:6px"><strong>${i+1}.</strong> ${escapeHtml(t.input.reason||'')}<br><span style="opacity:.7">${escapeHtml(t.input.query||'').slice(0,300)}${t.input.query?.length>300?'…':''}</span></div>`).join('') +
+        `</details>`;
+    }
+
+    result.innerHTML = `
+      <div class="ask-answer">${renderAnswer(data.answer)}
+        <div class="ask-meta">
+          <span>Answered in ${(data.tookMs/1000).toFixed(1)}s · ${data.rounds} ${data.rounds===1?'round':'rounds'}</span>
+        </div>
+        ${toolHtml}
+      </div>`;
+  } catch (e) {
+    result.innerHTML = `<div class="ask-answer ask-err">${escapeHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origBtn;
+  }
+}
+
+// Render answer as paragraphs, preserving bullets and bold-ish formatting
+function renderAnswer(text) {
+  // Escape first, then re-inject very-limited formatting
+  let html = escapeHtml(text||'');
+  // **bold** → <strong>
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Bullet lines starting with - or •
+  html = html.replace(/^[ \t]*[-•] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*?<\/li>(?:\n<li>.*?<\/li>)*)/gs, '<ul style="margin:8px 0 8px 18px;padding:0">$1</ul>');
+  // Paragraph breaks
+  return html;
+}
+
+$('askBtn').addEventListener('click', () => ask());
+$('askInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') { e.preventDefault(); ask(); }
+});
+document.querySelectorAll('#askChips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    $('askInput').value = c.dataset.q;
+    ask(c.dataset.q);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────
+(async () => {
+  currentSession = await requireAuth();
+  if (!currentSession) return;
+  loadAll();
+})();
+</script>
+</body>
+</html>
