@@ -164,6 +164,35 @@ td.brand{color:var(--muted);font-size:12.5px}
 .empty h3{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px}
 .empty p{font-size:14px}
 
+/* ─── DATA EXPORT PANEL ─── */
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:6px}
+.export-btn{
+  display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;
+  gap:2px 12px;padding:14px 16px;background:#fff;border:1.5px solid var(--border);
+  border-radius:var(--radius-xs);cursor:pointer;font-family:inherit;text-align:left;
+  transition:all .15s;align-items:center;
+}
+.export-btn:hover{background:#fffbed;border-color:var(--accent-dark);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.export-btn:active{transform:translateY(0)}
+.export-btn:disabled{opacity:.5;cursor:wait;transform:none}
+.export-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:var(--text);grid-column:1;grid-row:1}
+.export-desc{font-size:12px;color:var(--muted);grid-column:1;grid-row:2;line-height:1.4}
+.export-icon{
+  grid-column:2;grid-row:1/3;width:32px;height:32px;border-radius:50%;
+  background:var(--accent);color:var(--dark);display:flex;align-items:center;justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:16px;
+}
+.export-options{
+  display:flex;align-items:center;gap:16px;margin-top:14px;padding-top:14px;
+  border-top:1px solid var(--border);font-size:13px;
+}
+.export-option{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--text);font-weight:600}
+.export-option input{margin:0;accent-color:var(--accent-dark)}
+.export-limit{color:var(--muted);margin-left:auto;font-size:12px}
+.export-status{margin-top:12px;font-size:13px;color:var(--muted);min-height:18px}
+.export-status.ok{color:var(--good)}
+.export-status.err{color:var(--err)}
+
 /* ─── BIG SCREEN ─── */
 @media (max-width:780px){
   .kpis{grid-template-columns:repeat(2,1fr)}
@@ -336,10 +365,78 @@ td.brand{color:var(--muted);font-size:12.5px}
     </tr></thead><tbody><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div>
   </div>
 
+  <!-- ─── DATA EXPORT ─── -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Data export</div>
+        <div class="card-sub">Download any Lightspeed table as a spreadsheet</div>
+      </div>
+    </div>
+    <div class="export-grid">
+      <button class="export-btn" data-table="ls_sales" data-label="Sales">
+        <span class="export-name">Sales</span>
+        <span class="export-desc">Every transaction · totals, dates, customer</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_sale_line_items" data-label="Line items">
+        <span class="export-name">Line items</span>
+        <span class="export-desc">Every item sold · price, cost, product link</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_lines_enriched" data-label="Line items enriched">
+        <span class="export-name">Line items (enriched)</span>
+        <span class="export-desc">Line items + product names, brands, type, category</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_sale_payments" data-label="Payments">
+        <span class="export-name">Payments</span>
+        <span class="export-desc">Cash / card / store credit splits per sale</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_products" data-label="Products">
+        <span class="export-name">Products</span>
+        <span class="export-desc">Full catalog · SKU, brand, cost, retail</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_brands" data-label="Brands">
+        <span class="export-name">Brands</span>
+        <span class="export-desc">All brand names + IDs</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_product_types" data-label="Product types">
+        <span class="export-name">Product types</span>
+        <span class="export-desc">Type categorization (Tops, Pants, etc.)</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_used_sku_catalog" data-label="Used SKU catalog">
+        <span class="export-name">Used SKU catalog</span>
+        <span class="export-desc">The 69 SKUs we tag as used / maternity / non-clothing</span>
+        <span class="export-icon">⤓</span>
+      </button>
+      <button class="export-btn" data-table="ls_outlets" data-label="Outlets">
+        <span class="export-name">Outlets, registers, users</span>
+        <span class="export-desc">Reference data for joins</span>
+        <span class="export-icon">⤓</span>
+      </button>
+    </div>
+    <div class="export-options">
+      <label class="export-option">
+        <input type="radio" name="exportFmt" value="csv" checked> CSV
+      </label>
+      <label class="export-option">
+        <input type="radio" name="exportFmt" value="xlsx"> Excel (.xlsx)
+      </label>
+      <span class="export-limit">Max 50,000 rows per table</span>
+    </div>
+    <div id="exportStatus" class="export-status"></div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="config.js"></script>
 <script>
 // ─────────────────────────────────────────────────────────────
@@ -924,6 +1021,116 @@ document.querySelectorAll('#askChips .chip').forEach(c => {
     $('askInput').value = c.dataset.q;
     ask(c.dataset.q);
   });
+});
+
+// ─────────────────────────────────────────────────────────────
+// DATA EXPORT
+// Pulls full tables via Supabase's PostgREST and dumps to CSV/XLSX.
+// We use the JS client (not run_sql) so we get clean pagination and
+// a return of full rows, not summarized aggregates.
+// ─────────────────────────────────────────────────────────────
+const EXPORT_PAGE_SIZE = 1000;     // PostgREST default max
+const EXPORT_MAX_ROWS  = 50000;    // safety cap so big tables don't crash the tab
+
+async function exportTable(tableName, label) {
+  const fmt = document.querySelector('input[name="exportFmt"]:checked')?.value || 'csv';
+  const status = $('exportStatus');
+  const btn = document.querySelector(`.export-btn[data-table="${tableName}"]`);
+  const origText = btn.querySelector('.export-icon').textContent;
+  btn.disabled = true;
+  btn.querySelector('.export-icon').textContent = '⟳';
+  status.className = 'export-status';
+  status.textContent = `Fetching ${label}…`;
+
+  try {
+    const rows = await fetchAllRows(tableName, status, label);
+    if (!rows.length) {
+      status.className = 'export-status err';
+      status.textContent = `${label}: 0 rows — table is empty.`;
+      return;
+    }
+    if (fmt === 'csv') {
+      downloadCSV(rows, `dandelion_${tableName}_${dateStamp()}.csv`);
+    } else {
+      downloadXLSX(rows, tableName, `dandelion_${tableName}_${dateStamp()}.xlsx`);
+    }
+    status.className = 'export-status ok';
+    status.textContent = `✓ Downloaded ${fmtInt(rows.length)} rows of ${label} as ${fmt.toUpperCase()}.`;
+  } catch (e) {
+    status.className = 'export-status err';
+    status.textContent = `Failed: ${e.message || e}`;
+    console.error('Export failed:', e);
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('.export-icon').textContent = origText;
+  }
+}
+
+async function fetchAllRows(tableName, status, label) {
+  const all = [];
+  let from = 0;
+  while (from < EXPORT_MAX_ROWS) {
+    const to = Math.min(from + EXPORT_PAGE_SIZE - 1, EXPORT_MAX_ROWS - 1);
+    const { data, error } = await sb
+      .from(tableName)
+      .select('*')
+      .range(from, to);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (status) status.textContent = `Fetching ${label}… ${fmtInt(all.length)} rows`;
+    if (data.length < EXPORT_PAGE_SIZE) break;
+    from += EXPORT_PAGE_SIZE;
+  }
+  return all;
+}
+
+function dateStamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+function downloadCSV(rows, filename) {
+  const cols = Object.keys(rows[0]);
+  const csv = [
+    cols.join(','),
+    ...rows.map(r => cols.map(c => csvCell(r[c])).join(','))
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(blob, filename);
+}
+
+function csvCell(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') v = JSON.stringify(v);  // arrays, jsonb
+  const s = String(v);
+  // Escape per RFC 4180: wrap in quotes if contains comma, quote, or newline.
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function downloadXLSX(rows, sheetName, filename) {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  // Sheet names have a 31-char limit
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  XLSX.writeFile(wb, filename);
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.querySelectorAll('.export-btn').forEach(b => {
+  b.addEventListener('click', () => exportTable(b.dataset.table, b.dataset.label));
 });
 
 // ─────────────────────────────────────────────────────────────
