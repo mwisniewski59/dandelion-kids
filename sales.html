@@ -332,7 +332,7 @@ td.brand{color:var(--muted);font-size:12.5px}
       <div><div class="card-title">Slow movers</div><div class="card-sub">New products with inventory · no sales in 60+ days</div></div>
     </div>
     <div style="overflow-x:auto"><table id="slowTbl"><thead><tr>
-      <th>Product</th><th>Brand</th><th>Type</th><th class="r">On hand</th><th class="r">Retail</th><th class="r">Days listed</th>
+      <th>Product</th><th>Brand</th><th>Type</th><th class="r">Last sold</th><th class="r">Retail</th><th class="r">Days listed</th>
     </tr></thead><tbody><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div>
   </div>
 
@@ -625,11 +625,13 @@ async function loadUsedTypeBreakdown(days) {
   $('usedTypeChartSub').textContent = `${label} · units sold`;
 
   const sql = `
-    select coalesce(product_type_name, product_name, 'Unspecified') as type_name,
+    select coalesce(display_type, 'Unspecified') as type_name,
            sum(quantity) as units, sum(line_total) as revenue, avg(price) as avg_price
     from ls_lines_enriched
-    where is_used = true and sold_at >= current_date - interval '${days} days'
-    group by type_name
+    where is_used = true
+      and item_category in ('clothing', 'maternity')
+      and sold_at >= current_date - interval '${days} days'
+    group by display_type
     order by sum(quantity) desc nulls last
     limit 12`;
   const { data } = await sb.rpc('run_sql', { query_text: sql });
@@ -776,40 +778,49 @@ function drawPriceChart(canvasId, key, counts, color, hoverColor) {
   });
 }
 
-// Slow movers
+// Slow movers — new products that haven't sold in 60+ days.
+// Without inventory level data (Lightspeed plan doesn't expose it),
+// we rank by days listed instead of units-on-hand. Includes a "last sold"
+// column so Colleen can see when (if ever) it last moved.
 async function loadSlowMovers() {
   const sql = `
     select p.name, b.name as brand, pt.name as type,
-           coalesce(sum(il.inventory_level), 0) as on_hand,
-           p.retail_price, p.created_at_ls
+           p.retail_price, p.supply_price, p.created_at_ls,
+           (select max(li.sold_at) from ls_sale_line_items li
+            where li.product_id = p.id) as last_sold
     from ls_products p
     left join ls_brands b on b.id = p.brand_id
     left join ls_product_types pt on pt.id = p.product_type_id
-    left join ls_inventory_levels il on il.product_id = p.id
-    where p.deleted_at is null and p.is_active = true and p.is_used_sku = false
+    where p.deleted_at is null
+      and p.is_active = true
+      and p.is_used_sku = false
       and not exists (
         select 1 from ls_sale_line_items li
-        where li.product_id = p.id and li.sold_at >= current_date - interval '60 days'
+        where li.product_id = p.id
+          and li.sold_at >= current_date - interval '60 days'
       )
-    group by p.id, p.name, b.name, pt.name, p.retail_price, p.created_at_ls
-    having coalesce(sum(il.inventory_level), 0) > 0
-    order by on_hand desc
-    limit 10`;
+    order by p.created_at_ls asc nulls last
+    limit 15`;
   const { data } = await sb.rpc('run_sql', { query_text: sql });
   const tbody = $('slowTbl').querySelector('tbody');
   if (!data?.ok || !data.rows?.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">No slow movers — every new product has sold recently. 🌼</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No slow movers — every new product has sold in the last 60 days. 🌼</td></tr>';
     return;
   }
   tbody.innerHTML = data.rows.map(r => {
-    const days = r.created_at_ls ? Math.round((Date.now() - new Date(r.created_at_ls).getTime()) / 86400000) : '—';
+    const daysListed = r.created_at_ls
+      ? Math.round((Date.now() - new Date(r.created_at_ls).getTime()) / 86400000)
+      : '—';
+    const lastSoldLabel = r.last_sold
+      ? Math.round((Date.now() - new Date(r.last_sold).getTime()) / 86400000) + 'd ago'
+      : 'never';
     return `<tr>
       <td class="name">${escapeHtml(r.name||'—')}</td>
       <td class="brand">${escapeHtml(r.brand||'—')}</td>
       <td class="brand">${escapeHtml(r.type||'—')}</td>
-      <td class="r">${fmtInt(r.on_hand)}</td>
+      <td class="r">${lastSoldLabel}</td>
       <td class="r">${fmtUSDc(r.retail_price)}</td>
-      <td class="r">${days}d</td>
+      <td class="r">${daysListed}d</td>
     </tr>`;
   }).join('');
 }
