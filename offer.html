@@ -260,8 +260,11 @@ async function load() {
 
   $('creditAmt').textContent = fmt(offer.credit_amount);
   $('cashAmt').textContent = fmt(offer.venmo_amount);
-  const mult = offer.credit_multiplier || 1.6;
-  const pct = Math.round((mult - 1) * 100);
+  // Bonus badge = how much more store credit is than cash, computed
+  // directly from the two amounts so it's correct under any pricing model.
+  const cashAmt = Number(offer.venmo_amount) || 0;
+  const creditAmt = Number(offer.credit_amount) || 0;
+  const pct = cashAmt > 0 ? Math.round((creditAmt / cashAmt - 1) * 100) : 0;
   $('bonusBadge').textContent = '+' + pct + '% bonus';
 
   // For bulk drops, credit and cash are equal — hide bonus badge

@@ -1147,9 +1147,10 @@ a{color:inherit;text-decoration:none}
       <div class="card-title">Store</div>
       <div class="field"><label>Store Name</label><input id="setStoreName" type="text"></div>
       <div class="g2">
-        <div class="field"><label>Credit Multiplier</label><input id="setCreditMult" type="number" step="0.05" min="1"></div>
-        <div class="field"><label>Reminder Days</label><input id="setReminderDays" type="number" min="1"></div>
+        <div class="field"><label>Cash Offer (% of resale)</label><input id="setCashPct" type="number" step="1" min="0" max="100"></div>
+        <div class="field"><label>Store Credit (% of resale)</label><input id="setCreditPct" type="number" step="1" min="0" max="100"></div>
       </div>
+      <div class="field"><label>Reminder Days</label><input id="setReminderDays" type="number" min="1"></div>
       <div class="g2">
         <div class="field"><label>Bulk Item Price ($)</label><input id="setBulkItem" type="number" step="0.05" min="0"></div>
         <div class="field"><label>Bulk Onesie Price ($)</label><input id="setBulkOnesie" type="number" step="0.05" min="0"></div>
@@ -2866,8 +2867,11 @@ function pricingPanelHtml(d) {
 
   const lines = d.pricing_lines || [];
   const sumQty = lines.reduce((a, l) => a + (l.qty||0), 0);
+  // sumDol is the RESALE total (matrix prices). Cash and credit are
+  // each a configurable fraction of resale (Settings → cash %, credit %).
   const sumDol = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const creditTotal = sumDol * (settings?.credit_multiplier || 1.6);
+  const cashTotal = sumDol * (settings?.cash_pct ?? 0.30);
+  const creditTotal = sumDol * (settings?.credit_pct ?? 0.50);
 
   return `
     <div class="card">
@@ -2988,7 +2992,8 @@ function pricingPanelHtml(d) {
         <div class="card-title" style="margin-bottom:0">Items in This Bag (${lines.length})</div>
         <div style="display:flex;gap:10px">
           <div class="pill"><div class="pill-lbl">Items</div><div class="pill-val">${sumQty}</div></div>
-          <div class="pill"><div class="pill-lbl">Cash Total</div><div class="pill-val" id="totalCash">${fmt$(sumDol)}</div></div>
+          <div class="pill"><div class="pill-lbl">Resale Total</div><div class="pill-val" id="totalResale">${fmt$(sumDol)}</div></div>
+          <div class="pill"><div class="pill-lbl">Cash Total</div><div class="pill-val" id="totalCash">${fmt$(cashTotal)}</div></div>
           <div class="pill featured"><div class="pill-lbl">Credit Total</div><div class="pill-val" id="totalCredit">${fmt$(creditTotal)}</div></div>
         </div>
       </div>
@@ -3128,8 +3133,9 @@ async function finishPricing() {
   // Compute totals and stamp priced_at, but DO NOT advance the stage yet.
   // Stage stays 'pricing' until staff clicks "Mark Offer Sent" on the review screen.
   const lines = d.pricing_lines || [];
-  const cash = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const credit = cash * (settings?.credit_multiplier || 1.6);
+  const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
+  const cash = resale * (settings?.cash_pct ?? 0.30);
+  const credit = resale * (settings?.credit_pct ?? 0.50);
   const { error } = await sb.from('dropoffs').update({
     venmo_amount: cash,
     credit_amount: credit,
@@ -3166,8 +3172,9 @@ function renderReviewOverlay() {
   const c = d.customer || {};
   const lines = d.pricing_lines || [];
   const sumQty = lines.reduce((a, l) => a + (l.qty||0), 0);
-  const cash = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const credit = cash * (settings?.credit_multiplier || 1.6);
+  const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
+  const cash = resale * (settings?.cash_pct ?? 0.30);
+  const credit = resale * (settings?.credit_pct ?? 0.50);
 
   // Step indicators
   const offerSent = !!d.offer_sent_at;
@@ -3211,6 +3218,10 @@ function renderReviewOverlay() {
       <div class="review-total-card">
         <div class="review-total-lbl">Items</div>
         <div class="review-total-val">${sumQty}</div>
+      </div>
+      <div class="review-total-card">
+        <div class="review-total-lbl">Resale Value</div>
+        <div class="review-total-val">${fmt$(resale)}</div>
       </div>
       <div class="review-total-card">
         <div class="review-total-lbl">Cash (Venmo)</div>
@@ -3263,8 +3274,9 @@ async function reviewRemoveLine(i) {
   const lines = (d.pricing_lines || []).slice();
   lines.splice(i, 1);
   // Recompute totals so the review header stays in sync
-  const cash = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const credit = cash * (settings?.credit_multiplier || 1.6);
+  const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
+  const cash = resale * (settings?.cash_pct ?? 0.30);
+  const credit = resale * (settings?.credit_pct ?? 0.50);
   const { error } = await sb.from('dropoffs').update({
     pricing_lines: lines,
     venmo_amount: cash,
@@ -5038,7 +5050,8 @@ function exportInsightsCSV() {
 function renderSettings() {
   if (!settings) return;
   $('setStoreName').value = settings.store_name;
-  $('setCreditMult').value = settings.credit_multiplier;
+  $('setCashPct').value = Math.round((settings.cash_pct ?? 0.30) * 100);
+  $('setCreditPct').value = Math.round((settings.credit_pct ?? 0.50) * 100);
   $('setReminderDays').value = settings.reminder_days;
   $('setBulkItem').value = settings.bulk_item_price;
   $('setBulkOnesie').value = settings.bulk_onesie_price;
@@ -5065,7 +5078,8 @@ async function saveSettings() {
   if (!canEditAdmin()) { toast('Unlock settings first'); return; }
   const update = {
     store_name: $('setStoreName').value.trim(),
-    credit_multiplier: Number($('setCreditMult').value) || 1.6,
+    cash_pct: Math.min(Math.max(Number($('setCashPct').value) || 30, 0), 100) / 100,
+    credit_pct: Math.min(Math.max(Number($('setCreditPct').value) || 50, 0), 100) / 100,
     reminder_days: Number($('setReminderDays').value) || 4,
     bulk_item_price: Number($('setBulkItem').value) || 0.5,
     bulk_onesie_price: Number($('setBulkOnesie').value) || 0.25,
