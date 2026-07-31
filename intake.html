@@ -470,8 +470,10 @@ function validateContactAndNext() {
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   $('emailField').classList.toggle('has-err', !emailOk);
   if (!emailOk) ok = false;
-  $('phoneField').classList.toggle('has-err', !phone);
-  if (!phone) ok = false;
+  // Accept any format, but require at least 7 digits so we get a usable number
+  const phoneOk = phone.replace(/\D/g, '').length >= 7;
+  $('phoneField').classList.toggle('has-err', !phoneOk);
+  if (!phoneOk) ok = false;
   if (ok) nextStep();
 }
 

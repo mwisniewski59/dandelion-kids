@@ -311,16 +311,31 @@ function selectLeft(l) {
 }
 
 function refreshSubmit() {
+  if (!offer) return;
   const leftRequired = !(offer.donate_all || offer.drop_type === 'bulk');
-  const ready = pay && (!leftRequired || left);
+  // Cash payouts require a Venmo handle — otherwise we have no way to pay.
+  const venmoOk = pay !== 'cash' || ($('venmo').value || '').trim().length > 0;
+  const ready = pay && venmoOk && (!leftRequired || left);
   $('submitBtn').disabled = !ready;
 }
+
+// Re-check as the customer types their handle
+$('venmo').addEventListener('input', refreshSubmit);
 
 async function submit() {
   const btn = $('submitBtn');
   const status = $('status');
   status.className = 'status';
   status.textContent = '';
+
+  // Belt-and-suspenders: never submit a cash choice without a Venmo handle.
+  if (pay === 'cash' && !($('venmo').value || '').trim()) {
+    status.className = 'status err';
+    status.textContent = 'Please enter your Venmo handle so we can pay you.';
+    $('venmo').focus();
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Submitting…';
 

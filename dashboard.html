@@ -1800,6 +1800,9 @@ const SPECIAL_TIERS = ['Custom Price','DO NOT BUY','Very Best'];
 const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt$ = n => '$' + Number(n||0).toFixed(2);
+// Round to whole cents before persisting money — raw float math (e.g.
+// resale * 0.30) would otherwise store values like 12.600000000000001.
+const cents = n => Math.round((Number(n) || 0) * 100) / 100;
 const fmt$Int = n => '$' + Math.round(Number(n||0)).toLocaleString();
 const fmtDate = d => d ? new Date(d).toLocaleDateString() : '';
 const fmtDateTime = d => d ? new Date(d).toLocaleString() : '';
@@ -1914,7 +1917,9 @@ async function initApp() {
 
 async function loadPricingConfig() {
   const { data, error } = await sb.from('pricing_config').select('data').eq('id', 1).single();
-  if (!error && data) {
+  // Pricing config is required for the app to work — fail loudly, not silently.
+  if (error) throw new Error('Could not load pricing config: ' + error.message);
+  if (data) {
     pricingData = data.data;
     if (!pricingData.pricingTiers) pricingData.pricingTiers = Object.keys(pricingData.pricing || {});
     activePricingTier = pricingData.pricingTiers[0] || '';
@@ -1923,7 +1928,9 @@ async function loadPricingConfig() {
 
 async function loadSettings() {
   const { data, error } = await sb.from('settings').select('*').eq('id', 1).single();
-  if (!error && data) settings = data;
+  // Settings are required for the app to work — fail loudly, not silently.
+  if (error) throw new Error('Could not load settings: ' + error.message);
+  if (data) settings = data;
 }
 
 async function loadDropoffs() {
@@ -1940,7 +1947,8 @@ async function loadDropoffs() {
 
 async function loadCustomers() {
   const { data, error } = await sb.from('customers').select('*').order('created_at', { ascending: false });
-  if (!error) customers = data || [];
+  if (error) { toast('Could not load customers: ' + error.message); return; }
+  customers = data || [];
 }
 
 // ============================================================
@@ -2557,7 +2565,7 @@ function renderItemSheet() {
           <td><strong>${esc(r.brand)}</strong></td>
           <td>${esc(r.type)}</td>
           <td><span style="color:var(--muted)">${esc(shortSize(r.size) || r.size || '—')}</span></td>
-          <td><span class="badge ${tierClass(r.tier)}">${esc(r.tier)}</span></td>
+          <td><span class="badge ${esc(tierClass(r.tier))}">${esc(r.tier)}</span></td>
           <td>${r.condition ? `<span style="color:var(--accent-dark);font-weight:700">${esc(r.condition)}</span>` : '—'}</td>
           <td class="num">${r.qty || 0}</td>
           <td class="num">${fmt$(r.price || 0)}</td>
@@ -2615,7 +2623,7 @@ function sheetRowHtml(d, cols) {
       case 'email':         return `<td>${esc(c.email||'—')}</td>`;
       case 'phone':         return `<td>${esc(c.phone||'—')}</td>`;
       case 'drop_type':     return `<td>${d.drop_type === 'bulk' ? '<span class="kcard-tag bulk">Bulk</span>' : '<span class="kcard-tag std">Std</span>'}</td>`;
-      case 'stage':         return `<td><span class="sheet-stage ${d.stage}">${esc(STAGE_NAMES[d.stage] || d.stage)}</span></td>`;
+      case 'stage':         return `<td><span class="sheet-stage ${esc(d.stage)}">${esc(STAGE_NAMES[d.stage] || d.stage)}</span></td>`;
       case 'bag_description': return `<td>${esc((d.bag_description||'').slice(0,40))}</td>`;
       case 'item_count':    return `<td class="num">${d.item_count != null ? d.item_count : '—'}</td>`;
       case 'venmo_amount':  return `<td class="num">${d.venmo_amount != null ? fmt$(d.venmo_amount) : '—'}</td>`;
@@ -2873,7 +2881,16 @@ function pricingPanelHtml(d) {
   const cashTotal = sumDol * (settings?.cash_pct ?? 0.30);
   const creditTotal = sumDol * (settings?.credit_pct ?? 0.50);
 
+  // Items are locked once the drop-off leaves the Pricing stage — the offer
+  // the customer received must always match the item list on record.
+  const locked = d.stage !== 'pricing';
+
   return `
+    ${locked ? `
+    <div class="card" style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:22px;line-height:1">🔒</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5"><strong style="color:var(--text)">Item list locked.</strong> This drop-off has left the Pricing stage, so items can no longer be added or removed — that way the offer the customer received always matches this list.</div>
+    </div>` : `
     <div class="card">
       <div class="card-title">Add an Item</div>
 
@@ -2985,7 +3002,7 @@ function pricingPanelHtml(d) {
         <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
         <button class="btn btn-primary btn-lg" id="addBtn" onclick="addLine()" disabled>+ Add Item</button>
       </div>
-    </div>
+    </div>`}
 
     <div class="card" style="margin-top:18px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -2999,9 +3016,9 @@ function pricingPanelHtml(d) {
       </div>
       <div style="overflow-x:auto">
         <table class="line-table">
-          <thead><tr><th>Item</th><th>Tier</th><th>Size</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th><th></th></tr></thead>
+          <thead><tr><th>Item</th><th>Tier</th><th>Size</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th>${locked ? '' : '<th></th>'}</tr></thead>
           <tbody id="linesBody">
-            ${lines.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-style:italic">No items yet — add the first one above.</td></tr>` : lines.map((l,i) => lineRowHtml(l,i)).join('')}
+            ${lines.length === 0 ? `<tr><td colspan="${locked ? 6 : 7}" style="text-align:center;color:var(--muted);padding:28px;font-style:italic">No items yet${locked ? '' : ' — add the first one above'}.</td></tr>` : lines.map((l,i) => lineRowHtml(l,i,locked)).join('')}
           </tbody>
         </table>
       </div>
@@ -3015,6 +3032,17 @@ function bulkPricingPanelHtml(d) {
   const itemPrice = settings?.bulk_item_price || 0.5;
   const onesiePrice = settings?.bulk_onesie_price || 0.25;
   const total = items * itemPrice + onesies * onesiePrice;
+  // Same lock as standard drops: counts can't change once the offer is out.
+  if (d.stage !== 'pricing') {
+    return `
+    <div class="card">
+      <div class="card-title">Bulk Pricing</div>
+      <div class="kv"><span class="k">Regular Items × ${fmt$(itemPrice)}</span><span class="v">${items}</span></div>
+      <div class="kv"><span class="k">Onesies / Baby Pants × ${fmt$(onesiePrice)}</span><span class="v">${onesies}</span></div>
+      <div class="kv"><span class="k">Total (cash = credit)</span><span class="v"><strong>${fmt$(total)}</strong></span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px">🔒 Counts are locked once the drop-off leaves the Pricing stage.</div>
+    </div>`;
+  }
   return `
     <div class="card">
       <div class="card-title">Bulk Pricing</div>
@@ -3051,9 +3079,11 @@ function recalcBulk() {
 }
 
 async function saveBulkAndAdvance() {
+  const d = getDropoff(currentDropoffId);
+  if (!d || d.stage !== 'pricing') { toast('Counts are locked once the drop-off leaves Pricing.'); return; }
   const items = Number($('bulkItems').value) || 0;
   const onesies = Number($('bulkOnesies').value) || 0;
-  const total = items * (settings?.bulk_item_price || 0.5) + onesies * (settings?.bulk_onesie_price || 0.25);
+  const total = cents(items * (settings?.bulk_item_price || 0.5) + onesies * (settings?.bulk_onesie_price || 0.25));
   const lines = [
     { brand: 'Bulk', type: 'Regular items', size: '—', tier: 'Bulk', price: settings?.bulk_item_price || 0.5, qty: items },
     { brand: 'Bulk', type: 'Onesies/Baby pants', size: '—', tier: 'Bulk', price: settings?.bulk_onesie_price || 0.25, qty: onesies }
@@ -3134,8 +3164,8 @@ async function finishPricing() {
   // Stage stays 'pricing' until staff clicks "Mark Offer Sent" on the review screen.
   const lines = d.pricing_lines || [];
   const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const cash = resale * (settings?.cash_pct ?? 0.30);
-  const credit = resale * (settings?.credit_pct ?? 0.50);
+  const cash = cents(resale * (settings?.cash_pct ?? 0.30));
+  const credit = cents(resale * (settings?.credit_pct ?? 0.50));
   const { error } = await sb.from('dropoffs').update({
     venmo_amount: cash,
     credit_amount: credit,
@@ -3260,7 +3290,7 @@ function reviewLineRowHtml(l, i) {
       <div class="item-brand">${esc(l.brand)}</div>
       <div class="item-meta">${metaBits.join(' · ')}</div>
     </td>
-    <td><span class="badge ${tierClass(l.tier)}">${esc(l.tier)}</span></td>
+    <td><span class="badge ${esc(tierClass(l.tier))}">${esc(l.tier)}</span></td>
     <td><span style="color:var(--muted);font-size:13px">${esc(shortSize(l.size) || l.size)}</span></td>
     <td class="num">${l.qty}</td>
     <td class="num">${fmt$(l.price)}</td>
@@ -3271,12 +3301,23 @@ function reviewLineRowHtml(l, i) {
 
 async function reviewRemoveLine(i) {
   const d = getDropoff(currentDropoffId);
-  const lines = (d.pricing_lines || []).slice();
+  // Re-fetch the latest lines so a stale copy can't clobber concurrent edits
+  // (and a stale row index can't remove the wrong item).
+  const { data: fresh, error: freshErr } = await sb.from('dropoffs')
+    .select('pricing_lines').eq('id', currentDropoffId).single();
+  if (freshErr) { toast('Could not save — ' + freshErr.message); return; }
+  const cached = d.pricing_lines || [];
+  const current = fresh.pricing_lines || [];
+  if (JSON.stringify(cached) !== JSON.stringify(current)) {
+    toast('This bag was changed by someone else — list refreshed, please try again.');
+    await loadDropoffs(); renderReviewOverlay(); return;
+  }
+  const lines = current.slice();
   lines.splice(i, 1);
   // Recompute totals so the review header stays in sync
   const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
-  const cash = resale * (settings?.cash_pct ?? 0.30);
-  const credit = resale * (settings?.credit_pct ?? 0.50);
+  const cash = cents(resale * (settings?.cash_pct ?? 0.30));
+  const credit = cents(resale * (settings?.credit_pct ?? 0.50));
   const { error } = await sb.from('dropoffs').update({
     pricing_lines: lines,
     venmo_amount: cash,
@@ -3330,23 +3371,6 @@ async function markPaid() {
   await loadDropoffs();
   renderDetail();
   toast(wantsPickup ? 'Paid — now awaiting pickup' : 'Paid and resolved');
-}
-
-// Legacy function — kept for the override modal that resolves directly.
-// (Override is used when customer never replied; in that case we usually
-// auto-donate, so we go straight to resolved.)
-async function markResolved() {
-  const { error } = await sb.from('dropoffs').update({
-    stage: 'resolved',
-    resolved_at: new Date().toISOString(),
-    paid_at: new Date().toISOString(),
-    paid_by: me.email
-  }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
-  await logActivity('resolved');
-  await loadDropoffs();
-  renderDetail();
-  toast('Resolved');
 }
 
 // Customer came in and picked up their leftovers — close out the drop-off.
@@ -3597,6 +3621,11 @@ async function submitWalkIn() {
 
   // Validation
   if (!name) { err.textContent = 'Name is required.'; err.style.display = 'block'; return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    err.textContent = 'That email address doesn\'t look right.';
+    err.style.display = 'block';
+    return;
+  }
   if (!payment) { err.textContent = 'Pick a payment choice.'; err.style.display = 'block'; return; }
   if (payment !== 'none' && (!amountRaw || isNaN(Number(amountRaw)) || Number(amountRaw) < 0)) {
     err.textContent = 'Enter a valid amount (or pick "Took No Payment").';
@@ -3694,7 +3723,11 @@ async function reopenDropoff() {
   const { error } = await sb.from('dropoffs').update({
     stage: 'awaiting_customer',
     resolved_at: null,
-    paid_at: null
+    paid_at: null,
+    // Clear pickup stamps too — they belong to a later stage than the one
+    // we're reopening to, and leaving them set produces an inconsistent record.
+    picked_up_at: null,
+    picked_up_by: null
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await loadDropoffs();
@@ -4154,7 +4187,17 @@ async function addLine() {
     line.retail_source = ($('inRetailSource').value || '').trim();
   }
   const d = getDropoff(currentDropoffId);
-  const lines = (d.pricing_lines || []).concat([line]);
+  if (!d || d.stage !== 'pricing') { toast('Items are locked once the drop-off leaves Pricing.'); return; }
+  // Re-fetch the latest lines from the server and append to THOSE, so a
+  // stale local copy never wipes out items another staff member just added.
+  const { data: fresh, error: freshErr } = await sb.from('dropoffs')
+    .select('pricing_lines, stage').eq('id', currentDropoffId).single();
+  if (freshErr) { toast('Could not save — ' + freshErr.message); return; }
+  if (fresh.stage !== 'pricing') {
+    toast('Items are locked once the drop-off leaves Pricing.');
+    await loadDropoffs(); renderDetail(); return;
+  }
+  const lines = (fresh.pricing_lines || []).concat([line]);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await loadDropoffs();
@@ -4162,7 +4205,7 @@ async function addLine() {
   initPricingTool(getDropoff(currentDropoffId));
 }
 
-function lineRowHtml(l, i) {
+function lineRowHtml(l, i, locked = false) {
   const metaBits = [esc(l.type)];
   if (l.condition) metaBits.push(`<span style="color:var(--accent-dark);font-weight:700">${esc(l.condition)}</span>`);
   if (l.retail_price) metaBits.push(`<span style="color:var(--muted)">retail ${fmt$(l.retail_price)}</span>`);
@@ -4171,18 +4214,36 @@ function lineRowHtml(l, i) {
       <div class="item-brand">${esc(l.brand)}</div>
       <div class="item-meta">${metaBits.join(' · ')}</div>
     </td>
-    <td><span class="badge ${tierClass(l.tier)}">${esc(l.tier)}</span></td>
+    <td><span class="badge ${esc(tierClass(l.tier))}">${esc(l.tier)}</span></td>
     <td><span style="color:var(--muted);font-size:13px">${esc(shortSize(l.size) || l.size)}</span></td>
     <td class="num">${l.qty}</td>
     <td class="num">${fmt$(l.price)}</td>
     <td class="num"><strong>${fmt$(l.price * l.qty)}</strong></td>
-    <td class="act"><button class="btn btn-danger btn-sm" onclick="removeLine(${i})" title="Remove">×</button></td>
+    ${locked ? '' : `<td class="act"><button class="btn btn-danger btn-sm" onclick="removeLine(${i})" title="Remove">×</button></td>`}
   </tr>`;
 }
 
 async function removeLine(i) {
   const d = getDropoff(currentDropoffId);
-  const lines = (d.pricing_lines || []).slice();
+  if (!d || d.stage !== 'pricing') { toast('Items are locked once the drop-off leaves Pricing.'); return; }
+  // Re-fetch the latest lines from the server so we never clobber another
+  // staff member's concurrent edits with a stale local copy.
+  const { data: fresh, error: freshErr } = await sb.from('dropoffs')
+    .select('pricing_lines, stage').eq('id', currentDropoffId).single();
+  if (freshErr) { toast('Could not save — ' + freshErr.message); return; }
+  if (fresh.stage !== 'pricing') {
+    toast('Items are locked once the drop-off leaves Pricing.');
+    await loadDropoffs(); renderDetail(); return;
+  }
+  const cached = d.pricing_lines || [];
+  const current = fresh.pricing_lines || [];
+  if (JSON.stringify(cached) !== JSON.stringify(current)) {
+    // Someone else changed this bag since we loaded it — the row index may
+    // point at the wrong item now. Refresh instead of guessing.
+    toast('This bag was changed by someone else — list refreshed, please try again.');
+    await loadDropoffs(); renderDetail(); return;
+  }
+  const lines = current.slice();
   lines.splice(i, 1);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
@@ -4525,7 +4586,7 @@ function renderCustomerDetail() {
           <tr onclick="openDropoff('${d.id}')">
             <td>${esc(fmtDate(d.dropped_at))}</td>
             <td>${d.drop_type === 'bulk' ? '<span class="kcard-tag bulk">Bulk</span>' : '<span class="kcard-tag std">Std</span>'}</td>
-            <td><span class="sheet-stage ${d.stage}">${esc(STAGE_NAMES[d.stage] || d.stage)}</span></td>
+            <td><span class="sheet-stage ${esc(d.stage)}">${esc(STAGE_NAMES[d.stage] || d.stage)}</span></td>
             <td>${esc((d.bag_description||'').slice(0,40) || '—')}</td>
             <td style="text-align:right;font-family:'DM Mono',monospace">${d.venmo_amount != null ? fmt$(d.venmo_amount) : '—'}</td>
             <td style="text-align:right;font-family:'DM Mono',monospace">${d.credit_amount != null ? fmt$(d.credit_amount) : '—'}</td>
@@ -5049,7 +5110,7 @@ function exportInsightsCSV() {
 // ============================================================
 function renderSettings() {
   if (!settings) return;
-  $('setStoreName').value = settings.store_name;
+  $('setStoreName').value = settings.store_name ?? '';
   $('setCashPct').value = Math.round((settings.cash_pct ?? 0.30) * 100);
   $('setCreditPct').value = Math.round((settings.credit_pct ?? 0.50) * 100);
   $('setReminderDays').value = settings.reminder_days;
@@ -5553,7 +5614,7 @@ function updateSettingsLockBar() {
   const importBtn = $('openImporterBtn');
 
   const lockInputs = (locked) => {
-    ['setStoreName','setCreditMult','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
+    ['setStoreName','setCashPct','setCreditPct','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
      'setShoeExcellent','setShoeGently','setShoeNotGreat','setBabyCarrierDivisor','setHatFlatPrice']
       .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
     if (saveBtn) saveBtn.disabled = locked;
@@ -5620,6 +5681,7 @@ function closeUnlockModal() { $('unlockModal').classList.remove('open'); }
 async function submitUnlock() {
   const pw = $('unlockPw').value;
   if (!pw) return;
+  if (!settings) { toast('Settings not loaded yet — try reloading the page.'); return; }
   const hash = await hashPassword(pw);
   if (hash === settings.admin_password_hash) {
     adminUnlocked = true;
@@ -5739,7 +5801,7 @@ function renderBrandsAdmin() {
               ? `<strong>${esc(name)}</strong>`
               : `<input class="edit-inline" value="${esc(name)}" onchange="renameBrand('${esc(name).replace(/'/g,"\\'")}', this.value)">`}</td>
             <td>${locked
-              ? `<span class="badge ${tierClass(tier)}">${esc(tier)}</span>`
+              ? `<span class="badge ${esc(tierClass(tier))}">${esc(tier)}</span>`
               : `<select class="fselect-inline" onchange="setBrandTier('${esc(name).replace(/'/g,"\\'")}', this.value)">
                   ${tiers.map(t => `<option value="${esc(t)}" ${t === tier ? 'selected' : ''}>${esc(t)}</option>`).join('')}
                 </select>`}</td>
@@ -6791,7 +6853,26 @@ async function commitImport() {
 // ============================================================
 //  Boot
 // ============================================================
-checkSession();
+// If anything fails during boot (network down, Supabase unreachable, a
+// required table failed to load) show a visible error + reload button
+// instead of a blank white page.
+(async function boot() {
+  try {
+    await checkSession();
+  } catch (err) {
+    console.error('Boot failed:', err);
+    const msg = (err && err.message) ? err.message : 'Network error';
+    document.body.insertAdjacentHTML('beforeend', `
+      <div style="position:fixed;inset:0;background:#faf6ef;display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px">
+        <div style="max-width:440px;text-align:center;font-family:'DM Sans',sans-serif;color:#3a322a">
+          <div style="font-size:42px;margin-bottom:12px">🌼</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:19px;margin-bottom:8px">Couldn't load the dashboard</div>
+          <div style="font-size:14px;color:#8a8378;line-height:1.5;margin-bottom:18px">${esc(msg)}<br>Check your internet connection, then try again.</div>
+          <button onclick="location.reload()" style="padding:13px 28px;border:none;border-radius:12px;background:#f5cb5c;color:#3a322a;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;cursor:pointer">Reload</button>
+        </div>
+      </div>`);
+  }
+})();
 </script>
 </body>
 </html>
