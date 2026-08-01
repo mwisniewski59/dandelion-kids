@@ -1756,6 +1756,657 @@ a{color:inherit;text-decoration:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ============================================================
+//  DANDELION KIDS — Pricing engine (browser build)
+//
+//  GENERATED FILE — do not edit by hand.
+//  Source: pricing/pricing-engine.js + pricing/config-from-supabase.js
+//  Rebuild: node pricing/build-browser.mjs
+//
+//  Exposes window.DandelionPricing with:
+//    price(item, config) -> { price, status, missing, steps, explain() }
+//    payout(resale, config), bagTotal(lines, config), cents(n)
+//    resolveItem(item, config), requiredAttributes(resolved, config)
+//    validateConfig(config)
+//    configFromSupabase(pricingData, settings)
+// ============================================================
+(function (root) {
+  'use strict';
+
+  var engine = (function () {
+// ============================================================
+//  DANDELION KIDS — Pricing Engine
+//
+//  A pure function: (item, config) -> price + explanation.
+//
+//  Deliberately has NO knowledge of Supabase, the DOM, dates, or
+//  randomness. That is what makes it:
+//    - testable without a browser or a database
+//    - safe to run in parallel with the current code to prove parity
+//    - unaffected by how you eventually store per-shop config
+//      (one row, one row per shop, or a separate database entirely)
+//
+//  The shape of a shop's pricing is DATA, not code. Adding an
+//  attribute or a rule is a config change, not a deploy. That is the
+//  difference between "my shop's tool" and "software other shops buy".
+// ============================================================
+
+// ── Money ───────────────────────────────────────────────────
+// Every price that leaves this module is rounded to whole cents.
+// Float math (retail / 3, price * 0.75) otherwise produces values
+// like 12.600000000000001 which then get stored and summed.
+const cents = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+// ── Small helpers ───────────────────────────────────────────
+const isBlank = (v) => v === null || v === undefined || String(v).trim() === '';
+const lc = (v) => String(v ?? '').trim().toLowerCase();
+const eqi = (a, b) => lc(a) === lc(b);
+
+/**
+ * Number coercion that treats 0 as a real value.
+ *
+ * The current dashboard uses `Number(x) || fallback` throughout, which
+ * silently turns a configured 0 into the fallback — so a shop that sets
+ * a condition multiplier to 0 ("we don't buy these") gets 1.0 instead,
+ * i.e. full price. This uses ?? semantics so 0 means 0.
+ */
+const num = (v, fallback = null) => {
+  if (v === null || v === undefined || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+// ============================================================
+//  Expression evaluation
+//
+//  Expressions are small JSON objects so they can be authored and
+//  edited by a settings UI rather than written as code. Keeping the
+//  vocabulary deliberately tiny keeps a future editor buildable.
+// ============================================================
+function evalExpr(expr, ctx) {
+  if (expr === null || expr === undefined) return null;
+  if (typeof expr === 'number') return expr;
+
+  // { const: 5 }
+  if ('const' in expr) return num(expr.const, null);
+
+  // { input: 'retail_price' } — a value the staff member typed
+  if ('input' in expr) return num(ctx.item[expr.input], null);
+
+  // { table: 'base_matrix', by: ['tier','type','size'] } — nested lookup
+  if ('table' in expr) {
+    const table = ctx.config.lookups?.[expr.table];
+    if (!table) return null;
+    let node = table;
+    for (const key of expr.by || []) {
+      const val = ctx.resolved[key] ?? ctx.item[key];
+      if (isBlank(val) || node == null) return null;
+      node = node[val];
+      if (node === undefined) return null;
+    }
+    return num(node, null);
+  }
+
+  // { lookup: 'condition_multipliers', by: 'condition', default: 1 } — flat map
+  if ('lookup' in expr) {
+    const map = ctx.config.lookups?.[expr.lookup] || {};
+    const key = ctx.resolved[expr.by] ?? ctx.item[expr.by];
+    if (isBlank(key)) return num(expr.default, null);
+    // exact match first, then case-insensitive — tolerant of config drift
+    if (key in map) return num(map[key], num(expr.default, null));
+    const hit = Object.keys(map).find((k) => eqi(k, key));
+    return hit !== undefined ? num(map[hit], num(expr.default, null)) : num(expr.default, null);
+  }
+
+  // { behavior_field: 'price' } — a value attached to this type's behavior
+  if ('behavior_field' in expr) {
+    return num(ctx.resolved.behavior?.[expr.behavior_field], num(expr.default, null));
+  }
+
+  // { divide: [a, b] } / { multiply: [...] } / { add: [...] }
+  if ('divide' in expr) {
+    const [a, b] = expr.divide.map((e) => evalExpr(e, ctx));
+    if (a === null || b === null || b === 0) return null; // never divide by zero
+    return a / b;
+  }
+  if ('multiply' in expr) {
+    const vals = expr.multiply.map((e) => evalExpr(e, ctx));
+    if (vals.some((v) => v === null)) return null;
+    return vals.reduce((a, b) => a * b, 1);
+  }
+  if ('add' in expr) {
+    const vals = expr.add.map((e) => evalExpr(e, ctx));
+    if (vals.some((v) => v === null)) return null;
+    return vals.reduce((a, b) => a + b, 0);
+  }
+
+  return null;
+}
+
+// ============================================================
+//  Condition matching for rules
+// ============================================================
+function matchCondition(when, ctx) {
+  if (!when || Object.keys(when).length === 0) return true; // {} = always
+
+  for (const [key, test] of Object.entries(when)) {
+    if (key === 'behavior') {
+      if (!eqi(ctx.resolved.behaviorKind, test)) return false;
+      continue;
+    }
+    if (key === 'has') {
+      if (isBlank(ctx.resolved[test] ?? ctx.item[test])) return false;
+      continue;
+    }
+    if (key === 'is_shoe') {
+      if (ctx.resolved.isShoe !== test) return false;
+      continue;
+    }
+
+    const actual = ctx.resolved[key] ?? ctx.item[key];
+
+    if (test && typeof test === 'object' && !Array.isArray(test)) {
+      if ('in' in test) {
+        if (!test.in.some((v) => eqi(v, actual))) return false;
+        continue;
+      }
+      if ('not_in' in test) {
+        if (test.not_in.some((v) => eqi(v, actual))) return false;
+        continue;
+      }
+      if ('gt' in test) {
+        if (!(num(actual, -Infinity) > test.gt)) return false;
+        continue;
+      }
+      return false;
+    }
+
+    if (!eqi(test, actual)) return false;
+  }
+  return true;
+}
+
+// ============================================================
+//  Resolution — derive tier / behavior / forced type
+// ============================================================
+function resolveItem(item, config) {
+  const brands = config.lookups?.brands || {};
+  const behaviors = config.type_behaviors || {};
+  const shoeTypes = config.shoe_types || [];
+  const brandRules = config.brand_rules || [];
+
+  // A brand rule can force an item type ("all Nike goes in as Shoes")
+  const brandRule =
+    brandRules.find((r) => (r.brands || []).some((b) => eqi(b, item.brand))) || null;
+
+  const type = brandRule?.force_type || item.type;
+
+  // Explicit tier wins; otherwise derive from brand
+  let tier = item.tier;
+  if (isBlank(tier) && !isBlank(item.brand)) {
+    if (item.brand in brands) tier = brands[item.brand];
+    else {
+      const hit = Object.keys(brands).find((b) => eqi(b, item.brand));
+      if (hit) tier = brands[hit];
+    }
+  }
+
+  const behaviorKey = Object.keys(behaviors).find((t) => eqi(t, type));
+  const behavior = behaviorKey ? behaviors[behaviorKey] : null;
+  const behaviorKind = behavior?.kind || 'standard';
+
+  return {
+    ...item,
+    type,
+    tier,
+    brandRule,
+    behavior,
+    behaviorKind,
+    isShoe: shoeTypes.some((s) => eqi(s, type)),
+  };
+}
+
+// ============================================================
+//  Which attributes does this item still need?
+//
+//  Drives BOTH form rendering and validation, so a new attribute
+//  appears in the UI without touching UI code.
+// ============================================================
+function requiredAttributes(resolved, config) {
+  const required = [];
+  for (const attr of config.attributes || []) {
+    let isRequired = !!attr.required;
+    if (attr.required_when && matchCondition(attr.required_when, { resolved, item: resolved, config })) {
+      isRequired = true;
+    }
+    if (attr.required_unless && matchCondition(attr.required_unless, { resolved, item: resolved, config })) {
+      isRequired = false;
+    }
+    if (isRequired) required.push(attr.key);
+  }
+  return required;
+}
+
+/**
+ * Is an attribute's value actually supplied?
+ *
+ * Numeric fields marked `positive: true` (e.g. a looked-up retail
+ * price) treat 0 as "not entered yet" rather than as a real value —
+ * matching how staff use the form. Keeping this on the attribute
+ * rather than in the engine means a shop could configure a field
+ * where 0 IS meaningful.
+ */
+function isProvided(attr, value) {
+  if (isBlank(value)) return false;
+  if (attr?.positive) return num(value, 0) > 0;
+  return true;
+}
+
+// ============================================================
+//  price(item, config) — the main entry point
+//
+//  Returns an explanation alongside the number. Staff will ask "why
+//  is this $4?" and a shop owner debugging their own config needs to
+//  see which rules fired, in order.
+// ============================================================
+function price(item, config) {
+  const resolved = resolveItem(item || {}, config || {});
+  const ctx = { item: resolved, resolved, config };
+  const steps = [];
+  const warnings = [];
+
+  // What's still missing?
+  const attrByKey = Object.fromEntries((config.attributes || []).map((a) => [a.key, a]));
+  const required = requiredAttributes(resolved, config);
+  const missing = required.filter((k) => !isProvided(attrByKey[k], resolved[k]));
+
+  let value = null;
+  let status = 'ok';
+  let rejectReason = null;
+
+  for (const rule of config.rules || []) {
+    if (!matchCondition(rule.when, ctx)) continue;
+
+    const then = rule.then || {};
+
+    if (then.reject) {
+      status = 'reject';
+      rejectReason = then.reject;
+      value = 0;
+      steps.push({ rule: rule.id, action: 'reject', reason: then.reject });
+      break;
+    }
+
+    if (then.manual) {
+      status = 'manual';
+      steps.push({ rule: rule.id, action: 'manual', note: then.note || 'Price set by hand' });
+      if (rule.stop) break;
+      continue;
+    }
+
+    if ('set' in then) {
+      const v = evalExpr(then.set, ctx);
+      if (v === null) {
+        steps.push({ rule: rule.id, action: 'set', result: null, note: 'no value available' });
+      } else {
+        value = v;
+        steps.push({ rule: rule.id, action: 'set', result: cents(v) });
+      }
+    }
+
+    if ('multiply' in then) {
+      const m = evalExpr(then.multiply, ctx);
+      if (m === null) {
+        warnings.push(`Rule "${rule.id}": multiplier unavailable, skipped.`);
+      } else if (value !== null) {
+        const before = value;
+        value = value * m;
+        steps.push({ rule: rule.id, action: 'multiply', by: m, from: cents(before), result: cents(value) });
+      }
+    }
+
+    // A rule may legitimately do nothing but halt evaluation — e.g.
+    // "this item type is priced from a retail lookup, and that lookup
+    // hasn't been filled in yet, so don't fall through to the base
+    // matrix and invent a price."
+    if (!('set' in then) && !('multiply' in then) && !then.reject && !then.manual && rule.stop) {
+      steps.push({ rule: rule.id, action: 'stop', note: then.note || 'awaiting input' });
+    }
+
+    if (rule.stop) break;
+  }
+
+  // Manual-price items are legitimately priced by hand
+  if (status === 'manual' && value === null) {
+    value = num(resolved.price, null);
+    if (value !== null) steps.push({ rule: 'manual-entry', action: 'set', result: cents(value) });
+  }
+
+  if (missing.length > 0 && status === 'ok') status = 'incomplete';
+  if (value === null && status === 'ok') {
+    status = 'incomplete';
+    if (missing.length === 0) {
+      warnings.push('No pricing rule produced a value for this combination.');
+    }
+  }
+  if (value !== null && value < 0) {
+    warnings.push('Computed a negative price; clamped to 0.');
+    value = 0;
+  }
+
+  return {
+    status,                                   // ok | incomplete | manual | reject
+    ok: status === 'ok',
+    price: value === null ? null : cents(value),
+    tier: resolved.tier ?? null,
+    type: resolved.type ?? null,
+    behavior: resolved.behaviorKind,
+    missing,
+    rejectReason,
+    steps,
+    warnings,
+    // Human-readable trace — useful in the UI and in test failure output
+    explain() {
+      return steps
+        .map((s) => {
+          if (s.action === 'set') return `${s.rule}: price = ${s.result ?? '—'}`;
+          if (s.action === 'multiply') return `${s.rule}: ${s.from} × ${s.by} = ${s.result}`;
+          if (s.action === 'reject') return `${s.rule}: rejected (${s.reason})`;
+          if (s.action === 'manual') return `${s.rule}: ${s.note}`;
+          if (s.action === 'stop') return `${s.rule}: ${s.note}`;
+          return `${s.rule}: ${s.action}`;
+        })
+        .join('\n');
+    },
+  };
+}
+
+// ============================================================
+//  Bag totals + payout
+// ============================================================
+function bagTotal(lines, config) {
+  const resale = (lines || []).reduce(
+    (sum, l) => sum + (num(l.qty, 0) || 0) * (num(l.price, 0) || 0),
+    0
+  );
+  return cents(resale);
+}
+
+/**
+ * Payout is configurable per shop and intentionally separate from
+ * item pricing — some shops pay a % of resale, others may want flat
+ * or tiered schemes, and that shouldn't require touching item rules.
+ */
+function payout(resaleTotal, config) {
+  const p = config.payout || {};
+  const calc = (spec) => {
+    if (!spec) return 0;
+    if ('pct' in spec) return cents(resaleTotal * num(spec.pct, 0));
+    if ('flat' in spec) return cents(num(spec.flat, 0));
+    if ('per_item' in spec) return null; // reserved for future schemes
+    return 0;
+  };
+  return { resale: cents(resaleTotal), cash: calc(p.cash), credit: calc(p.credit) };
+}
+
+// ============================================================
+//  Config validation — catch a shop's bad config before it
+//  produces silently wrong money.
+// ============================================================
+function validateConfig(config) {
+  const errors = [];
+  const warnings = [];
+
+  if (!config || typeof config !== 'object') {
+    return { valid: false, errors: ['Config is missing or not an object.'], warnings: [] };
+  }
+  if (!Array.isArray(config.rules) || config.rules.length === 0) {
+    errors.push('Config has no rules — nothing would ever be priced.');
+  }
+  if (!config.lookups?.base_matrix) {
+    warnings.push('No base_matrix lookup — only special-case rules will produce prices.');
+  }
+
+  const ids = new Set();
+  for (const r of config.rules || []) {
+    if (!r.id) errors.push('Every rule needs an id (used in the price explanation).');
+    else if (ids.has(r.id)) errors.push(`Duplicate rule id: "${r.id}".`);
+    ids.add(r.id);
+  }
+
+  for (const [name, spec] of Object.entries(config.payout || {})) {
+    if ('pct' in spec) {
+      const v = num(spec.pct, null);
+      if (v === null || v < 0) errors.push(`payout.${name}.pct must be a number >= 0.`);
+      else if (v > 1) warnings.push(`payout.${name}.pct is ${v} — that's ${v * 100}%, is that intended?`);
+    }
+  }
+
+  // A rule that can never fire is almost always a config mistake
+  const kinds = new Set(Object.values(config.type_behaviors || {}).map((b) => b.kind));
+  for (const r of config.rules || []) {
+    if (r.when?.behavior && !kinds.has(r.when.behavior) && r.when.behavior !== 'standard') {
+      warnings.push(`Rule "${r.id}" targets behavior "${r.when.behavior}", which no item type uses.`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+  return { cents, resolveItem, requiredAttributes, price, bagTotal, payout, validateConfig };
+})();
+
+  var configModule = (function () {
+// ============================================================
+//  Build an engine config from what's ALREADY in your Supabase.
+//
+//  Takes your existing `pricing_config.data` and `settings` rows and
+//  produces the declarative config the engine consumes. Nothing in
+//  your database has to change to start using the engine — which is
+//  what makes adopting it low-risk.
+//
+//  It also FIXES two latent bugs in the current logic (see notes on
+//  FLAT PRICE and ZERO VALUES below), so a few outputs will
+//  intentionally differ from the old code. Those cases are listed in
+//  the parity report rather than hidden.
+// ============================================================
+
+const num = (v, fallback) => {
+  if (v === null || v === undefined || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+/**
+ * @param pricingData  the `data` JSON from your pricing_config row
+ * @param settings     your settings row
+ */
+function configFromSupabase(pricingData = {}, settings = {}) {
+  const rules = settings.business_rules || {};
+  const shoeTypes = rules.shoe_types || [];
+  const rawBehaviors = rules.type_behaviors || {};
+
+  // ── Type behaviors ────────────────────────────────────────
+  //
+  // FLAT PRICE FIX: today, `type_behaviors` can mark ANY type as
+  // `flat_price`, but the dashboard only ever fills in a price when
+  // the type is literally "hats" (it reads the single
+  // settings.hat_flat_price). Mark "Scarves" as flat_price and no
+  // price appears. Here each flat_price type carries its OWN price,
+  // seeded from hat_flat_price for hats. That both fixes the bug and
+  // makes the feature genuinely per-type configurable.
+  //
+  // RETAIL LOOKUP FIX: same story — every retail_lookup type shared
+  // the single settings.baby_carrier_divisor. Now each type has its
+  // own divisor, seeded from that value.
+  const type_behaviors = {};
+  for (const [type, beh] of Object.entries(rawBehaviors)) {
+    const kind = beh?.kind || 'standard';
+    if (kind === 'flat_price') {
+      type_behaviors[type] = {
+        kind,
+        note: beh.note || '',
+        price: num(beh.price, num(settings.hat_flat_price, 5)),
+      };
+    } else if (kind === 'retail_lookup') {
+      type_behaviors[type] = {
+        kind,
+        note: beh.note || '',
+        divisor: num(beh.divisor, num(settings.baby_carrier_divisor, 3)),
+      };
+    } else {
+      type_behaviors[type] = { kind, note: beh?.note || '' };
+    }
+  }
+
+  // ── Condition multipliers ─────────────────────────────────
+  //
+  // ZERO VALUES FIX: the dashboard reads these with
+  // `Number(x) || default`, so a configured 0 silently becomes the
+  // default (a 0 multiplier — "we don't pay for these" — turns into
+  // full price). Read with ?? semantics so 0 means 0.
+  const condition_multipliers = {
+    Excellent: num(settings.shoe_condition_excellent, 1),
+    'Gently Used': num(settings.shoe_condition_gently_used, 0.75),
+    'Not Great': num(settings.shoe_condition_not_great, 0.5),
+  };
+
+  const tiers = pricingData.pricingTiers || Object.keys(pricingData.pricing || {});
+
+  return {
+    version: 1,
+
+    // ── Attributes: drive the item form AND validation ──────
+    attributes: [
+      { key: 'brand', label: 'Brand', type: 'lookup', source: 'brands', required: true },
+      { key: 'type', label: 'Item type', type: 'enum', source: 'types', required: true },
+      {
+        key: 'size',
+        label: 'Size',
+        type: 'enum',
+        source: 'sizes',
+        required: true,
+        // Flat-price items (hats) don't need a size
+        required_unless: { behavior: 'flat_price' },
+      },
+      {
+        key: 'condition',
+        label: 'Condition',
+        type: 'enum',
+        values: Object.keys(condition_multipliers),
+        default: 'Excellent',
+        required_when: { is_shoe: true },
+      },
+      {
+        key: 'retail_price',
+        label: 'Retail price',
+        type: 'number',
+        // 0 means "not looked up yet", not "this item is free"
+        positive: true,
+        required_when: { behavior: 'retail_lookup' },
+      },
+      {
+        key: 'retail_source',
+        label: 'Where you looked it up',
+        type: 'text',
+        required_when: { behavior: 'retail_lookup' },
+      },
+    ],
+
+    lookups: {
+      brands: pricingData.brands || {},        // brand -> tier
+      types: pricingData.types || [],
+      sizes: pricingData.sizes || [],
+      tiers,
+      base_matrix: pricingData.pricing || {},  // tier -> type -> size -> price
+      condition_multipliers,
+    },
+
+    brand_rules: rules.brand_rules || [],
+    shoe_types: shoeTypes,
+    type_behaviors,
+    special_tiers: ['Custom Price', 'DO NOT BUY', 'Very Best'],
+
+    // ── Rules, evaluated in order ───────────────────────────
+    // This list IS your pricing policy. A shop that wants different
+    // behavior edits this, not the application.
+    rules: [
+      {
+        id: 'do-not-buy',
+        when: { tier: 'DO NOT BUY' },
+        then: { reject: 'Brand tier is DO NOT BUY' },
+        stop: true,
+      },
+      {
+        id: 'custom-price',
+        when: { tier: 'Custom Price' },
+        then: { manual: true, note: 'Custom Price tier — staff sets the amount' },
+        stop: true,
+      },
+      {
+        id: 'flat-price',
+        when: { behavior: 'flat_price' },
+        then: { set: { behavior_field: 'price', default: 0 } },
+        stop: true,
+      },
+      {
+        id: 'retail-lookup',
+        when: { behavior: 'retail_lookup', retail_price: { gt: 0 } },
+        then: {
+          set: {
+            divide: [
+              { input: 'retail_price' },
+              { behavior_field: 'divisor', default: 3 },
+            ],
+          },
+        },
+        stop: true,
+      },
+      {
+        // Retail-lookup type, but no retail price entered yet. Stop here
+        // rather than falling through to the base matrix and inventing a
+        // price for an item that's meant to be priced from retail.
+        id: 'retail-lookup-pending',
+        when: { behavior: 'retail_lookup' },
+        then: { note: 'Waiting on a retail price lookup' },
+        stop: true,
+      },
+      {
+        id: 'base-matrix',
+        when: {},
+        then: { set: { table: 'base_matrix', by: ['tier', 'type', 'size'] } },
+      },
+      {
+        id: 'shoe-condition',
+        when: { is_shoe: true, has: 'condition' },
+        then: { multiply: { lookup: 'condition_multipliers', by: 'condition', default: 1 } },
+      },
+    ],
+
+    payout: {
+      cash: { pct: num(settings.cash_pct, 0.3) },
+      credit: { pct: num(settings.credit_pct, 0.5) },
+    },
+  };
+}
+
+  return { configFromSupabase };
+})();
+
+  root.DandelionPricing = {
+    price: engine.price,
+    payout: engine.payout,
+    bagTotal: engine.bagTotal,
+    cents: engine.cents,
+    resolveItem: engine.resolveItem,
+    requiredAttributes: engine.requiredAttributes,
+    validateConfig: engine.validateConfig,
+    configFromSupabase: configModule.configFromSupabase,
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
 <script src="config.js"></script>
 <script>
 // ============================================================
@@ -1924,6 +2575,7 @@ async function loadPricingConfig() {
     if (!pricingData.pricingTiers) pricingData.pricingTiers = Object.keys(pricingData.pricing || {});
     activePricingTier = pricingData.pricingTiers[0] || '';
   }
+  invalidatePricingConfig();
 }
 
 async function loadSettings() {
@@ -1931,6 +2583,7 @@ async function loadSettings() {
   // Settings are required for the app to work — fail loudly, not silently.
   if (error) throw new Error('Could not load settings: ' + error.message);
   if (data) settings = data;
+  invalidatePricingConfig();
 }
 
 async function loadDropoffs() {
@@ -2942,36 +3595,9 @@ function pricingPanelHtml(d) {
         </div>
       </div>
 
-      <!-- Shoe condition row — populated dynamically when a shoe type is selected -->
-      <div id="conditionRow" style="display:none">
-        <div class="field">
-          <label class="flabel">Condition</label>
-          <div id="conditionPicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
-      </div>
-
-      <!-- Retail-lookup row — populated dynamically for baby carriers + similar types -->
-      <div id="retailLookupRow" style="display:none">
-        <div style="background:#fff8e1;border:1.5px solid var(--accent);border-radius:14px;padding:14px 18px;margin-bottom:14px">
-          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;margin-bottom:8px">📋 Manual Retail Lookup Required</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px" id="retailLookupNote">Look up current retail price online. Store price = Retail ÷ <span id="retailDivisorDisplay">3</span>.</div>
-          <div class="pricing-form-row">
-            <div class="field">
-              <label class="flabel">Retail Price ($)</label>
-              <div class="price-stepper">
-                <button class="step-btn" onclick="stepRetail(-5)" title="−$5">−$5</button>
-                <input id="inRetail" type="number" step="1" min="0" value="" oninput="onRetailTyped()" placeholder="0.00">
-                <button class="step-btn" onclick="stepRetail(5)" title="+$5">+$5</button>
-              </div>
-            </div>
-            <div class="field">
-              <label class="flabel">Source / Where You Looked</label>
-              <input id="inRetailSource" type="text" class="finput" placeholder="e.g. Solly Baby website" oninput="recalcLine()">
-            </div>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px">Calculated store price: <strong id="retailCalcDisplay" style="font-family:'DM Mono',monospace;color:var(--text)">—</strong></div>
-        </div>
-      </div>
+      <!-- Config-driven attributes (condition, retail lookup, and any
+           shop-defined pricing factors) render here automatically. -->
+      <div id="dynAttrs"></div>
 
       <div class="pricing-form-row">
         <div class="field">
@@ -3855,6 +4481,30 @@ function getBusinessRules() {
   return (settings && settings.business_rules) || { brand_rules: [], shoe_types: [], type_behaviors: {} };
 }
 
+// ============================================================
+//  Pricing engine wiring
+//
+//  All price math now goes through window.DandelionPricing (a pure,
+//  tested engine — see the pricing/ folder). We build its config from
+//  the same pricingData + settings we already load, and cache it so
+//  we're not rebuilding on every keystroke. The cache is invalidated
+//  whenever settings or pricingData are replaced (loadSettings /
+//  loadPricingConfig / saving the admin screens all reassign them).
+// ============================================================
+let _pricingConfig = null;
+function pricingConfig() {
+  if (_pricingConfig) return _pricingConfig;
+  _pricingConfig = window.DandelionPricing.configFromSupabase(pricingData || {}, settings || {});
+  return _pricingConfig;
+}
+function invalidatePricingConfig() { _pricingConfig = null; }
+
+// Structural attributes have dedicated, hand-built UI (the combo boxes,
+// the tier select, the price + qty steppers). Every OTHER attribute in
+// the config renders itself into the form automatically — so a shop can
+// add a pricing factor in config and it appears here with no code change.
+const STRUCTURAL_ATTRS = ['brand', 'type', 'size', 'tier', 'price', 'qty'];
+
 // Brand rule: returns { force_type, note } if the brand has a forced type
 function getBrandRule(brand) {
   if (!brand) return null;
@@ -3973,21 +4623,123 @@ function stepPrice(delta) {
   recalcLine();
 }
 
-function stepRetail(delta) {
-  const current = Number($('inRetail').value) || 0;
-  const next = Math.max(0, current + delta);
-  $('inRetail').value = next;
-  onRetailTyped();
+// ============================================================
+//  Dynamic (config-driven) attributes
+//
+//  Any attribute in the pricing config that isn't a fixed field
+//  (brand/type/size/tier/price/qty) renders itself into #dynAttrs.
+//  Condition and retail-lookup are just two such attributes today —
+//  a shop can add another pricing factor in config and it appears
+//  here with no code change.
+// ============================================================
+let dynState = {};          // current values for dynamic attributes
+let _dynSignature = null;   // which dynamic fields are currently shown
+
+function attrLabel(key, config) {
+  const a = (config.attributes || []).find(x => x.key === key);
+  return (a && a.label) || key;
 }
 
-function onRetailTyped() {
-  // Retail-lookup behavior: store price = retail ÷ divisor
-  const retail = Number($('inRetail').value) || 0;
-  const divisor = (settings && Number(settings.baby_carrier_divisor)) || 3;
-  const storePrice = retail > 0 ? (retail / divisor) : 0;
-  $('inPrice').value = storePrice > 0 ? storePrice.toFixed(2) : '';
-  $('inPrice').dataset.touched = '1';
-  $('retailCalcDisplay').textContent = retail > 0 ? `${fmt$(retail)} ÷ ${divisor} = ${fmt$(storePrice)}` : '—';
+// If a rule multiplies by a lookup keyed on this attribute (e.g. shoe
+// condition multipliers), surface those factors as button hints.
+function multiplierHint(attrKey, config) {
+  for (const r of config.rules || []) {
+    const m = r.then && r.then.multiply;
+    if (m && m.lookup && m.by === attrKey) return config.lookups?.[m.lookup] || null;
+  }
+  return null;
+}
+
+// Build the item object the engine prices, from the current form state.
+function buildFormItem() {
+  const item = {
+    brand: $('inBrand').value.trim(),
+    type:  $('inType').value.trim(),
+    size:  $('inSize').value.trim(),
+    tier:  $('inTier').value,
+    price: Number($('inPrice').value) || 0,
+    qty:   Number($('inQty').value) || 1,
+  };
+  for (const [k, v] of Object.entries(dynState)) {
+    if (v !== '' && v !== null && v !== undefined) item[k] = v;
+  }
+  return item;
+}
+
+function dynFieldHtml(attr, config) {
+  const key = attr.key;
+  const label = esc(attr.label || key);
+  const cur = dynState[key];
+  if (attr.type === 'enum') {
+    const values = attr.values || Object.keys((attr.source && config.lookups?.[attr.source]) || {});
+    const hint = multiplierHint(key, config);
+    const btns = values.map(v => {
+      const sel = String(cur) === String(v) ? 'selected' : '';
+      const mult = hint && hint[v] != null ? `<span class="cond-mult">×${Number(hint[v]).toFixed(2)}</span>` : '';
+      return `<button type="button" class="cond-btn ${sel}" data-v="${esc(v)}" onclick="pickDyn('${esc(key)}', this.dataset.v)">${esc(v)}${mult}</button>`;
+    }).join('');
+    return `<div class="field"><label class="flabel">${label}</label><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div></div>`;
+  }
+  if (attr.type === 'number') {
+    const val = (cur === undefined || cur === null) ? '' : cur;
+    return `<div class="field"><label class="flabel">${label}</label>
+      <div class="price-stepper">
+        <button class="step-btn" onclick="stepDyn('${esc(key)}', -5)" title="−5">−5</button>
+        <input id="dyn_${esc(key)}" type="number" step="1" min="0" value="${esc(String(val))}" placeholder="0.00" oninput="setDyn('${esc(key)}', this.value)">
+        <button class="step-btn" onclick="stepDyn('${esc(key)}', 5)" title="+5">+5</button>
+      </div></div>`;
+  }
+  const val = (cur === undefined || cur === null) ? '' : cur;
+  return `<div class="field"><label class="flabel">${label}</label>
+    <input id="dyn_${esc(key)}" type="text" class="finput" value="${esc(String(val))}" placeholder="${esc(attr.placeholder || '')}" oninput="setDyn('${esc(key)}', this.value)"></div>`;
+}
+
+function renderDynAttrs(resolved, config, force) {
+  const host = $('dynAttrs');
+  if (!host) return;
+  const P = window.DandelionPricing;
+  const required = new Set(P.requiredAttributes(resolved, config));
+  const dynamic = (config.attributes || []).filter(a => !STRUCTURAL_ATTRS.includes(a.key));
+
+  // Visible = currently required by the config, or already holding a value.
+  const visible = dynamic.filter(a => required.has(a.key) || (dynState[a.key] != null && dynState[a.key] !== ''));
+
+  // Drop state for attributes no longer relevant, so a leftover value
+  // (a condition from a previous shoe) can't leak into the next item.
+  const visibleKeys = new Set(visible.map(a => a.key));
+  for (const k of Object.keys(dynState)) if (!visibleKeys.has(k)) delete dynState[k];
+
+  // Apply enum defaults when a field first appears.
+  for (const a of visible) {
+    if (a.type === 'enum' && a.default != null && (dynState[a.key] == null || dynState[a.key] === '')) {
+      dynState[a.key] = a.default;
+    }
+  }
+
+  // Re-render only when the SET of visible fields changes — not on every
+  // keystroke — so typing in a text field doesn't lose focus.
+  const sig = visible.map(a => a.key).join('|');
+  if (!force && sig === _dynSignature) return;
+  _dynSignature = sig;
+  host.innerHTML = visible.map(a => dynFieldHtml(a, config)).join('');
+}
+
+function pickDyn(key, value) {
+  dynState[key] = value;
+  $('inPrice').dataset.touched = '';   // let the new value re-drive the price
+  recalcLine({ forceDyn: true });      // re-render so the selection shows
+}
+function setDyn(key, value) {
+  dynState[key] = value;
+  $('inPrice').dataset.touched = '';
+  recalcLine();
+}
+function stepDyn(key, delta) {
+  const cur = Number(dynState[key]) || 0;
+  dynState[key] = Math.max(0, cur + delta);
+  const el = $('dyn_' + key);
+  if (el) el.value = dynState[key];
+  $('inPrice').dataset.touched = '';
   recalcLine();
 }
 
@@ -4004,187 +4756,93 @@ function onTierChanged() {
   recalcLine();
 }
 
-function pickCondition(cond) {
-  currentCondition = cond;
-  renderConditionPicker();
-  // Re-run pricing — multiplier applies to matrix lookup
-  $('inPrice').dataset.touched = '';
-  recalcLine();
-}
-
-function renderConditionPicker() {
-  const picker = $('conditionPicker');
-  if (!picker) return;
-  const conditions = [
-    { label: 'Excellent', desc: 'Brand new / like new', mult: conditionMultiplier('Excellent') },
-    { label: 'Gently Used', desc: 'Some wear', mult: conditionMultiplier('Gently Used') },
-    { label: 'Not Great', desc: 'Has life left', mult: conditionMultiplier('Not Great') }
-  ];
-  picker.innerHTML = conditions.map(c => `
-    <button type="button" class="cond-btn ${currentCondition === c.label ? 'selected' : ''}" onclick="pickCondition('${esc(c.label)}')">
-      ${esc(c.label)}
-      <span class="cond-mult">×${c.mult.toFixed(2)}</span>
-    </button>
-  `).join('');
-}
-
-// Show/hide the condition picker and retail-lookup row based on selected type
-function syncTypeBasedUI() {
-  const type = $('inType').value.trim();
-  const isShoe = isShoeType(type);
-  const behavior = getTypeBehavior(type);
-
-  // Condition picker (shoes only)
-  const condRow = $('conditionRow');
-  if (condRow) {
-    if (isShoe) {
-      condRow.style.display = 'block';
-      if (!currentCondition) currentCondition = 'Excellent';
-      renderConditionPicker();
-    } else {
-      condRow.style.display = 'none';
-      currentCondition = null;
-    }
-  }
-
-  // Retail-lookup row
-  const retailRow = $('retailLookupRow');
-  if (retailRow) {
-    if (behavior.kind === 'retail_lookup') {
-      retailRow.style.display = 'block';
-      const divisor = (settings && Number(settings.baby_carrier_divisor)) || 3;
-      $('retailDivisorDisplay').textContent = divisor;
-      if (behavior.note) $('retailLookupNote').textContent = behavior.note + ` (÷ ${divisor})`;
-    } else {
-      retailRow.style.display = 'none';
-      $('inRetail').value = '';
-      $('inRetailSource').value = '';
-    }
-  }
-}
-
-function recalcLine() {
+function recalcLine(opts) {
+  const config = pricingConfig();
+  const P = window.DandelionPricing;
   const brand = $('inBrand').value.trim();
-  const type = $('inType').value.trim();
-  const size = $('inSize').value.trim();
-  let tier = $('inTier').value;
   const custom = $('customToggle').checked;
 
-  // Show/hide condition picker and retail-lookup based on type
-  syncTypeBasedUI();
-
-  // Enforce brand rule — force type if applicable
+  // Brand conveniences (same UX as before): a brand can force a type,
+  // and supplies a default tier. These only prefill the fixed fields.
   const brandRule = getBrandRule(brand);
-  if (brandRule && brandRule.force_type && type !== brandRule.force_type) {
+  if (brandRule && brandRule.force_type && $('inType').value.trim() !== brandRule.force_type) {
     $('inType').value = brandRule.force_type;
   }
-
-  // Suggest tier from brand if not custom and tier is unset
-  if (!custom && brand && pricingData?.brands[brand] && !tier) {
-    tier = pricingData.brands[brand];
-    $('inTier').value = tier;
+  if (!custom && brand && pricingData?.brands?.[brand] && !$('inTier').value) {
+    $('inTier').value = pricingData.brands[brand];
   }
 
-  const behavior = getTypeBehavior($('inType').value.trim());
+  // Render the config-driven fields for this item (condition, retail, …)
+  const resolved = P.resolveItem(buildFormItem(), config);
+  renderDynAttrs(resolved, config, opts && opts.forceDyn);
 
-  // Auto-fill price based on the type's behavior kind
-  if (!$('inPrice').dataset.touched) {
-    if (behavior.kind === 'flat_price') {
-      // Hats and similar — single flat price from settings
-      if (type.toLowerCase() === 'hats') {
-        const flat = Number(settings?.hat_flat_price) || 5;
-        $('inPrice').value = flat.toFixed(2);
-      }
-    } else if (behavior.kind === 'retail_lookup') {
-      // Retail-lookup — price comes from the retail input via onRetailTyped(); don't auto-fill here
-    } else if (!custom && tier && type && size && pricingData?.pricing[tier]?.[type]?.[size] != null) {
-      // Standard matrix lookup
-      let p = pricingData.pricing[tier][type][size];
-      // Apply shoe condition multiplier if applicable
-      if (isShoeType(type) && currentCondition) {
-        p = p * conditionMultiplier(currentCondition);
-      }
-      if (p !== null && p !== undefined) {
-        $('inPrice').value = p.toFixed(2);
-      }
-    }
+  // Price it (dyn defaults may have been applied during render).
+  const result = P.price(buildFormItem(), config);
+
+  // Auto-fill the price unless staff typed their own.
+  if (!$('inPrice').dataset.touched && result.price != null) {
+    $('inPrice').value = result.price.toFixed(2);
   }
-
   const price = Number($('inPrice').value) || 0;
   const qty = Number($('inQty').value) || 1;
   $('pillLine').textContent = fmt$(price * qty);
 
-  // Validation
-  let ready = brand && type && tier && price > 0 && qty > 0 && tier !== 'DO NOT BUY';
-  // Flat-price types don't require a size
-  if (behavior.kind !== 'flat_price' && !size) ready = false;
-  // Retail-lookup requires both retail and source filled
-  if (behavior.kind === 'retail_lookup') {
-    const retail = Number($('inRetail').value) || 0;
-    const source = ($('inRetailSource').value || '').trim();
-    if (!retail || !source) ready = false;
-  }
-  // Shoe types require a condition pick
-  if (isShoeType(type) && !currentCondition) ready = false;
-
-  $('addBtn').disabled = !ready;
+  const canAdd = (result.status === 'ok' || result.status === 'manual') && price > 0 && qty > 0;
+  $('addBtn').disabled = !canAdd;
 
   const status = $('statusLine');
-  if (tier === 'DO NOT BUY') {
+  if (result.status === 'reject') {
     status.className = 'status-line s-err';
-    status.textContent = '✗ DO NOT BUY';
-  } else if (tier === 'Custom Price') {
+    status.textContent = '✗ ' + (result.rejectReason || 'Do not buy');
+  } else if (result.status === 'manual') {
     status.className = 'status-line s-warn';
-    status.textContent = '⚠ Custom Price — set manually';
-  } else if (brandRule) {
-    status.className = 'status-line s-info';
-    status.textContent = `ℹ ${brandRule.note || (brand + ' → ' + brandRule.force_type)}`;
-  } else if (behavior.kind === 'retail_lookup' && !ready) {
+    status.textContent = price > 0 ? '✓ Custom price — ready to add' : '⚠ Custom Price — enter an amount';
+  } else if (result.status === 'incomplete') {
     status.className = 'status-line s-warn';
-    status.textContent = '⚠ Enter retail price + source';
-  } else if (isShoeType(type) && !currentCondition) {
-    status.className = 'status-line s-warn';
-    status.textContent = '⚠ Pick a condition';
-  } else if (ready) {
+    const missing = (result.missing || []).map(k => attrLabel(k, config));
+    status.textContent = missing.length ? '⚠ Need: ' + missing.join(', ') : 'Fill in all fields';
+  } else if (canAdd) {
     status.className = 'status-line s-ok';
     status.textContent = '✓ Ready to add';
+  } else if (result.status === 'ok' && price <= 0) {
+    status.className = 'status-line s-warn';
+    status.textContent = '⚠ Enter a price';
   } else {
     status.className = 'status-line s-info';
-    status.textContent = 'Fill in all fields';
+    status.textContent = brandRule && brandRule.note ? 'ℹ ' + brandRule.note : 'Fill in all fields';
   }
 }
 
 function clearForm() {
-  ['inBrand','inType','inSize','inPrice','inRetail','inRetailSource'].forEach(id => {
+  ['inBrand','inType','inSize','inPrice'].forEach(id => {
     if ($(id)) { $(id).value = ''; $(id).dataset.touched = ''; }
   });
   if ($('inTier')) $('inTier').value = '';
   if ($('inQty')) $('inQty').value = '1';
   if ($('customToggle')) $('customToggle').checked = false;
-  currentCondition = null;
-  syncTypeBasedUI();
+  dynState = {};
+  _dynSignature = null;
   recalcLine();
 }
 
 async function addLine() {
-  const type = $('inType').value.trim();
-  const behavior = getTypeBehavior(type);
+  const config = pricingConfig();
+  const P = window.DandelionPricing;
+  const item = buildFormItem();
+  const resolved = P.resolveItem(item, config);
   const line = {
-    brand: $('inBrand').value.trim(),
-    type,
-    size: $('inSize').value.trim() || (behavior.kind === 'flat_price' ? '—' : ''),
-    tier: $('inTier').value,
+    brand: item.brand,
+    type: resolved.type,
+    size: item.size || (resolved.behaviorKind === 'flat_price' ? '—' : ''),
+    tier: $('inTier').value || resolved.tier || '',
     price: Number($('inPrice').value) || 0,
-    qty: Number($('inQty').value) || 1
+    qty: Number($('inQty').value) || 1,
   };
-  // Attach condition for shoe types
-  if (isShoeType(type) && currentCondition) {
-    line.condition = currentCondition;
-  }
-  // Attach retail-lookup metadata
-  if (behavior.kind === 'retail_lookup') {
-    line.retail_price = Number($('inRetail').value) || 0;
-    line.retail_source = ($('inRetailSource').value || '').trim();
+  // Attach every dynamic attribute (condition, retail_price, retail_source,
+  // and any shop-defined factors). Numeric-looking values are stored as numbers.
+  for (const [k, v] of Object.entries(dynState)) {
+    if (v === '' || v === null || v === undefined) continue;
+    line[k] = (typeof v === 'string' && /^\d+(\.\d+)?$/.test(v)) ? Number(v) : v;
   }
   const d = getDropoff(currentDropoffId);
   if (!d || d.stage !== 'pricing') { toast('Items are locked once the drop-off leaves Pricing.'); return; }
