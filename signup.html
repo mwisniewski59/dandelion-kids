@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5"/>
+<title>Get Started — Dandelion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf6ef;--card:#fffdf8;--border:#ebe4d4;--text:#3a322a;--muted:#8a8378;
+  --accent:#f5cb5c;--accent-dark:#e0b03b;--dark:#3a322a;
+  --good:#3a7a4a;--good-bg:#e6f3e5;
+  --err:#c54a3a;--err-bg:#fde4e0;
+  --warn:#b8860b;--warn-bg:#fff3d6;
+  --radius:20px;--radius-sm:14px;--radius-xs:10px;
+  --shadow:0 6px 28px rgba(58,50,42,.06);
+}
+html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+.page{max-width:660px;margin:0 auto;padding:40px 20px 90px}
+.brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;letter-spacing:-1px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.brand::before{content:'🌼';font-size:24px}
+.brand span{color:var(--accent-dark)}
+.tag{font-size:14px;color:var(--muted);margin-bottom:26px}
+
+.progress{display:flex;gap:6px;margin-bottom:22px}
+.pstep{flex:1;height:5px;border-radius:3px;background:#ebe4d4}
+.pstep.done{background:var(--accent-dark)}
+
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:18px}
+.card[hidden]{display:none}
+h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:24px;letter-spacing:-.5px;margin-bottom:8px}
+h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;margin-bottom:10px}
+.lead{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.field input,.field textarea,.field select{
+  width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-xs);
+  font-size:16px;background:#fff;color:var(--text);outline:none;font-family:inherit;
+}
+.field textarea{resize:vertical;min-height:130px;font-size:15px;line-height:1.55}
+.field input:focus,.field textarea:focus{border-color:var(--accent-dark);box-shadow:0 0 0 4px rgba(245,203,92,.18)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border:none;border-radius:var(--radius-sm);
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;cursor:pointer;min-height:50px}
+.btn-primary{background:var(--accent);color:var(--dark);box-shadow:0 4px 14px rgba(245,203,92,.4)}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{background:#fff;color:var(--muted);border:1.5px solid var(--border)}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:20px;flex-wrap:wrap}
+.spacer{flex:1}
+
+.status{margin-top:14px;padding:13px 16px;border-radius:var(--radius-xs);font-size:14px;font-weight:600;display:none;line-height:1.5}
+.status.err{display:block;background:var(--err-bg);color:var(--err);border:1.5px solid #f0c8c0}
+.status.ok{display:block;background:var(--good-bg);color:var(--good);border:1.5px solid #bfdfbe}
+.status.info{display:block;background:var(--warn-bg);color:var(--warn);border:1.5px solid #eddba0}
+
+.choice{display:block;width:100%;text-align:left;padding:18px 20px;border:2px solid var(--border);border-radius:var(--radius-sm);
+  background:#fff;cursor:pointer;margin-bottom:12px;font-family:inherit}
+.choice:hover{border-color:var(--accent-dark);background:#fffbed}
+.choice-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:16px;display:block;margin-bottom:4px}
+.choice-desc{font-size:13px;color:var(--muted);line-height:1.5}
+
+.review{background:#f8f6ee;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:18px 20px;margin:16px 0}
+.review-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #ebe4d4;font-size:14px}
+.review-row:last-child{border-bottom:none}
+.review-k{color:var(--muted);font-weight:600}
+.review-v{font-weight:700;text-align:right}
+table.tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+table.tbl th{text-align:left;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:6px 8px;border-bottom:1.5px solid var(--border)}
+table.tbl td{padding:6px 8px;border-bottom:1px solid #f0ebdd}
+.chip{display:inline-block;background:#fff;border:1.5px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12.5px;margin:3px 4px 3px 0}
+.ai-note{display:flex;gap:10px;align-items:flex-start;background:#fffbed;border:1.5px solid var(--accent);border-radius:var(--radius-xs);padding:12px 14px;font-size:13px;line-height:1.5;margin-bottom:16px}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(58,50,42,.25);border-top-color:var(--dark);border-radius:50%;animation:s .7s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+code{font-family:'DM Mono',monospace;font-size:12.5px;background:rgba(0,0,0,.05);padding:2px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand">Dandelion <span>for Shops</span></div>
+  <div class="tag">Set up your shop in a few minutes</div>
+
+  <div class="progress">
+    <div class="pstep" id="p1"></div><div class="pstep" id="p2"></div>
+    <div class="pstep" id="p3"></div><div class="pstep" id="p4"></div>
+  </div>
+
+  <!-- STEP 1 — ACCOUNT -->
+  <div class="card" id="step-account">
+    <h1>Create your account</h1>
+    <p class="lead">You'll use this to sign in to your shop's dashboard.</p>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@yourshop.com"></div>
+    <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+      <div class="hint">Use something you don't use anywhere else.</div></div>
+    <div class="btn-row">
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="signupBtn" onclick="doSignup()">Create account →</button>
+    </div>
+    <div class="hint" style="margin-top:14px">Already have an account? <a href="dashboard.html" style="color:var(--accent-dark);font-weight:700">Sign in</a></div>
+    <div class="status" id="accountStatus"></div>
+  </div>
+
+  <!-- STEP 2 — SHOP -->
+  <div class="card" id="step-shop" hidden>
+    <h1>Name your shop</h1>
+    <p class="lead">This appears on the drop-off form and in the emails your customers receive.</p>
+    <div class="field"><label for="shopName">Shop name</label><input id="shopName" type="text" placeholder="e.g. Little Sprouts Resale">
+      <div class="hint">You can change this later in Settings.</div></div>
+    <div class="btn-row">
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="shopBtn" onclick="createShop()">Create my shop →</button>
+    </div>
+    <div class="status" id="shopStatus"></div>
+  </div>
+
+  <!-- STEP 3 — PRICING SETUP -->
+  <div class="card" id="step-pricing" hidden>
+    <h1>How do you price items?</h1>
+    <p class="lead">Pick whichever is easier. You can adjust everything afterwards.</p>
+
+    <div id="pricingChoice">
+      <button class="choice" onclick="showPricingMode('describe')">
+        <span class="choice-name">✍️ Describe it in your own words</span>
+        <span class="choice-desc">Type how you price things, like you'd explain it to a new employee. We'll turn it into a starting setup.</span>
+      </button>
+      <button class="choice" onclick="showPricingMode('paste')">
+        <span class="choice-name">📋 Paste a spreadsheet</span>
+        <span class="choice-desc">Already have a price list, brand list, or customer list? Paste it and we'll work out the columns.</span>
+      </button>
+      <button class="choice" onclick="skipToReview()">
+        <span class="choice-name">⏭ Start with defaults</span>
+        <span class="choice-desc">Begin with a standard setup and fill in your own prices later in the dashboard.</span>
+      </button>
+    </div>
+
+    <!-- describe mode -->
+    <div id="describeMode" hidden>
+      <div class="ai-note"><span>🔒</span><span>Your description is sent to our assistant to draft a setup. It won't invent prices — anything it isn't sure about is left for you to fill in, and nothing is saved until you approve it on the next screen.</span></div>
+      <div class="field"><label for="pricingText">How do you price items?</label>
+        <textarea id="pricingText" placeholder="For example: We sort brands into three levels — basic like Carter's, better like Hanna Andersson, and best like Patagonia. A basic t-shirt is about $2, a better one $4, best $7. Baby sizes are a bit less than kid sizes. We pay 30% of the resale price in cash, or 50% in store credit. Hats are a flat $5."></textarea>
+        <div class="hint">The more specific you are about actual dollar amounts, the more it can fill in for you.</div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="backToChoice()">← Back</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="describeBtn" onclick="runDescribe()">Draft my setup →</button>
+      </div>
+    </div>
+
+    <!-- paste mode -->
+    <div id="pasteMode" hidden>
+      <div class="ai-note"><span>🔒</span><span>Only the column headings and a handful of example rows are sent to the assistant so it can work out what each column is. The rest of your file stays in your browser.</span></div>
+      <div class="field"><label for="pasteText">Paste your spreadsheet</label>
+        <textarea id="pasteText" placeholder="Paste straight from Excel or Google Sheets — copy the cells including the header row, then paste here."></textarea>
+        <div class="hint">Works with copied spreadsheet cells or comma-separated text.</div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="backToChoice()">← Back</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="pasteBtn" onclick="runMapping()">Work out my columns →</button>
+      </div>
+    </div>
+
+    <div class="status" id="pricingStatus"></div>
+  </div>
+
+  <!-- STEP 4 — REVIEW -->
+  <div class="card" id="step-review" hidden>
+    <h1>Check this over</h1>
+    <p class="lead">Nothing has been saved yet. Look it over and change anything that's wrong.</p>
+    <div id="reviewBody"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="backToPricing()">← Start over</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="finishBtn" onclick="finish()">Looks right — finish setup ✓</button>
+    </div>
+    <div class="status" id="reviewStatus"></div>
+  </div>
+
+  <!-- DONE -->
+  <div class="card" id="step-done" hidden style="text-align:center">
+    <div style="font-size:52px;margin-bottom:10px">🌼</div>
+    <h1>Your shop is ready</h1>
+    <p class="lead" id="doneText">Everything's set up. Here's where to go next.</p>
+    <div class="review" style="text-align:left">
+      <div class="review-row"><span class="review-k">Your dashboard</span><span class="review-v"><a href="dashboard.html" style="color:var(--accent-dark)">Open dashboard →</a></span></div>
+      <div class="review-row"><span class="review-k">Your customer drop-off link</span><span class="review-v"><code id="intakeLink">—</code></span></div>
+    </div>
+    <p class="hint" style="text-align:left">Put that drop-off link on your website or a QR code in the shop — it's how customers start a drop-off. Next, add your staff and fine-tune prices in the dashboard.</p>
+    <div class="btn-row"><div class="spacer"></div><a class="btn btn-primary" href="dashboard.html">Go to my dashboard →</a><div class="spacer"></div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const CFG = window.DANDELION_CONFIG;
+const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+
+let tenantId = null, tenantSlug = null, shopName = '';
+let proposal = null;        // AI-proposed pricing config, pending approval
+let pastedRows = null;      // full pasted data, kept LOCAL
+let pastedHeaders = null;
+let mapping = null;
+
+function setStatus(id, msg, kind) {
+  const el = $(id);
+  el.className = 'status' + (kind ? ' ' + kind : '');
+  el.innerHTML = msg || '';
+  if (!msg) el.className = 'status';
+}
+function step(name) {
+  ['account','shop','pricing','review','done'].forEach(s => { const el = $('step-' + s); if (el) el.hidden = (s !== name); });
+  const idx = { account:1, shop:2, pricing:3, review:4, done:4 }[name];
+  [1,2,3,4].forEach(i => $('p'+i).classList.toggle('done', i <= idx));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function busy(btnId, on, label) {
+  const b = $(btnId);
+  if (!b) return;
+  b.disabled = on;
+  b.dataset.label = b.dataset.label || b.textContent;
+  b.innerHTML = on ? `<span class="spin"></span> ${label || 'Working…'}` : b.dataset.label;
+}
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── Step 1: account ─────────────────────────────────────────
+async function doSignup() {
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  setStatus('accountStatus','');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setStatus('accountStatus','Please enter a valid email address.','err');
+  if (password.length < 8) return setStatus('accountStatus','Please use at least 8 characters.','err');
+
+  busy('signupBtn', true, 'Creating…');
+  const { data, error } = await sb.auth.signUp({ email, password });
+  busy('signupBtn', false);
+  if (error) return setStatus('accountStatus', esc(error.message), 'err');
+
+  if (!data.session) {
+    // Email confirmation is switched on for this project.
+    return setStatus('accountStatus',
+      'Check your email to confirm your address, then come back to this page and sign in to continue.', 'info');
+  }
+  step('shop');
+}
+
+// ── Step 2: shop ────────────────────────────────────────────
+async function createShop() {
+  const name = $('shopName').value.trim();
+  setStatus('shopStatus','');
+  if (!name) return setStatus('shopStatus','Please enter a name for your shop.','err');
+
+  busy('shopBtn', true, 'Creating…');
+  const { data, error } = await sb.rpc('create_tenant_for_current_user', { p_name: name });
+  busy('shopBtn', false);
+  if (error) return setStatus('shopStatus', esc(error.message), 'err');
+
+  tenantId = data.tenant_id; tenantSlug = data.slug; shopName = name;
+  step('pricing');
+}
+
+// ── Step 3: pricing ─────────────────────────────────────────
+function showPricingMode(mode) {
+  $('pricingChoice').hidden = true;
+  $('describeMode').hidden = (mode !== 'describe');
+  $('pasteMode').hidden = (mode !== 'paste');
+  setStatus('pricingStatus','');
+}
+function backToChoice() {
+  $('pricingChoice').hidden = false;
+  $('describeMode').hidden = true; $('pasteMode').hidden = true;
+  setStatus('pricingStatus','');
+}
+function backToPricing() { proposal = null; mapping = null; step('pricing'); backToChoice(); }
+function skipToReview() { proposal = null; mapping = null; renderReview(); step('review'); }
+
+// Call the server-side assistant. The API key lives there, never here.
+async function askAssistant(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('Your session expired — please sign in again.');
+  const res = await fetch(`${CFG.SUPABASE_URL}/functions/v1/onboarding-assistant`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ ...payload, tenant_id: tenantId })
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'The assistant is unavailable right now.');
+  return body.result;
+}
+
+async function runDescribe() {
+  const description = $('pricingText').value.trim();
+  setStatus('pricingStatus','');
+  if (description.length < 20) return setStatus('pricingStatus','Tell us a bit more — a couple of sentences with some actual prices works best.','err');
+
+  busy('describeBtn', true, 'Reading your description…');
+  try {
+    proposal = await askAssistant({ task:'describe_pricing', description });
+    renderReview(); step('review');
+  } catch (e) {
+    setStatus('pricingStatus', esc(e.message) + ' You can still continue with defaults and set prices in the dashboard.', 'err');
+  } finally { busy('describeBtn', false); }
+}
+
+// Parse pasted spreadsheet text (tab- or comma-separated).
+function parsePaste(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return null;
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const rows = lines.map(l => l.split(delim).map(c => c.trim().replace(/^"|"$/g,'')));
+  return { headers: rows[0], rows: rows.slice(1) };
+}
+
+async function runMapping() {
+  const text = $('pasteText').value;
+  setStatus('pricingStatus','');
+  const parsed = parsePaste(text);
+  if (!parsed || !parsed.rows.length) return setStatus('pricingStatus','That didn\'t look like a table. Copy the cells from your spreadsheet including the header row.','err');
+
+  pastedHeaders = parsed.headers;
+  pastedRows = parsed.rows;                 // stays in the browser
+
+  busy('pasteBtn', true, 'Working out your columns…');
+  try {
+    // Only headers + a few sample rows leave the browser.
+    mapping = await askAssistant({
+      task: 'map_columns',
+      headers: parsed.headers,
+      sample_rows: parsed.rows.slice(0, 5)
+    });
+    renderReview(); step('review');
+  } catch (e) {
+    setStatus('pricingStatus', esc(e.message) + ' You can continue with defaults instead.', 'err');
+  } finally { busy('pasteBtn', false); }
+}
+
+// ── Step 4: review (nothing saved until confirmed) ──────────
+function renderReview() {
+  const parts = [];
+  parts.push(`<div class="review">
+    <div class="review-row"><span class="review-k">Shop name</span><span class="review-v">${esc(shopName)}</span></div>
+    <div class="review-row"><span class="review-k">Drop-off link</span><span class="review-v"><code>?shop=${esc(tenantSlug||'')}</code></span></div>
+  </div>`);
+
+  if (proposal) {
+    const tiers = proposal.pricingTiers || [], types = proposal.types || [], sizes = proposal.sizes || [];
+    parts.push(`<h2>Your pricing setup</h2>`);
+    parts.push(`<div class="review">
+      <div class="review-row"><span class="review-k">Quality tiers</span><span class="review-v">${tiers.map(t=>`<span class="chip">${esc(t)}</span>`).join('')||'—'}</span></div>
+      <div class="review-row"><span class="review-k">Item types</span><span class="review-v">${types.map(t=>`<span class="chip">${esc(t)}</span>`).join('')||'—'}</span></div>
+      <div class="review-row"><span class="review-k">Sizes</span><span class="review-v">${sizes.map(t=>`<span class="chip">${esc(t)}</span>`).join('')||'—'}</span></div>
+      ${proposal.cash_pct!=null?`<div class="review-row"><span class="review-k">Cash payout</span><span class="review-v">${Math.round(proposal.cash_pct*100)}% of resale</span></div>`:''}
+      ${proposal.credit_pct!=null?`<div class="review-row"><span class="review-k">Store credit</span><span class="review-v">${Math.round(proposal.credit_pct*100)}% of resale</span></div>`:''}
+    </div>`);
+
+    const priced = [];
+    for (const [tier, byType] of Object.entries(proposal.pricing || {}))
+      for (const [type, bySize] of Object.entries(byType || {}))
+        for (const [size, price] of Object.entries(bySize || {}))
+          priced.push({ tier, type, size, price });
+    if (priced.length) {
+      parts.push(`<h2>Prices it could work out (${priced.length})</h2>
+        <table class="tbl"><thead><tr><th>Tier</th><th>Type</th><th>Size</th><th>Price</th></tr></thead><tbody>
+        ${priced.slice(0,25).map(p=>`<tr><td>${esc(p.tier)}</td><td>${esc(p.type)}</td><td>${esc(p.size)}</td><td>$${Number(p.price).toFixed(2)}</td></tr>`).join('')}
+        </tbody></table>
+        ${priced.length>25?`<div class="hint">…and ${priced.length-25} more.</div>`:''}`);
+    } else {
+      parts.push(`<div class="status info" style="display:block">No specific prices were filled in — you'll set those in the dashboard, which takes a few minutes.</div>`);
+    }
+    if ((proposal.notes||[]).length) {
+      parts.push(`<h2 style="margin-top:18px">For you to fill in</h2><ul style="padding-left:20px;color:var(--muted);font-size:14px;line-height:1.7">
+        ${proposal.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`);
+    }
+  }
+
+  if (mapping) {
+    const rowCount = pastedRows ? pastedRows.length : 0;
+    parts.push(`<h2>Your pasted file</h2>
+      <div class="review">
+        <div class="review-row"><span class="review-k">Looks like</span><span class="review-v">${esc(mapping.dataset)}</span></div>
+        <div class="review-row"><span class="review-k">Rows found</span><span class="review-v">${rowCount}</span></div>
+        <div class="review-row"><span class="review-k">Confidence</span><span class="review-v">${esc(mapping.confidence)}</span></div>
+      </div>
+      <table class="tbl"><thead><tr><th>We'll use</th><th>From your column</th></tr></thead><tbody>
+      ${Object.entries(mapping.mapping||{}).map(([f,c])=>`<tr><td>${esc(f)}</td><td>${esc(c)}</td></tr>`).join('')}
+      </tbody></table>`);
+    if ((mapping.warnings||[]).length) {
+      parts.push(`<div class="status info" style="display:block;margin-top:12px">${mapping.warnings.map(esc).join('<br>')}</div>`);
+    }
+    if (mapping.dataset !== 'customers') {
+      parts.push(`<div class="hint" style="margin-top:10px">Only customer lists can be imported automatically right now. Brand and price lists are best entered in the dashboard's Pricing screen.</div>`);
+    }
+  }
+
+  if (!proposal && !mapping) {
+    parts.push(`<div class="status info" style="display:block">You'll start with a standard setup: four quality tiers, common item types, and 30% cash / 50% store credit. Change any of it in the dashboard.</div>`);
+  }
+  $('reviewBody').innerHTML = parts.join('');
+}
+
+async function finish() {
+  setStatus('reviewStatus','');
+  busy('finishBtn', true, 'Saving…');
+  try {
+    // Save the pricing structure, if the assistant proposed one.
+    if (proposal) {
+      const cfg = {
+        pricingTiers: proposal.pricingTiers || [],
+        types: proposal.types || [],
+        sizes: proposal.sizes || [],
+        brands: {},
+        pricing: proposal.pricing || {}
+      };
+      const { error } = await sb.rpc('apply_pricing_setup', { p_tenant: tenantId, p_config: cfg });
+      if (error) throw new Error(error.message);
+
+      if (proposal.cash_pct != null || proposal.credit_pct != null) {
+        const upd = {};
+        if (proposal.cash_pct != null) upd.cash_pct = proposal.cash_pct;
+        if (proposal.credit_pct != null) upd.credit_pct = proposal.credit_pct;
+        await sb.from('settings').update(upd).eq('tenant_id', tenantId);
+      }
+    }
+
+    // Import customers, transformed HERE in the browser from the full
+    // pasted file using the mapping — the file itself never left.
+    if (mapping && mapping.dataset === 'customers' && pastedRows) {
+      const idx = {};
+      for (const [field, header] of Object.entries(mapping.mapping || {})) {
+        const i = pastedHeaders.indexOf(header);
+        if (i >= 0) idx[field] = i;
+      }
+      if (idx.name != null) {
+        const rows = pastedRows.map(r => ({
+          name: r[idx.name] || '',
+          email: idx.email != null ? r[idx.email] : null,
+          phone: idx.phone != null ? r[idx.phone] : null,
+          venmo_handle: idx.venmo_handle != null ? r[idx.venmo_handle] : null
+        })).filter(r => r.name);
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error } = await sb.rpc('import_customers', { p_tenant: tenantId, p_rows: rows.slice(i, i+500) });
+          if (error) throw new Error(error.message);
+        }
+      }
+    }
+
+    await sb.rpc('complete_onboarding', { p_tenant: tenantId });
+
+    const base = (CFG.PUBLIC_BASE_URL || window.location.origin).replace(/\/$/,'');
+    $('intakeLink').textContent = `${base}/intake.html?shop=${tenantSlug}`;
+    step('done');
+  } catch (e) {
+    setStatus('reviewStatus', esc(e.message), 'err');
+  } finally { busy('finishBtn', false); }
+}
+
+// If someone lands here already signed in, skip ahead.
+(async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return step('account');
+  const { data } = await sb.rpc('my_tenants');
+  if (data && data.length) {
+    const t = data[0];
+    tenantId = t.tenant_id; tenantSlug = t.slug; shopName = t.name;
+    if (t.onboarded_at) { window.location.href = 'dashboard.html'; return; }
+    step('pricing');
+  } else {
+    step('shop');
+  }
+})();
+</script>
+</body>
+</html>

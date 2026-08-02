@@ -417,6 +417,30 @@ const CFG = window.DANDELION_CONFIG;
 const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
 
+// Which shop is this drop-off form for? Comes from the link the shop
+// shares, e.g. intake.html?shop=little-sprouts
+const SHOP_SLUG = new URLSearchParams(window.location.search).get('shop') || '';
+let shopInfo = null;
+
+async function loadShop() {
+  if (!SHOP_SLUG) return showShopError('This drop-off link is missing its shop. Please use the link the shop gave you.');
+  const { data, error } = await sb.rpc('get_shop_public', { p_slug: SHOP_SLUG });
+  if (error || !data || !data.length) {
+    return showShopError("We couldn't find that shop. Please check the link, or ask the shop for a new one.");
+  }
+  shopInfo = data[0];
+  document.title = 'Drop-Off — ' + shopInfo.name;
+  const brand = document.querySelector('.brand');
+  if (brand) brand.innerHTML = String(shopInfo.name || '').replace(/[<>&]/g, '');
+}
+
+function showShopError(msg) {
+  document.querySelector('.page').innerHTML =
+    '<div class="brand">Drop-Off</div>' +
+    '<div class="step-card"><h2>Something\'s not right</h2><p class="lead">' + msg + '</p></div>';
+  throw new Error('shop not resolved');
+}
+
 // ─── Step navigation ─────────────────────────────────────────
 const STEP_NAMES = [
   'Welcome', 'Standard Policy', 'Bulk Policy', 'Confirm',
@@ -559,6 +583,7 @@ async function submitForm() {
   const donateAll = (leftover === 'donate') || (dropType === 'bulk');
 
   const payload = {
+    p_shop_slug: SHOP_SLUG,
     p_name: $('name').value.trim(),
     p_email: $('email').value.trim(),
     p_phone: $('phone').value.trim(),
@@ -587,8 +612,8 @@ async function submitForm() {
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-// Init
-showStep(1);
+// Init — resolve the shop first, then show the form
+loadShop().then(() => showStep(1)).catch(() => {});
 </script>
 </body>
 </html>
