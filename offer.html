@@ -4,38 +4,50 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"/>
 <title>Your Offer — Dandelion Kids</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#faf6ef;--card:#fffdf8;--border:#ebe4d4;--text:#3a322a;--muted:#8a8378;
-  --accent:#f5cb5c;--accent-dark:#e0b03b;--dark:#3a322a;
-  --good:#3a7a4a;--good-bg:#e6f3e5;
-  --sky:#6fa3d0;--sky-bg:#e0eef7;
-  --coral:#e88060;--coral-bg:#fde8df;
-  --err:#c54a3a;--err-bg:#fde4e0;
-  --radius:20px;--radius-sm:14px;--radius-xs:10px;
-  --shadow:0 6px 28px rgba(58,50,42,.06);
-  --shadow-sm:0 2px 10px rgba(58,50,42,.05);
+  /* Charcoal & Amber — matches dashboard.html */
+  --bg:#f0efec;--card:#ffffff;--border:#e4e2df;--border-2:#d3d0ca;
+  --text:#26262a;--muted:#75747a;
+  --accent:#b8842f;--accent-dark:#96691f;--dark:#26262a;
+  --charcoal:#1e1d1b;--charcoal-2:#2b2a27;
+  --accent-bg:#faf3e6;--accent-bg-2:#f3e7cf;--accent-border:#e2cda4;
+  --good:#4f6b39;--good-bg:#eef2ea;--good-border:#c6d2ba;
+  --err:#9c3a2a;--err-bg:#faeae7;--err-border:#e8cdc6;
+  --warn:#b8842f;--warn-bg:#faf3e6;--warn-border:#e2cda4;
+  --sky:#75747a;--sky-bg:#f0efec;--coral:#b8842f;--coral-bg:#faf3e6;
+  /* Flat: small radii, no shadows */
+  --radius:4px;--radius-sm:4px;--radius-xs:3px;
+  --shadow:none;--shadow-sm:none;
 }
 html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
 .page{max-width:580px;margin:0 auto;padding:36px 20px 80px}
 
 /* HEADER */
 .brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;letter-spacing:-1px;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.brand::before{content:'🌼';font-size:24px}
-.brand span{color:var(--accent-dark)}
+.brand span{color:var(--accent)}
+/* Small vendor mark on the shop's customer-facing pages. Deliberately quiet —
+   this is the shop's page, BST Flow is just the plumbing. */
+.powered{display:flex;align-items:center;justify-content:center;gap:6px;
+  margin:28px auto 0;font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;
+  font-weight:700;color:var(--muted);opacity:.8}
+.powered img{height:26px;width:auto;display:block;opacity:.85}
+
 .tag{font-size:14px;color:var(--muted);margin-bottom:28px}
 
 /* CARDS */
-.card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:18px}
 h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.5px;margin-bottom:8px;line-height:1.15}
 .lead{font-size:15px;color:var(--muted);margin-bottom:22px;line-height:1.5}
 
 /* BAG INFO STRIP */
 .bag-info{
-  background:#fff8e1;border:1.5px solid var(--accent);border-radius:var(--radius-xs);
+  background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius-xs);
   padding:12px 16px;font-size:13px;color:var(--text);margin-bottom:22px;line-height:1.5;
 }
 .bag-info strong{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700}
@@ -51,27 +63,28 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 /* OPTION CARDS */
 .opt-card{
   display:block;width:100%;padding:20px 22px;
-  border:2px solid var(--border);border-radius:var(--radius-sm);
+  border:1px solid var(--border-2);border-radius:var(--radius-sm);
   background:#fff;cursor:pointer;text-align:left;margin-bottom:12px;
   transition:all .15s;font-family:inherit;position:relative;
 }
-.opt-card:hover{border-color:var(--accent-dark);background:#fffbed}
-.opt-card.sel{border-color:var(--accent-dark);background:#fffbed;box-shadow:0 4px 16px rgba(245,203,92,.25)}
+.opt-card:hover{border-color:var(--accent);background:var(--accent-bg)}
+.opt-card.sel{border-color:var(--accent);border-width:2px;background:var(--accent-bg);box-shadow:none}
 .opt-card.sel::after{
   content:'✓';position:absolute;top:16px;right:18px;
-  width:30px;height:30px;border-radius:50%;background:var(--accent-dark);color:#fff;
+  width:28px;height:28px;border-radius:50%;background:var(--charcoal);color:#fff;
   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;
 }
 
 /* Featured (Store Credit) card — premium look */
 .opt-card.featured{
-  background:linear-gradient(135deg,#fffbed 0%,#fff5d6 100%);
-  border-color:var(--accent);
+  background:var(--accent-bg);
+  border-color:var(--accent-border);
 }
 .opt-card.featured.sel{
-  background:linear-gradient(135deg,#fff5d6 0%,#ffe9a8 100%);
-  border-color:var(--accent-dark);
-  box-shadow:0 6px 22px rgba(245,203,92,.4);
+  background:var(--accent-bg-2);
+  border-color:var(--accent);
+  border-width:2px;
+  box-shadow:none;
 }
 
 .opt-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px;padding-right:38px;flex-wrap:wrap}
@@ -79,9 +92,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 .opt-amt{font-family:'DM Mono',monospace;font-weight:500;font-size:24px;color:var(--text);letter-spacing:-.5px}
 .opt-desc{font-size:13px;color:var(--muted);line-height:1.45;padding-right:38px}
 .opt-bonus{
-  display:inline-block;background:var(--accent-dark);color:#fff;
+  display:inline-block;background:var(--charcoal);color:#fff;
   font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:10px;
-  letter-spacing:.4px;padding:3px 9px;border-radius:10px;margin-left:8px;
+  letter-spacing:.4px;padding:3px 9px;border-radius:var(--radius-xs);margin-left:8px;
   vertical-align:middle;text-transform:uppercase;
 }
 
@@ -89,11 +102,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 .field{margin:14px 0 0}
 .field label{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
 .field input{
-  width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-xs);
+  width:100%;padding:13px 16px;border:1px solid var(--border-2);border-radius:var(--radius-xs);
   font-size:16px;background:#fff;color:var(--text);outline:none;font-family:inherit;
   transition:border-color .15s,box-shadow .15s;
 }
-.field input:focus{border-color:var(--accent-dark);box-shadow:0 0 0 4px rgba(245,203,92,.18)}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,132,47,.18)}
 
 .venmo-row{display:none;margin-top:14px}
 .venmo-row.show{display:block}
@@ -107,9 +120,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 }
 .btn-primary{
   background:var(--accent);color:var(--dark);
-  box-shadow:0 4px 14px rgba(245,203,92,.4);
+  box-shadow:none;
 }
-.btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 6px 18px rgba(245,203,92,.55)}
+.btn-primary:hover{background:var(--accent-dark);color:#fff;box-shadow:none}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
 /* STATUS */
@@ -117,7 +130,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
   margin-top:16px;padding:14px 16px;border-radius:var(--radius-xs);
   font-size:14px;font-weight:600;display:none;line-height:1.5;
 }
-.status.err{display:block;background:var(--err-bg);color:var(--err);border:1.5px solid #f0c8c0}
+.status.err{display:block;background:var(--err-bg);color:var(--err);border:1.5px solid var(--err-border)}
 
 /* SUCCESS / ERROR / ALREADY views */
 .success,.error-page,.already-view{text-align:center;padding:40px 20px}
@@ -126,7 +139,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 .success p,.error-page p,.already-view p{color:var(--muted);font-size:15px;margin-bottom:8px;line-height:1.5}
 .already-choice{
   font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:16px;
-  background:var(--good-bg);color:var(--good);border:1.5px solid #bfdfbe;
+  background:var(--good-bg);color:var(--good);border:1px solid var(--good-border);
   padding:12px 18px;border-radius:var(--radius-xs);display:inline-block;margin:8px 0;
 }
 
@@ -216,11 +229,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
     </div>
 
     <div id="successView" class="success" style="display:none">
-      <span class="success-icon">🌼</span>
+      <span class="success-icon">✓</span>
       <h2>Thanks!</h2>
       <p>We've got your response. We'll be in touch soon.</p>
     </div>
   </div>
+  <div class="powered">Powered by <img src="assets/logo.png" alt="BST Flow"/></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
