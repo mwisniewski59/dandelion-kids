@@ -1390,12 +1390,11 @@ a{color:inherit;text-decoration:none}
   <div class="modal">
     <div class="modal-title">Send Offer to Customer</div>
     <div class="modal-desc" style="background:#fff8e1;border:1.5px solid var(--accent);border-radius:3px;padding:12px 14px;line-height:1.5">
-      <strong style="display:block;margin-bottom:6px;color:var(--dark);font-family:'Plus Jakarta Sans',sans-serif">3 steps:</strong>
-      <ol style="margin:0 0 0 18px;padding:0;font-size:13px">
-        <li>Click <strong>✉️ Open in Gmail</strong> — Gmail opens with To and Subject filled, email body copied to clipboard.</li>
-        <li>In Gmail, <strong>click into the body and press Ctrl+V</strong> to paste. The link will be a clickable button.</li>
-        <li>Click <strong>Send</strong> in Gmail, then return here and click <strong>Mark Offer Sent</strong>.</li>
-      </ol>
+      <strong style="display:block;margin-bottom:6px;color:var(--dark);font-family:'Plus Jakarta Sans',sans-serif">Just click Send Email Now.</strong>
+      <div style="font-size:13px">We'll email this to the customer and move the bag to Awaiting Customer for you.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--accent-border)">
+        Prefer to send it yourself? <strong>Open in Gmail</strong> copies the email so you can paste and send it from your own inbox — then click <strong>Mark Sent Manually</strong>.
+      </div>
     </div>
     <div class="field">
       <label>To</label>
@@ -1416,8 +1415,9 @@ a{color:inherit;text-decoration:none}
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeOfferModal()">Cancel</button>
       <button class="btn btn-ghost" onclick="copyOfferBodyAndToast()">📋 Copy Email</button>
-      <button class="btn btn-stage-cta coral" onclick="openMailApp()">✉️ Open in Gmail</button>
-      <button class="btn btn-stage-cta primary" id="offerMarkSentBtn" onclick="markOfferSentFromModal()">Mark Offer Sent →</button>
+      <button class="btn btn-ghost" onclick="openMailApp()">✉️ Open in Gmail</button>
+      <button class="btn btn-stage-cta primary" id="offerSendBtn" onclick="sendOfferEmail()">Send Email Now →</button>
+      <button class="btn btn-ghost" id="offerMarkSentBtn" onclick="markOfferSentFromModal()">Mark Sent Manually</button>
     </div>
   </div>
 </div>
@@ -5266,7 +5266,9 @@ async function openOfferModal() {
   const fullName = c.name || first;
   const cash = fmt$(d.venmo_amount || 0);
   const credit = fmt$(d.credit_amount || 0);
-  const subject = `Your Dandelion Kids Clothing Drop!`;
+  // The shop's own name — never a hardcoded one. Other shops send this too.
+  const shopName = (settings && settings.store_name || '').trim() || 'our shop';
+  const subject = `Your ${shopName} Clothing Drop!`;
 
   // Choose the leftover paragraph based on whether the customer pre-opted to donate.
   // donate_all=true means they already chose "donate everything" on intake, so the
@@ -5283,7 +5285,7 @@ async function openOfferModal() {
   const body =
 `Hi there, ${fullName}!
 
-Thank you so much for your drop-off this week at Dandelion Kids! We got through your bag and there were a bunch of things we were able to grab.
+Thank you so much for your drop-off this week at ${shopName}! We got through your bag and there were a bunch of things we were able to grab.
 
 We'd like to offer you either ${credit} in store credit or ${cash} via Venmo. Just let us know which option you prefer.
 
@@ -5296,7 +5298,7 @@ ${link}
 Thank you for entrusting us with these beautiful clothes and the stories they carry. We can't wait to see you in the store again soon!
 
 Warmly,
-Colleen, Meghan & The Dandelion Kids Team`;
+The ${shopName} Team`;
 
   // HTML version for rich-text clipboard. Gmail preserves the <a> tag when
   // pasted, so the link is clickable in the recipient's inbox.
@@ -5304,14 +5306,14 @@ Colleen, Meghan & The Dandelion Kids Team`;
   const bodyHtml =
 `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1a1a1a">
 <p>Hi there, ${escHtml(fullName)}!</p>
-<p>Thank you so much for your drop-off this week at Dandelion Kids! We got through your bag and there were a bunch of things we were able to grab.</p>
+<p>Thank you so much for your drop-off this week at ${escHtml(shopName)}! We got through your bag and there were a bunch of things we were able to grab.</p>
 <p>We'd like to offer you either <strong>${escHtml(credit)} in store credit</strong> or <strong>${escHtml(cash)} via Venmo</strong>. Just let us know which option you prefer.</p>
 <p>${escHtml(leftoverParagraph)}</p>
 <p>${escHtml(ctaCopy)}</p>
 <p><a href="${escHtml(link)}" style="display:inline-block;background:#3a322a;color:#f5cb5c;padding:14px 22px;border-radius:3px;text-decoration:none;font-weight:700;font-size:15px">Choose Your Payment Option →</a></p>
 <p style="font-size:12px;color:#777">Or copy this link: <a href="${escHtml(link)}">${escHtml(link)}</a></p>
 <p>Thank you for entrusting us with these beautiful clothes and the stories they carry. We can't wait to see you in the store again soon!</p>
-<p style="margin-top:18px">Warmly,<br>Colleen, Meghan &amp; The Dandelion Kids Team</p>
+<p style="margin-top:18px">Warmly,<br>The ${escHtml(shopName)} Team</p>
 </div>`;
 
   $('offerTo').value = c.email || '';
@@ -5323,7 +5325,14 @@ Colleen, Meghan & The Dandelion Kids Team`;
   // Adapt the primary CTA label: first-time "send" vs a resend
   const markBtn = $('offerMarkSentBtn');
   if (markBtn) {
-    markBtn.textContent = d.offer_sent_at ? 'Done (Close)' : 'Mark Offer Sent →';
+    markBtn.textContent = d.offer_sent_at ? 'Done (Close)' : 'Mark Sent Manually';
+  }
+  // Already emailed once — make a second click clearly a re-send, not a first send.
+  const sendBtn = $('offerSendBtn');
+  if (sendBtn) {
+    sendBtn.disabled = false;
+    sendBtn.textContent = d.offer_sent_at ? 'Send Again →' : 'Send Email Now →';
+    sendBtn.style.display = (c.email || '').trim() ? '' : 'none';
   }
   $('offerModal').classList.add('open');
 }
@@ -5391,6 +5400,49 @@ async function openMailApp() {
 
 // Legacy alias — older code paths may still reference this name.
 function copyOfferAndMail() { openMailApp(); }
+
+// Send the offer straight from here, via the send-offer-email Edge Function.
+//
+// The function is handed ONLY the drop-off id. It looks the customer, the
+// amounts and the shop name up itself and builds the message server-side, so
+// nothing about the recipient or the wording can be tampered with from the
+// browser. Copy/paste and "Open in Gmail" both still work untouched, so if
+// email is ever down or not yet deployed, staff are never blocked.
+async function sendOfferEmail() {
+  const d = getDropoff(currentDropoffId);
+  if (!d) return;
+
+  const to = ($('offerTo').value || '').trim();
+  if (!to) { toast('This customer has no email address on file.', { durationMs: 5000 }); return; }
+
+  const btn = $('offerSendBtn');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  try {
+    const { data, error } = await sb.functions.invoke('send-offer-email', {
+      body: { dropoff_id: currentDropoffId }
+    });
+    // A non-2xx from the function arrives as `error`; the readable reason is
+    // in the JSON body, so dig it out rather than showing "non-2xx status".
+    if (error) {
+      let msg = error.message || 'Could not send.';
+      try { const r = await error.context?.json(); if (r?.error) msg = r.error; } catch (_) {}
+      throw new Error(msg);
+    }
+    if (data && data.error) throw new Error(data.error);
+
+    await logActivity('offer_emailed', { to });
+    toast('Email sent to ' + to, { durationMs: 5000 });
+
+    // Sending IS the send — stamp it and move the bag along, same as the
+    // manual button would have.
+    await markOfferSentFromModal();
+  } catch (e) {
+    toast('Could not send: ' + e.message + ' — you can still copy it and send by hand.', { durationMs: 7000 });
+    btn.disabled = false; btn.textContent = label;
+  }
+}
 
 // Mark Offer Sent from within the offer modal. Stamps offer_sent_at, advances
 // stage if needed, closes both the offer modal and (if open) the review overlay.
@@ -6075,7 +6127,7 @@ async function exportInsightsCSV() {
   const sum = (arr, fn) => arr.reduce((a, x) => a + (fn(x) || 0), 0);
 
   const rows = [
-    ['Dandelion Kids — Insights Snapshot'],
+    [((settings && settings.store_name) || 'Shop') + ' — Insights Snapshot'],
     ['Generated', new Date().toISOString()],
     ['Range', `${from.toISOString().slice(0,10)} to ${to.toISOString().slice(0,10)}`],
     [''],
@@ -7342,7 +7394,7 @@ function downloadImportTemplate() {
 
   // Sheet 2: Instructions
   const instructions = [
-    ['Dandelion Kids — Historical Data Import Template'],
+    [((settings && settings.store_name) || 'Shop') + ' — Historical Data Import Template'],
     [''],
     ['HOW TO USE'],
     ['1. Go to the "Drop-Offs" sheet.'],
