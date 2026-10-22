@@ -252,6 +252,7 @@ let left = null;
 
 const fmt = n => '$' + Number(n||0).toFixed(2);
 const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function show(v) {
   ['loading','errorView','alreadyView','formView','successView'].forEach(x => $(x).style.display = 'none');
@@ -270,7 +271,7 @@ async function load() {
   if (offer.drop_type === 'bulk') bagBits.push('Bulk drop-off');
   else bagBits.push('Standard drop-off');
   if (offer.bag_description) bagBits.push(offer.bag_description);
-  $('bagInfo').innerHTML = '<strong>Your drop-off:</strong> ' + bagBits.join(' · ');
+  $('bagInfo').innerHTML = '<strong>Your drop-off:</strong> ' + bagBits.map(esc).join(' · ');
 
   $('creditAmt').textContent = fmt(offer.credit_amount);
   $('cashAmt').textContent = fmt(offer.venmo_amount);
