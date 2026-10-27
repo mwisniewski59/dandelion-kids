@@ -206,6 +206,22 @@ rows.push(new Array(16).fill(''));
 // No name, no email, no phone -> skip (no identity).
 edge('8/15/2026 16:45:00', '', '', '', '25 or Less', DONATE_YES[0]);
 
+// QC variants (2026-10-27): pending / questioned / split / other-method
+// payments, uncertain leftovers, pickup spellings, T/P "1"/"done".
+const qc = [
+  ['Venmo pending', 'donated'], ['venmo?', 'picked up'], ['will venmo', ''],
+  ['Credited/Venmoed', 'donated'], ['PayPal', 'donated'], ['check', 'picked up'],
+  ['paid', 'donated'], ['Paid venmo', 'donated'], ['credited', 'donating'],
+  ['credited', 'donated?'], ['venmoed', 'Pick up'], ['credited', 'pickup'],
+  ['credited', 'will pick up'], ['credited', 'none'], ['venmoed', 'N/A'],
+  ['', 'donate'],
+];
+qc.forEach(([pay, left], i) => {
+  const n = 100 + i;
+  edge(`9/${1 + i}/2026 12:00:00`, `Test Seller ${pad(n)}`, `seller${pad(n)}@example.test`, `555-010-${pad(n)}`, '25 or Less', DONATE_NO[0],
+    { 8: i % 2 ? '1' : 'done', 9: i % 3 ? 'X' : 'done', 10: `9/${3 + i}`, 11: '$10.00', 12: '$14.00', 13: pay, 14: left });
+});
+
 const out = path.join(__dirname, 'form-responses-5.sample.csv');
 fs.writeFileSync(out, toCsv(rows));
 process.stdout.write(`wrote ${out} (${rows.length - 1} data rows)\n`);

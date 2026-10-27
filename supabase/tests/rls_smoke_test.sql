@@ -37,8 +37,12 @@ set request.jwt.claim.sub = '';
 do $$
 declare v uuid; n int;
 begin
-  select count(*) into n from public.customers;
-  if n <> 0 then raise exception 'FAIL: anon can read customers'; end if;
+  -- 0 rows via RLS (live today) or permission denied (after 0005): both fine.
+  begin
+    select count(*) into n from public.customers;
+    if n <> 0 then raise exception 'FAIL: anon can read customers'; end if;
+  exception when insufficient_privilege then null;
+  end;
   select count(*) into n from public.get_shop_public('dandelion-kids');
   if n <> 1 then raise exception 'FAIL: get_shop_public'; end if;
   v := public.create_intake('dandelion-kids', 'Test Seller 0001', 'seller0001@example.test', '555-010-0001', 'standard', 'Test bag', true, true);

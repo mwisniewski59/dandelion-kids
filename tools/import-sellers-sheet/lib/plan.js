@@ -87,6 +87,9 @@ function deriveLifecycle(r) {
 
   if (pay.paid && left.kind === 'picking_up') {
     stage = 'awaiting_pickup';
+  } else if (pay.paid && left.review) {
+    stage = 'awaiting_pickup';              // paid; leftovers still to be decided
+    flags.push('kept_open_for_review');
   } else if ((pay.paid || pay.choice === 'none') && left.done) {
     stage = 'resolved';
   } else if (pay.paid && left.kind == null) {
@@ -100,9 +103,9 @@ function deriveLifecycle(r) {
     stage = 'resolved';
     if (r.donateAll || isBulk) leftoverChoice = isBulk ? 'bulk' : 'donate';
     else flags.push('took_none_no_leftover_decision');
-  } else if (pay.choice === 'cash' && !pay.paid) {
-    // Customer chose cash but the sheet does not say "venmoed": leave it
-    // open as "Ready to Pay" so staff confirm the payout.
+  } else if ((pay.choice === 'cash' || pay.choice === 'credit') && !pay.paid) {
+    // A payment method is named but not confirmed ("cash", "venmo pending"):
+    // leave it open as "Ready to Pay" so staff confirm the payout.
     stage = 'awaiting_customer';
   } else if (left.done) {
     stage = 'resolved';                     // e.g. auto-donated, never answered
@@ -119,10 +122,20 @@ function deriveLifecycle(r) {
     stage = 'intake';
   }
 
+  // Pending / questioned / unmapped sheet text must never close a bag.
+  // Paid but leftovers uncertain -> awaiting_pickup (staff decide pickup or
+  // donate); otherwise -> awaiting_customer.
+  let paidOk = pay.paid;
+  if ((pay.review || left.review) && (stage === 'resolved' || stage === 'awaiting_pickup')) {
+    stage = pay.paid && !pay.review ? 'awaiting_pickup' : 'awaiting_customer';
+    if (stage === 'awaiting_customer') paidOk = false;
+    flags.push('kept_open_for_review');
+  }
+
   const offerSentAt = offerSent ? (r.emailSent.value || droppedAt) : null;
   const respondedAt = responded && stage !== 'intake' && stage !== 'pricing'
     ? (offerSentAt || droppedAt) : null;
-  const paidAt = pay.paid ? respondedAt || droppedAt : null;
+  const paidAt = paidOk ? respondedAt || droppedAt : null;
   const resolvedAt = stage === 'resolved' ? (left.date || paidAt || offerSentAt || droppedAt) : null;
   const pickedUpAt = left.kind === 'picked_up' || left.kind === 'took_all' ? resolvedAt : null;
 
@@ -272,8 +285,8 @@ function buildPlan(rows, opts = {}) {
 
     // Keep any sheet text we could not map, so nothing is silently lost.
     const extra = [];
-    if (pay.flag === 'payment_unrecognized') extra.push(`Venmo or Credit: "${P.clean(c(13))}"`);
-    if (left.flag === 'leftover_unrecognized') extra.push(`Pick Up or Donate: "${P.clean(c(14))}"`);
+    if (pay.flag) extra.push(`Venmo or Credit: "${P.clean(c(13))}"`);
+    if (left.flag) extra.push(`Pick Up or Donate: "${P.clean(c(14))}"`);
     if (sent.flag === 'email_sent_unparsed' || sent.flag === 'email_sent_far_after_dropoff') extra.push(`Email Sent: "${P.clean(c(10))}"`);
     if (venmo.flag) extra.push(`Venmo Amount: "${P.clean(c(11))}"`);
     if (credit.flag) extra.push(`Store Credit Amount: "${P.clean(c(12))}"`);

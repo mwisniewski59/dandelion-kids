@@ -149,7 +149,7 @@ function parseDonate(raw) {
 /** Col 9/10 T / P checkmarks. */
 function parseMark(raw) {
   const s = clean(raw).toLowerCase();
-  if (s === 'x' || s === 'xx' || s === '✓' || s === 'y' || s === 'yes') return { value: true };
+  if (['x', 'xx', '✓', '✔', 'y', 'yes', '1', 'done', 'true'].includes(s)) return { value: true };
   if (isBlankish(s)) return { value: false };
   return { value: false, flag: 'mark_unrecognized' };
 }
@@ -195,39 +195,77 @@ function parseAmount(raw) {
   return { value: null, flag: 'amount_unparsed' };
 }
 
+// Text that says something has NOT happened yet, or that someone was unsure.
+// Such values never close a bag; they are flagged for review instead.
+const UNCERTAIN = /\?|\bpending\b|^will\b|\bwill\s|\bwaiting\b|\btbd\b|\bmaybe\b|\bnot yet\b|\bsoon\b|\bowe[sd]?\b/;
+const TRAILING_DATE = String.raw`(?:\s+\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)?`;
+
 /**
  * Col 14 Venmo or Credit ->
- *   { choice: 'credit'|'cash'|'none'|null, paid: bool }
+ *   { choice: 'credit'|'cash'|'none'|null, paid: bool, review?: true, flag? }
+ * Only plain, past-tense values count as paid. Anything pending, questioned,
+ * split, or paid some other way (PayPal, check...) is flagged and `review`
+ * keeps the bag open.
  */
 function parsePayment(raw) {
-  const s = clean(raw).toLowerCase();
+  const s = clean(raw).toLowerCase().replace(/\s+/g, ' ');
   if (s === '' || s === '-' || s === '--') return { choice: null, paid: false };
-  if (/^credit(ed)?\b/.test(s) || /store credit/.test(s)) return { choice: 'credit', paid: true };
-  if (/^venmo(ed|'d)?\b/.test(s)) return { choice: 'cash', paid: true };
-  if (/^cash\b/.test(s)) return { choice: 'cash', paid: false, flag: 'cash_not_confirmed_paid' };
-  if (/^took none\b/.test(s) || s === 'none' || s === 'n/a' || s === 'na') return { choice: 'none', paid: false };
-  return { choice: null, paid: false, flag: 'payment_unrecognized' };
+  if (/^(took none|none|n\/a|na|nothing|no sale|took nothing)$/.test(s)) return { choice: 'none', paid: false };
+  const hasCredit = /credit/.test(s) || /\bsc\b/.test(s);
+  const hasVenmo = /venmo/.test(s);
+  const hasCash = /\bcash\b/.test(s);
+  if (/pay\s*pal|\bcheck\b|\bcheque\b|zelle|cash\s*app|apple\s*pay/.test(s)) {
+    return { choice: null, paid: false, review: true, flag: 'payment_other_method' };
+  }
+  if (hasCredit && (hasVenmo || hasCash)) {
+    return { choice: null, paid: false, review: true, flag: 'payment_split_or_ambiguous' };
+  }
+  const method = hasCredit ? 'credit' : (hasVenmo || hasCash || /\bpaid\b/.test(s)) ? 'cash' : null;
+  if (UNCERTAIN.test(s)) return { choice: method, paid: false, review: true, flag: 'payment_pending_or_uncertain' };
+  if (new RegExp(`^(store )?credit(ed)?${TRAILING_DATE}$`).test(s)) return { choice: 'credit', paid: true };
+  if (new RegExp(`^(venmo(ed|'d)?|venmo(ed)? paid|paid (via |by |with )?venmo(ed)?)${TRAILING_DATE}$`).test(s)) {
+    return { choice: 'cash', paid: true };
+  }
+  if (new RegExp(`^paid${TRAILING_DATE}$`).test(s)) return { choice: 'cash', paid: true, flag: 'paid_method_assumed_venmo' };
+  if (s === 'cash') return { choice: 'cash', paid: false, flag: 'cash_not_confirmed_paid' };
+  return { choice: method, paid: false, review: true, flag: 'payment_unrecognized' };
 }
 
 /**
  * Col 15 Pick Up or Donate ->
- *   kind: 'donated' | 'picked_up' | 'took_all' | 'picking_up' | 'bulk' | 'no_leftovers' | null
+ *   kind: 'donated' | 'picked_up' | 'took_all' | 'picking_up' | 'bulk' |
+ *         'no_leftovers' | 'donate_pending' | 'uncertain' | null
  *   leftover: DB leftover_choice ('donate'|'pickup'|'took_all'|'bulk'|null)
  *   done: true when the bag needs no further action on leftovers
+ *   review: true when the value is pending/questioned -> bag stays open
  */
 function parseLeftover(raw, refLocal, tz = SHOP_TZ) {
-  const s = clean(raw).toLowerCase();
+  const s = clean(raw).toLowerCase().replace(/\s+/g, ' ');
   if (s === '' || s === '-' || s === '--') return { kind: null, leftover: null, done: false };
-  if (/^donat/.test(s)) {
+  if (/^(none|n\/a|na|nothing)$/.test(s)) {
+    return { kind: 'no_leftovers', leftover: null, done: true, flag: 'leftover_none_assumed_no_leftovers' };
+  }
+  // Customer will pick up / is picking up: pickup pending (awaiting pickup).
+  if (/^((will|to|going to)\s+)?pick\s*-?\s*up$/.test(s) || /^picking\s*-?\s*up\b/.test(s) || s === 'pickup') {
+    if (!/\?/.test(s)) return { kind: 'picking_up', leftover: 'pickup', done: false };
+  }
+  if (UNCERTAIN.test(s) || /^donating\b/.test(s) || /^to donate\b/.test(s) || s === 'donate') {
+    const isDonate = /donat/.test(s);
+    return {
+      kind: isDonate ? 'donate_pending' : 'uncertain',
+      leftover: isDonate ? 'donate' : (/pick/.test(s) ? 'pickup' : null),
+      done: false, review: true, flag: 'leftover_pending_or_uncertain',
+    };
+  }
+  if (/^donated\b/.test(s)) {
     return { kind: 'donated', leftover: 'donate', done: true, date: parseMonthDay(s, refLocal, tz) };
   }
   if (/^picked\s*-?\s*up/.test(s)) return { kind: 'picked_up', leftover: 'pickup', done: true, date: parseMonthDay(s, refLocal, tz) };
   // Live data uses leftover_choice 'took_all' for "took all" (32 rows Jan-May).
   if (/^took\s*all/.test(s)) return { kind: 'took_all', leftover: 'took_all', done: true };
-  if (/^picking\s*-?\s*up/.test(s)) return { kind: 'picking_up', leftover: 'pickup', done: false };
   if (/^bulk\b/.test(s)) return { kind: 'bulk', leftover: 'bulk', done: true };
   if (/^no\s*left\s*overs?\b/.test(s)) return { kind: 'no_leftovers', leftover: null, done: true };
-  return { kind: null, leftover: null, done: false, flag: 'leftover_unrecognized' };
+  return { kind: null, leftover: null, done: false, review: true, flag: 'leftover_unrecognized' };
 }
 
 module.exports = {

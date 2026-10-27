@@ -86,11 +86,11 @@ test('stage: took none / auto-donated / bulk', () => {
 });
 
 test('unrecognized text is flagged and preserved in notes', () => {
-  const p = plan([row('6/1/2026 10:00:00', '0001', { 8: 'x', 9: 'x', 10: '6/3', 13: 'split 50/50', 14: 'maybe donate?', 15: 'orig note' })]);
+  const p = plan([row('6/1/2026 10:00:00', '0001', { 8: 'x', 9: 'x', 10: '6/3', 13: 'split 50/50', 14: 'in back room', 15: 'orig note' })]);
   const d = p.dropoffs[0];
   assert.ok(d.flags.includes('payment_unrecognized'));
   assert.ok(d.flags.includes('leftover_unrecognized'));
-  assert.match(d.notes, /^orig note\n\[sheet import\] Venmo or Credit: "split 50\/50"; Pick Up or Donate: "maybe donate\?"$/);
+  assert.match(d.notes, /^orig note\n\[sheet import\] Venmo or Credit: "split 50\/50"; Pick Up or Donate: "in back room"$/);
   assert.equal(d.stage, 'awaiting_customer');
 });
 
@@ -158,4 +158,60 @@ test('typo in Email Sent (earlier than drop-off) falls back to the drop-off date
   assert.equal(d.offer_sent_at, d.dropped_at);
   assert.ok(d.flags.includes('email_sent_far_after_dropoff'));
   assert.match(d.notes, /Email Sent: "9\/2"/);
+});
+
+test('QC: pending / questioned / split / other-method values never close a bag', () => {
+  const base = { 8: 'x', 9: 'x', 10: '6/3', 11: '$10', 12: '$14' };
+  const d = (pay, left) => only([row('6/1/2026 10:00:00', '0001', { ...base, 13: pay, 14: left })]);
+  for (const pay of ['Venmo pending', 'venmo?', 'will venmo', 'credit next visit?']) {
+    const x = d(pay, 'donated');
+    assert.equal(x.stage, 'awaiting_customer', pay);
+    assert.equal(x.paid_at, null, pay);
+    assert.ok(x.flags.includes('payment_pending_or_uncertain'), pay);
+  }
+  for (const [pay, flag] of [['Credited/Venmoed', 'payment_split_or_ambiguous'], ['PayPal', 'payment_other_method'], ['check', 'payment_other_method']]) {
+    const x = d(pay, 'donated');
+    assert.equal(x.stage, 'awaiting_customer', pay);
+    assert.equal(x.payment_choice, null, pay);
+    assert.equal(x.paid_at, null, pay);
+    assert.ok(x.flags.includes(flag) && x.flags.includes('kept_open_for_review'), pay);
+    assert.match(x.notes, /\[sheet import\] Venmo or Credit:/);
+  }
+  // Paid, but leftovers still uncertain -> awaiting_pickup (staff decide), not resolved.
+  for (const left of ['donating', 'donated?']) {
+    const x = d('credited', left);
+    assert.equal(x.stage, 'awaiting_pickup', left);
+    assert.equal(x.resolved_at, null, left);
+    assert.ok(x.paid_at, left);
+    assert.ok(x.flags.includes('leftover_pending_or_uncertain'), left);
+  }
+  const unpaidDonate = d('', 'donate');
+  assert.equal(unpaidDonate.stage, 'awaiting_customer');
+});
+
+test('QC: "paid" / "Paid venmo" -> cash paid; pickup spellings -> awaiting pickup; none/N/A -> no leftovers (flagged)', () => {
+  const base = { 8: 'x', 9: 'x', 10: '6/3' };
+  const d = (pay, left) => only([row('6/1/2026 10:00:00', '0001', { ...base, 13: pay, 14: left })]);
+  const paid = d('paid', 'donated');
+  assert.equal(paid.stage, 'resolved'); assert.equal(paid.payment_choice, 'cash'); assert.ok(paid.flags.includes('paid_method_assumed_venmo'));
+  const pv = d('Paid venmo', 'donated');
+  assert.equal(pv.stage, 'resolved'); assert.equal(pv.payment_choice, 'cash'); assert.deepEqual(pv.flags, []);
+  for (const left of ['Pick up', 'pickup', 'will pick up', 'picking up']) {
+    const x = d('credited', left);
+    assert.equal(x.stage, 'awaiting_pickup', left);
+    assert.equal(x.leftover_choice, 'pickup', left);
+    assert.equal(x.resolved_at, null, left);
+  }
+  for (const left of ['none', 'N/A']) {
+    const x = d('venmoed', left);
+    assert.equal(x.stage, 'resolved', left);
+    assert.equal(x.leftover_choice, null, left);
+    assert.ok(x.flags.includes('leftover_none_assumed_no_leftovers'), left);
+  }
+});
+
+test('QC: T/P "1" and "done" count as yes', () => {
+  const x = only([row('6/1/2026 10:00:00', '0001', { 8: '1', 9: 'done', 11: '$9', 12: '$12' })]);
+  assert.ok(x.tagged_at && x.priced_at);
+  assert.deepEqual(x.flags, []);
 });

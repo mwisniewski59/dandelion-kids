@@ -20,4 +20,10 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
   grep -v 'create extension if not exists pg_net' "$f" | "${PSQL[@]}" -f -
 done
 "${PSQL[@]}" -f "$HERE/rls_smoke_test.sql"
+# Further *_test.sql files run after the smoke test and reuse its fixtures.
+for t in "$HERE"/*_test.sql; do
+  [ "$(basename "$t")" = "rls_smoke_test.sql" ] && continue
+  echo "running $(basename "$t")"
+  "${PSQL[@]}" -f "$t"
+done
 echo "local migration + RLS smoke test: OK"
