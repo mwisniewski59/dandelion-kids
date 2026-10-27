@@ -1,0 +1,5 @@
+# Test tooling (tests/package.json) — never commit installed deps or run output
+node_modules/
+tests/test-results/
+tests/playwright-report/
+tests/.auth/
