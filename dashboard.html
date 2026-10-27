@@ -2528,6 +2528,40 @@ function toast(msg, opts) {
   const dur = (opts && opts.durationMs) || 2400;
   toast._t = setTimeout(() => el.classList.remove('open'), dur);
 }
+// ── Write failures ─────────────────────────────────────────
+// Staff need a plain message, not a Postgres error. Full detail goes to the
+// console for whoever is debugging.
+const SAVE_DENIED_MSG = "Couldn't save — you may not have permission. Nothing was changed.";
+const SAVE_FAILED_MSG = "Couldn't save — please try again. Nothing was changed.";
+function isPermissionError(error) {
+  if (!error) return false;
+  const code = String(error.code || '');
+  const msg = String(error.message || '') + ' ' + String(error.details || '') + ' ' + String(error.hint || '');
+  return code === '42501' || code === 'PGRST301' || code === 'PGRST116' ||
+         error.status === 401 || error.status === 403 ||
+         /permission|row-level security|not allowed|denied|unauthori[sz]ed/i.test(msg);
+}
+// Toast a plain message for a failed write. If errEl (an inline error
+// element in an open modal) is given, show the same text there too.
+function saveFailed(error, errEl) {
+  console.error('Save failed:', error);
+  const msg = isPermissionError(error) ? SAVE_DENIED_MSG : SAVE_FAILED_MSG;
+  toast(msg, { durationMs: 5000 });
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+// Update this shop's row in an owner/manager-only table (settings,
+// pricing_config). Row-level security does NOT error on a blocked UPDATE —
+// it just matches zero rows — so ask for the row back and treat "nothing
+// came back" as refused.
+async function adminUpdate(table, values) {
+  if (!canEditAdmin()) return { error: { code: '42501', message: READ_ONLY_MSG } };
+  const { data, error } = await sb.from(table).update(values)
+    .eq('tenant_id', currentTenantId).select('tenant_id');
+  if (error) return { error };
+  if (!data || !data.length) return { error: { code: '42501', message: 'Update matched no rows (blocked by row-level security?)' } };
+  return { error: null };
+}
+
 function tierClass(tier) {
   if (tier === 'Even Better') return 'b-EvenBetter';
   if (tier === 'DO NOT BUY') return 'b-DNB';
@@ -4010,7 +4044,7 @@ async function saveBulkAndAdvance() {
     priced_by: me.email,
     stage: 'awaiting_customer'
   }).eq('id', currentDropoffId);
-  if (error) { toast('Error: ' + error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('priced', { items, onesies, total });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4024,7 +4058,7 @@ async function advance(toStage) {
   const update = { stage: toStage };
   if (toStage === 'tagging') update.tagged_at = null; // will set later
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('advanced', { to: toStage });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4061,7 +4095,7 @@ async function submitItemCount() {
     tagged_by: me.email,
     item_count: itemCount
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('tagged', { item_count: itemCount });
   closeItemCountModal();
   await refreshDropoff(currentDropoffId);
@@ -4085,7 +4119,7 @@ async function finishPricing() {
     priced_at: new Date().toISOString(),
     priced_by: me.email,
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('priced', { cash, credit });
   await refreshDropoff(currentDropoffId);
   // Open the review overlay (stage still 'pricing')
@@ -4236,7 +4270,7 @@ async function reviewRemoveLine(i) {
     venmo_amount: cash,
     credit_amount: credit,
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderReviewOverlay();
 }
@@ -4279,7 +4313,7 @@ async function markPaid() {
   }
 
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity(wantsPickup ? 'paid_awaiting_pickup' : 'paid_and_resolved');
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4295,7 +4329,7 @@ async function markPickedUp() {
     picked_up_at: now,
     picked_up_by: me.email
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('picked_up');
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4314,7 +4348,7 @@ async function markPickupDonated() {
     picked_up_at: now,
     picked_up_by: me.email
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('pickup_donated', { reason: 'customer_no_show' });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4446,13 +4480,15 @@ async function submitOverride() {
   }
 
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  if (error) { saveFailed(error, err); return; }
 
   // If they entered a Venmo handle, save it to the customer record
   if (venmoHandle && d.customer_id) {
-    await sb.from('customers').update({
+    const { error: vErr } = await sb.from('customers').update({
       venmo_handle: venmoHandle.startsWith('@') ? venmoHandle : '@' + venmoHandle
     }).eq('id', d.customer_id);
+    // The drop-off itself saved; only the handle on the customer record didn't.
+    if (vErr) { console.error('Venmo handle save failed:', vErr); toast("Drop-off saved, but the Venmo handle couldn't be saved to the customer.", { durationMs: 5000 }); }
   }
 
   await logActivity('manual_resolution', {
@@ -4565,7 +4601,9 @@ async function submitWalkIn() {
       if (v !== existing.venmo_handle) updates.venmo_handle = v;
     }
     if (Object.keys(updates).length > 0) {
-      await sb.from('customers').update(updates).eq('id', customerId);
+      const { error: uErr } = await sb.from('customers').update(updates).eq('id', customerId);
+      // Not fatal — the drop-off can still be created for this customer.
+      if (uErr) { console.error('Customer update failed:', uErr); toast("Couldn't update the customer's contact details — continuing with the drop-off.", { durationMs: 5000 }); }
     }
   } else {
     // Create new customer
@@ -4645,7 +4683,7 @@ async function reopenDropoff() {
     picked_up_at: null,
     picked_up_by: null
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
 }
@@ -4688,9 +4726,7 @@ async function confirmDeleteDropoff() {
   }).eq('id', deletedId);
 
   if (error) {
-    const err = $('deleteDropoffErr');
-    err.textContent = 'Could not delete: ' + error.message;
-    err.style.display = 'block';
+    saveFailed(error, $('deleteDropoffErr'));
     btn.disabled = false;
     btn.textContent = 'Delete Drop-Off';
     return;
@@ -4723,7 +4759,7 @@ async function undoDeleteDropoff(id) {
     deleted_at: null,
     deleted_by: null
   }).eq('id', id);
-  if (error) { toast('Could not undo: ' + error.message); return; }
+  if (error) { saveFailed(error); return; }
   await sb.from('activity_log').insert({
     tenant_id: currentTenantId,
     dropoff_id: id,
@@ -4738,7 +4774,7 @@ async function undoDeleteDropoff(id) {
 async function saveNotes() {
   const notes = $('notesField').value;
   const { error } = await sb.from('dropoffs').update({ notes }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   toast('Notes saved');
 }
@@ -4746,7 +4782,7 @@ async function saveNotes() {
 async function saveBagDescription() {
   const bag = ($('bagField').value || '').trim();
   const { error } = await sb.from('dropoffs').update({ bag_description: bag }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('bag_described', { bag });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -5150,7 +5186,7 @@ async function addLine() {
   }
   const lines = (fresh.pricing_lines || []).concat([line]);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
   initPricingTool(getDropoff(currentDropoffId));
@@ -5197,7 +5233,7 @@ async function removeLine(i) {
   const lines = current.slice();
   lines.splice(i, 1);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
 }
@@ -5219,7 +5255,7 @@ async function openOfferModal() {
     const { error } = await sb.from('dropoffs').update({
       offer_token: token
     }).eq('id', currentDropoffId);
-    if (error) { toast(error.message); return; }
+    if (error) { saveFailed(error); return; }
     await logActivity('offer_prepared', { token });
     await refreshDropoff(currentDropoffId);
   }
@@ -5427,7 +5463,7 @@ async function markOfferSentFromModal() {
   }
   if (Object.keys(update).length > 0) {
     const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-    if (error) { toast(error.message); return; }
+    if (error) { saveFailed(error); return; }
     await logActivity('offer_sent', {});
     await refreshDropoff(currentDropoffId);
   }
@@ -6149,8 +6185,8 @@ async function saveSettings() {
     bulk_onesie_price: Number($('setBulkOnesie').value) || 0.25,
     auto_donate_days: Number($('setAutoDonate').value) || 7
   };
-  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', update);
+  if (error) { saveFailed(error); return; }
   settings = { ...settings, ...update };
   toast('Settings saved');
 }
@@ -6164,8 +6200,8 @@ async function saveBehavior() {
     baby_carrier_divisor: Number($('setBabyCarrierDivisor').value) || 3.00,
     hat_flat_price: Number($('setHatFlatPrice').value) || 5.00,
   };
-  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', update);
+  if (error) { saveFailed(error); return; }
   settings = { ...settings, ...update };
   toast('Behavior settings saved');
 }
@@ -6347,8 +6383,8 @@ async function submitBrandRule() {
     rules.brand_rules.push(ruleObj);
   }
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error, err); return; }
   settings.business_rules = rules;
   closeBrandRuleModal();
   toast(brandRuleEditIdx !== null ? 'Brand rule updated' : 'Brand rule added');
@@ -6359,8 +6395,8 @@ async function removeBrandRule(idx) {
   if (!confirm('Delete this brand rule?')) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   (rules.brand_rules || []).splice(idx, 1);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Brand rule deleted');
   renderRules();
@@ -6424,8 +6460,8 @@ async function submitTypeBehavior() {
   // If renaming wasn't allowed via disabled input, this still works as create-or-update
   rules.type_behaviors[type] = { kind, note };
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error, err); return; }
   settings.business_rules = rules;
   closeTypeBehaviorModal();
   toast(typeBehaviorEditKey ? 'Type behavior updated' : 'Type behavior added');
@@ -6436,8 +6472,8 @@ async function removeTypeBehavior(type) {
   if (!confirm(`Delete the special behavior for "${type}"? Pricing will revert to standard matrix lookup.`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   delete (rules.type_behaviors || {})[type];
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Type behavior deleted');
   renderRules();
@@ -6455,8 +6491,8 @@ async function addShoeType() {
     return;
   }
   rules.shoe_types.push(norm);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Shoe type added');
   renderRules();
@@ -6466,8 +6502,8 @@ async function removeShoeType(name) {
   if (!confirm(`Remove "${name}" from the shoe condition list?`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   rules.shoe_types = (rules.shoe_types || []).filter(t => t !== name);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Removed');
   renderRules();
@@ -6500,8 +6536,8 @@ async function submitDnbBrands() {
   const updated = JSON.parse(JSON.stringify(pricingData));
   for (const b of brands) updated.brands[b] = 'DO NOT BUY';
 
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('pricing_config', { data: updated });
+  if (error) { saveFailed(error, err); return; }
   pricingData = updated;
   closeDnbModal();
   toast(`${brands.length} brand${brands.length === 1 ? '' : 's'} added to DO NOT BUY`);
@@ -6513,8 +6549,8 @@ async function removeFromDnb(brand) {
   const updated = JSON.parse(JSON.stringify(pricingData));
   // Default to "Good" tier on removal — staff can change in Pricing
   updated.brands[brand] = 'Good';
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('pricing_config', { data: updated });
+  if (error) { saveFailed(error); return; }
   pricingData = updated;
   toast(`${brand} reset to Good tier — adjust in Pricing`);
   renderRules();
@@ -6809,12 +6845,12 @@ function setMatrixCell(input) {
 
 async function savePricingConfig() {
   if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
-  const { error } = await sb.from('pricing_config').update({
+  const { error } = await adminUpdate('pricing_config', {
     data: pricingData,
     updated_at: new Date().toISOString(),
     updated_by: me.email
-  }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  });
+  if (error) { saveFailed(error); return; }
   toast('Pricing config saved');
 }
 
