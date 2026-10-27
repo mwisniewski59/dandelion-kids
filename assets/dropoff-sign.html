@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Drop-Off Sign — Dandelion Kids</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* One-page printable counter / door sign. Print at 100% on Letter paper. */
+@page{size:letter portrait;margin:0.5in}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--text:#26262a;--muted:#75747a;--accent:#b8842f;--bg:#f0efec}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+.sheet{
+  background:#fff;width:100%;max-width:7.5in;margin:24px auto;padding:0.6in 0.5in;
+  text-align:center;border:1px solid #e4e2df;
+}
+.brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:44px;letter-spacing:-1.5px;line-height:1}
+.brand span{color:var(--accent)}
+.rule{width:80px;height:4px;background:var(--accent);margin:22px auto 26px}
+h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:46px;letter-spacing:-1px;line-height:1.05}
+.sub{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:30px;color:var(--accent);margin-top:10px}
+.qr{display:block;width:4.2in;max-width:100%;height:auto;margin:26px auto 14px;image-rendering:pixelated}
+.url{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;letter-spacing:.2px}
+.note{font-size:16px;color:var(--muted);margin-top:8px}
+.powered{margin-top:30px;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.powered img{height:22px;width:auto}
+.print-btn{display:block;margin:0 auto 24px;padding:12px 22px;font:700 15px 'Plus Jakarta Sans',sans-serif;background:var(--accent);color:var(--text);border:0;border-radius:4px;cursor:pointer}
+@media print{
+  html,body{background:#fff}
+  .sheet{margin:0;border:0;max-width:none;padding:0.3in 0}
+  .print-btn{display:none}
+}
+@media (max-width:600px){
+  .sheet{margin:16px;width:auto;padding:28px 16px}
+  .brand{font-size:32px}
+  h1{font-size:32px}
+  .sub{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="brand">Dandelion <span>Kids</span></div>
+  <div class="rule"></div>
+  <h1>Drop off clothes?</h1>
+  <div class="sub">Scan to check in</div>
+  <img class="qr" src="dropoff-qr.svg" alt="QR code linking to www.bstflow.com/dropoff" width="1024" height="1024">
+  <div class="url">www.bstflow.com/dropoff</div>
+  <div class="note">Open your phone camera and point it at the code.</div>
+  <div class="powered">Powered by <img src="logo.png" alt="BST Flow"></div>
+</div>
+<button type="button" class="print-btn" onclick="window.print()">Print this sign</button>
+</body>
+</html>

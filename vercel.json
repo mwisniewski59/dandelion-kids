@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/dropoff",
+      "destination": "/intake.html?shop=dandelion-kids",
+      "permanent": false
+    },
+    {
+      "source": "/dropoff/",
+      "destination": "/intake.html?shop=dandelion-kids",
+      "permanent": false
+    }
+  ]
+}
