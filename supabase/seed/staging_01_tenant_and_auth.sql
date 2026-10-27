@@ -1,11 +1,15 @@
 -- ============================================================================
 -- STAGING ONLY (qngqrvgcqunywyemzesy). NEVER run against live.
--- Fake tenant + 3 test logins. All data synthetic.
+-- Fake tenant + 6 test logins. All data synthetic.
 --
 -- Test logins (TEST-ONLY password, staging project only):
---   owner@example.test    / TestOnly-BstFlow-2026   role owner
---   manager@example.test  / TestOnly-BstFlow-2026   role manager
---   staff@example.test    / TestOnly-BstFlow-2026   role staff
+--   owner@example.test     / TestOnly-BstFlow-2026   role owner
+--   manager@example.test   / TestOnly-BstFlow-2026   role manager
+--   staff@example.test     / TestOnly-BstFlow-2026   role buyer (was staff; 0007 converts)
+--   buyer@example.test     / TestOnly-BstFlow-2026   role buyer
+--   tagger@example.test    / TestOnly-BstFlow-2026   role tagger
+--   associate@example.test / TestOnly-BstFlow-2026   role associate
+-- Roles need migration 0007 (owner/manager/buyer/tagger/associate).
 --
 -- The tenant re-uses live's Dandelion tenant UUID on purpose: the ls_* RLS
 -- policies (0003) hard-code that UUID, so reusing it lets staging exercise
@@ -40,7 +44,10 @@ on conflict (tenant_id) do nothing;
 with u(id, email, display_name) as (values
   ('0b5f1a00-0000-4000-8000-000000000001'::uuid, 'owner@example.test',   'Test Owner'),
   ('0b5f1a00-0000-4000-8000-000000000002'::uuid, 'manager@example.test', 'Test Manager'),
-  ('0b5f1a00-0000-4000-8000-000000000003'::uuid, 'staff@example.test',   'Test Staff'))
+  ('0b5f1a00-0000-4000-8000-000000000003'::uuid, 'staff@example.test',   'Test Staff'),
+  ('0b5f1a00-0000-4000-8000-000000000007'::uuid, 'buyer@example.test',   'Test Buyer'),
+  ('0b5f1a00-0000-4000-8000-000000000005'::uuid, 'tagger@example.test',  'Test Tagger'),
+  ('0b5f1a00-0000-4000-8000-000000000006'::uuid, 'associate@example.test', 'Test Associate'))
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   confirmation_token, recovery_token, email_change_token_new, email_change,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -57,17 +64,22 @@ select u.id::text, u.id,
   jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true, 'phone_verified', false),
   'email', now(), now(), now()
 from auth.users u
-where u.email in ('owner@example.test','manager@example.test','staff@example.test')
+where u.email in ('owner@example.test','manager@example.test','staff@example.test',
+                  'buyer@example.test','tagger@example.test','associate@example.test')
   and not exists (select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email');
 
 -- What the on_auth_user_created trigger (0002) would have done.
 insert into public.staff_profiles (id, email, display_name, role)
 select id, email, raw_user_meta_data->>'display_name', 'associate' from auth.users
-where email in ('owner@example.test','manager@example.test','staff@example.test')
+where email in ('owner@example.test','manager@example.test','staff@example.test',
+                'buyer@example.test','tagger@example.test','associate@example.test')
 on conflict (id) do nothing;
 
 insert into public.memberships (user_id, tenant_id, role) values
   ('0b5f1a00-0000-4000-8000-000000000001', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'owner'),
   ('0b5f1a00-0000-4000-8000-000000000002', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'manager'),
-  ('0b5f1a00-0000-4000-8000-000000000003', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'staff')
+  ('0b5f1a00-0000-4000-8000-000000000003', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'buyer'),
+  ('0b5f1a00-0000-4000-8000-000000000007', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'buyer'),
+  ('0b5f1a00-0000-4000-8000-000000000005', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'tagger'),
+  ('0b5f1a00-0000-4000-8000-000000000006', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'associate')
 on conflict (user_id, tenant_id) do nothing;
