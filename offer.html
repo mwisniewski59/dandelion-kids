@@ -59,6 +59,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
   margin:24px 0 12px;
 }
 .section-title:first-child{margin-top:0}
+#leftoverSection > .section-title:first-child{margin-top:26px}
 
 /* OPTION CARDS */
 .opt-card{
@@ -110,6 +111,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 
 .venmo-row{display:none;margin-top:14px}
 .venmo-row.show{display:block}
+.field-hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.field-err{font-size:13px;color:var(--err);margin-top:6px;font-weight:600;display:none}
+.field.has-err input{border-color:var(--err)}
+.field.has-err .field-err{display:block}
+.status .status-detail{display:block;margin-top:6px;font-size:12px;font-weight:500;opacity:.85;overflow-wrap:anywhere}
+.btn-retry{display:inline-flex;width:auto;margin:14px auto 0;padding:12px 24px;min-height:46px}
+.bag-info{overflow-wrap:anywhere}
 
 /* BUTTON */
 .btn{
@@ -151,6 +159,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
   h1{font-size:22px}
   .opt-card{padding:16px 18px}
   .opt-amt{font-size:20px}
+  .success,.error-page,.already-view{padding:28px 6px}
 }
 </style>
 </head>
@@ -164,8 +173,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 
     <div id="errorView" class="error-page" style="display:none">
       <span class="success-icon">🤔</span>
-      <h2>We can't find that offer.</h2>
+      <h2 id="errorTitle">We can't find that offer.</h2>
       <p id="errorMsg">The link may be expired or already used. If you think this is a mistake, please contact us.</p>
+      <button type="button" class="btn btn-primary btn-retry" id="retryBtn" style="display:none" onclick="location.reload()">Try again</button>
     </div>
 
     <div id="alreadyView" class="already-view" style="display:none">
@@ -206,7 +216,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
       <div class="venmo-row" id="venmoRow">
         <div class="field">
           <label for="venmo">Your Venmo Handle</label>
-          <input id="venmo" type="text" placeholder="@your-venmo">
+          <input id="venmo" type="text" placeholder="@your-venmo" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="60">
+          <div class="field-err" id="venmoErr">Please enter your Venmo handle so we can pay you.</div>
         </div>
       </div>
 
@@ -232,6 +243,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
       <span class="success-icon">✓</span>
       <h2>Thanks!</h2>
       <p>We've got your response. We'll be in touch soon.</p>
+      <div class="already-choice" id="doneChoice" style="display:none"></div>
     </div>
   </div>
   <div class="powered">Powered by <img src="assets/logo.png" alt="BST Flow"/></div>
@@ -241,7 +253,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;let
 <script src="config.js"></script>
 <script>
 const CFG = window.DANDELION_CONFIG;
-const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+// If the Supabase library (CDN) or config.js failed to load, show the
+// "try again" error view instead of a blank "Loading…" forever.
+const sb = (window.supabase && CFG) ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
 
 const params = new URLSearchParams(window.location.search);
 const token = params.get('t') || params.get('token') || '';
@@ -249,6 +263,7 @@ const token = params.get('t') || params.get('token') || '';
 let offer = null;
 let pay = null;
 let left = null;
+let submitting = false;
 
 const fmt = n => '$' + Number(n||0).toFixed(2);
 const $ = id => document.getElementById(id);
@@ -257,11 +272,45 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 function show(v) {
   ['loading','errorView','alreadyView','formView','successView'].forEach(x => $(x).style.display = 'none');
   $(v).style.display = 'block';
+  window.scrollTo({ top: 0 });
+}
+
+// supabase-js reports a dropped connection as an error whose message is the
+// browser's fetch failure ("Failed to fetch", "Load failed", "NetworkError…").
+function isNetworkError(err) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  const m = String((err && (err.message || err)) || '');
+  return /failed to fetch|load failed|networkerror|network request failed|fetch failed|timeout|timed out/i.test(m);
+}
+
+// Connection problem (as opposed to a bad/expired link): say so and offer a retry.
+function showNetworkError() {
+  $('errorTitle').textContent = "We couldn't load your offer.";
+  $('errorMsg').textContent = "It looks like a connection problem. Please check your Wi-Fi or signal and try again.";
+  $('retryBtn').style.display = '';
+  show('errorView');
+}
+
+function choiceLabel(paymentChoice, leftoverChoice) {
+  const p = paymentChoice === 'credit' ? 'Store credit'
+          : paymentChoice === 'cash' ? 'Cash via Venmo'
+          : 'No payment';
+  const l = leftoverChoice === 'pickup' ? 'pick up leftovers'
+          : leftoverChoice === 'donate' ? 'donate leftovers'
+          : '';
+  return p + (l ? ' · ' + l : '');
+}
+
+async function fetchOffer() {
+  try { return await sb.rpc('get_offer_by_token', { p_token: token }); }
+  catch (e) { return { data: null, error: e }; }
 }
 
 async function load() {
   if (!token) { show('errorView'); return; }
-  const { data, error } = await sb.rpc('get_offer_by_token', { p_token: token });
+  if (!sb) { showNetworkError(); return; }
+  const { data, error } = await fetchOffer();
+  if (error && isNetworkError(error)) { showNetworkError(); return; }
   if (error || !data || !data.length) { show('errorView'); return; }
   offer = data[0];
 
@@ -282,8 +331,9 @@ async function load() {
   const pct = cashAmt > 0 ? Math.round((creditAmt / cashAmt - 1) * 100) : 0;
   $('bonusBadge').textContent = '+' + pct + '% bonus';
 
-  // For bulk drops, credit and cash are equal — hide bonus badge
-  if (Number(offer.credit_amount) === Number(offer.venmo_amount)) {
+  // For bulk drops, credit and cash are equal — hide bonus badge.
+  // Also hide it if there's no positive bonus to show (avoids "+0% bonus").
+  if (Number(offer.credit_amount) === Number(offer.venmo_amount) || pct <= 0) {
     $('bonusBadge').style.display = 'none';
     $('optCredit').classList.remove('featured');
   }
@@ -296,13 +346,7 @@ async function load() {
 
   // Already responded?
   if (offer.customer_responded_at) {
-    const p = offer.payment_choice === 'credit' ? 'Store credit'
-            : offer.payment_choice === 'cash' ? 'Cash via Venmo'
-            : 'No payment';
-    const l = offer.leftover_choice === 'pickup' ? 'pick up leftovers'
-            : offer.leftover_choice === 'donate' ? 'donate leftovers'
-            : '';
-    $('prevChoice').textContent = p + (l ? ' · ' + l : '');
+    $('prevChoice').textContent = choiceLabel(offer.payment_choice, offer.leftover_choice);
     show('alreadyView');
     return;
   }
@@ -311,46 +355,69 @@ async function load() {
 }
 
 function selectPay(p) {
+  if (submitting) return;
   pay = p;
   $('optCash').classList.toggle('sel', p === 'cash');
   $('optCredit').classList.toggle('sel', p === 'credit');
+  $('optCash').setAttribute('aria-pressed', p === 'cash');
+  $('optCredit').setAttribute('aria-pressed', p === 'credit');
   $('venmoRow').classList.toggle('show', p === 'cash');
+  if (p !== 'cash') setVenmoErr(false);
+  if (p === 'cash' && !venmoHandle()) setTimeout(() => $('venmo').focus(), 0);
   refreshSubmit();
 }
 
 function selectLeft(l) {
+  if (submitting) return;
   left = l;
   $('optDonate').classList.toggle('sel', l === 'donate');
   $('optPickup').classList.toggle('sel', l === 'pickup');
+  $('optDonate').setAttribute('aria-pressed', l === 'donate');
+  $('optPickup').setAttribute('aria-pressed', l === 'pickup');
   refreshSubmit();
 }
 
+// Trimmed handle; a lone "@" (or "@@") counts as empty.
+function venmoHandle() {
+  const v = ($('venmo').value || '').trim();
+  return v.replace(/^@+/, '') ? v : '';
+}
+function setVenmoErr(on) {
+  $('venmoRow').querySelector('.field').classList.toggle('has-err', !!on);
+}
+
+// The button enables once a payment (and, if needed, a leftover) choice is
+// made. A missing Venmo handle for cash is caught on tap with a visible
+// message next to the field, rather than a silently-disabled button.
 function refreshSubmit() {
   if (!offer) return;
   const leftRequired = !(offer.donate_all || offer.drop_type === 'bulk');
-  // Cash payouts require a Venmo handle — otherwise we have no way to pay.
-  const venmoOk = pay !== 'cash' || ($('venmo').value || '').trim().length > 0;
-  const ready = pay && venmoOk && (!leftRequired || left);
-  $('submitBtn').disabled = !ready;
+  const ready = pay && (!leftRequired || left);
+  $('submitBtn').disabled = !ready || submitting;
 }
 
-// Re-check as the customer types their handle
-$('venmo').addEventListener('input', refreshSubmit);
+// Clear the Venmo error as soon as the customer starts typing
+$('venmo').addEventListener('input', () => { if (venmoHandle()) setVenmoErr(false); });
+$('venmo').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
 
 async function submit() {
+  if (submitting) return;   // no double-submit
   const btn = $('submitBtn');
   const status = $('status');
   status.className = 'status';
   status.textContent = '';
+  if (!offer || !pay) return;
 
-  // Belt-and-suspenders: never submit a cash choice without a Venmo handle.
-  if (pay === 'cash' && !($('venmo').value || '').trim()) {
+  // Never submit a cash choice without a Venmo handle (the RPC rejects it too).
+  if (pay === 'cash' && !venmoHandle()) {
+    setVenmoErr(true);
     status.className = 'status err';
     status.textContent = 'Please enter your Venmo handle so we can pay you.';
     $('venmo').focus();
     return;
   }
 
+  submitting = true;
   btn.disabled = true;
   btn.textContent = 'Submitting…';
 
@@ -358,21 +425,43 @@ async function submit() {
     p_token: token,
     p_payment_choice: pay,
     p_leftover_choice: left || 'donate',
-    p_venmo_handle: pay === 'cash' ? ($('venmo').value || '').trim() : null
+    p_venmo_handle: pay === 'cash' ? venmoHandle() : null
   };
 
-  const { data, error } = await sb.rpc('respond_to_offer', payload);
+  let res;
+  try { res = await sb.rpc('respond_to_offer', payload); }
+  catch (e) { res = { data: null, error: e }; }
+  const { data, error } = res;
   if (error || !data) {
+    // Maybe it did go through (e.g. answered in another tab, or the reply
+    // was lost). Re-check before telling the customer it failed.
+    if (!(error && isNetworkError(error))) {
+      const again = await fetchOffer();
+      const o = again.data && again.data[0];
+      if (o && o.customer_responded_at) {
+        $('prevChoice').textContent = choiceLabel(o.payment_choice, o.leftover_choice);
+        show('alreadyView');
+        return;
+      }
+    }
+    submitting = false;
     status.className = 'status err';
-    status.textContent = error ? error.message : 'Could not submit. Try again or contact us.';
-    btn.disabled = false;
+    const head = (error && isNetworkError(error))
+      ? "We couldn't reach the shop, so your choice has NOT been saved yet. Check your Wi-Fi or signal and tap Submit again."
+      : "Sorry, we couldn't save your choice. Please try again, or contact us if it keeps happening.";
+    const detail = error && error.message ? '<span class="status-detail">Details: ' + esc(error.message) + '</span>' : '';
+    status.innerHTML = esc(head) + detail;
     btn.textContent = 'Submit My Choice';
+    refreshSubmit();
+    status.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
+  $('doneChoice').textContent = choiceLabel(pay, left || 'donate');
+  $('doneChoice').style.display = '';
   show('successView');
 }
 
-load();
+load().catch(() => showNetworkError());
 </script>
 </body>
 </html>

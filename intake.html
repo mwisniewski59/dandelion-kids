@@ -194,7 +194,8 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
 .summary-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
 .summary-row:last-child{border-bottom:none}
 .summary-key{color:var(--muted);font-weight:600;flex-shrink:0}
-.summary-val{color:var(--text);text-align:right;font-weight:600}
+.summary-val{color:var(--text);text-align:right;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.status .status-detail{display:block;margin-top:6px;font-size:12px;font-weight:500;opacity:.85;overflow-wrap:anywhere}
 
 @media (max-width:480px){
   .page{padding:20px 14px 60px}
@@ -206,6 +207,13 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
   .policy-type-sub{font-size:12px}
   .policy-headline{font-size:14px}
   .terms-list li{padding:12px 14px;font-size:14px}
+}
+@media (max-width:380px){
+  .page{padding:16px 10px 50px}
+  .step-card{padding:20px 16px}
+  .btn{padding:14px 16px;font-size:14px}
+  .btn-back{padding:14px 14px}
+  .choice-card{padding:14px}
 }
 </style>
 </head>
@@ -427,30 +435,54 @@ h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;let
 <script src="config.js"></script>
 <script>
 const CFG = window.DANDELION_CONFIG;
-const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
+// If the Supabase library (CDN) or config.js failed to load, don't crash the
+// whole page — loadShop() shows a friendly "try again" message instead.
+const sb = (window.supabase && CFG) ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
 
 // Which shop is this drop-off form for? Comes from the link the shop
-// shares, e.g. intake.html?shop=little-sprouts
-const SHOP_SLUG = new URLSearchParams(window.location.search).get('shop') || '';
+// shares, e.g. intake.html?shop=little-sprouts. With no ?shop= param
+// (e.g. the in-store QR code / bstflow.com/dropoff) it defaults to Dandelion Kids.
+const DEFAULT_SHOP_SLUG = 'dandelion-kids';
+const SHOP_SLUG = (new URLSearchParams(window.location.search).get('shop') || '').trim() || DEFAULT_SHOP_SLUG;
 let shopInfo = null;
 
+// supabase-js reports a dropped connection as an error whose message is the
+// browser's fetch failure ("Failed to fetch", "Load failed", "NetworkError…").
+function isNetworkError(err) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  const m = String((err && (err.message || err)) || '');
+  return /failed to fetch|load failed|networkerror|network request failed|fetch failed|timeout|timed out/i.test(m);
+}
+
 async function loadShop() {
-  if (!SHOP_SLUG) return showShopError('This drop-off link is missing its shop. Please use the link the shop gave you.');
-  const { data, error } = await sb.rpc('get_shop_public', { p_slug: SHOP_SLUG });
-  if (error || !data || !data.length) {
+  if (!sb) return showShopError("The drop-off form didn't finish loading. Please check your Wi-Fi or signal and try again.", true);
+  let res;
+  try { res = await sb.rpc('get_shop_public', { p_slug: SHOP_SLUG }); }
+  catch (e) { res = { data: null, error: e }; }
+  const { data, error } = res;
+  if (error) {
+    return showShopError(isNetworkError(error)
+      ? "We couldn't connect to load the drop-off form. Please check your Wi-Fi or signal and try again."
+      : "We couldn't load the drop-off form right now. Please try again in a moment, or ask a staff member for help.", true);
+  }
+  if (!data || !data.length) {
     return showShopError("We couldn't find that shop. Please check the link, or ask the shop for a new one.");
   }
   shopInfo = data[0];
-  document.title = 'Drop-Off — ' + shopInfo.name;
-  const brand = document.querySelector('.brand');
-  if (brand) brand.innerHTML = String(shopInfo.name || '').replace(/[<>&]/g, '');
+  if (shopInfo.name) {
+    document.title = 'Drop-Off — ' + shopInfo.name;
+    const brand = document.querySelector('.brand');
+    if (brand) brand.textContent = String(shopInfo.name);
+  }
 }
 
-function showShopError(msg) {
+function showShopError(msg, canRetry) {
   document.querySelector('.page').innerHTML =
     '<div class="brand">Drop-Off</div>' +
-    '<div class="step-card"><h2>Something\'s not right</h2><p class="lead">' + msg + '</p></div>';
+    '<div class="step-card"><h2>Something\'s not right</h2><p class="lead">' + escHtml(msg) + '</p>' +
+    (canRetry ? '<div class="step-actions"><button type="button" class="btn btn-primary" style="flex:1" onclick="location.reload()">Try again</button></div>' : '') +
+    '</div>';
   throw new Error('shop not resolved');
 }
 
@@ -529,10 +561,8 @@ function onTypeChange() {
   } else if (v === 'standard') {
     // If they previously had 'bulk' leftover selected, clear it
     const cur = document.querySelector('input[name=leftoverPref]:checked');
-    if (cur?.value === 'bulk') {
-      cur.checked = false;
-      onLeftoverChange();
-    }
+    if (cur?.value === 'bulk') cur.checked = false;
+    onLeftoverChange();
   }
 }
 
@@ -547,9 +577,20 @@ function onLeftoverChange() {
   const dropType = document.querySelector('input[name=dropType]:checked')?.value;
   const isBulk = dropType === 'bulk';
   // For bulk, only 'Not applicable' is appropriate
-  $('donateYesCard').classList.toggle('disabled', isBulk);
-  $('donateNoCard').classList.toggle('disabled', isBulk);
-  $('donateNACard').classList.toggle('disabled', !isBulk);
+  // (Also disable the radio itself so a greyed-out option can't be picked.)
+  [['donateYesCard', isBulk], ['donateNoCard', isBulk], ['donateNACard', !isBulk]].forEach(([id, off]) => {
+    $(id).classList.toggle('disabled', off);
+    const r = $(id).querySelector('input');
+    r.disabled = off;
+    if (off && r.checked) r.checked = false;
+  });
+  const v2 = document.querySelector('input[name=leftoverPref]:checked')?.value;
+  if (v2 !== v) {
+    $('donateYesCard').classList.toggle('sel', v2 === 'donate');
+    $('donateNoCard').classList.toggle('sel', v2 === 'pickup');
+    $('donateNACard').classList.toggle('sel', v2 === 'bulk');
+    $('step7Next').disabled = !v2;
+  }
   // Update the lead text
   $('leftoverLead').textContent = isBulk
     ? 'You picked Bulk — your leftovers are always donated. Confirm the third option.'
@@ -580,15 +621,49 @@ function escHtml(s) {
 }
 
 // ─── Submit ──────────────────────────────────────────────────
+let submitting = false;
+let submitted = false;
+
+// Before sending, re-check every required answer (consent, contact info,
+// drop type, leftover choice). Returns the step number to fix, or 0 if OK.
+function firstIncompleteStep() {
+  if (!$('consentPolicy').checked || !$('consentSell').checked) return 4;
+  const name = $('name').value.trim();
+  const email = $('email').value.trim();
+  const phone = $('phone').value.trim();
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || phone.replace(/\D/g, '').length < 7) return 5;
+  const dropType = document.querySelector('input[name=dropType]:checked')?.value;
+  if (!dropType) return 6;
+  const leftover = document.querySelector('input[name=leftoverPref]:checked')?.value;
+  if (!leftover || (dropType === 'bulk') !== (leftover === 'bulk')) return 7;
+  return 0;
+}
+
 async function submitForm() {
+  if (submitting || submitted) return;   // no double-submit
   const btn = $('submitBtn');
   const status = $('status');
   status.className = 'status';
   status.textContent = '';
+
+  const fix = firstIncompleteStep();
+  if (fix) {
+    showStep(fix);
+    if (fix === 5) validateContactAndNext();   // highlights the missing field(s)
+    if (fix === 7) onLeftoverChange();
+    return;
+  }
+  if (!sb) {
+    status.className = 'status err';
+    status.textContent = "The form didn't finish loading. Please refresh the page and try again.";
+    return;
+  }
+
+  submitting = true;
   btn.disabled = true;
   btn.textContent = 'Submitting…';
 
-  const dropType = document.querySelector('input[name=dropType]:checked')?.value || 'standard';
+  const dropType = document.querySelector('input[name=dropType]:checked')?.value;
   const leftover = document.querySelector('input[name=leftoverPref]:checked')?.value;
   // Map to existing schema:
   //   donate_all = true iff customer picked "YES donate all" (or bulk, which is implied donate)
@@ -606,22 +681,33 @@ async function submitForm() {
     p_consented: true
   };
 
-  const { data, error } = await sb.rpc('create_intake', payload);
+  let res;
+  try { res = await sb.rpc('create_intake', payload); }
+  catch (e) { res = { data: null, error: e }; }
+  const { data, error } = res;
 
   if (error) {
+    submitting = false;
     status.className = 'status err';
-    status.textContent = 'Sorry, something went wrong: ' + error.message;
+    const head = isNetworkError(error)
+      ? "We couldn't reach the shop's system, so your drop-off has NOT been saved yet. Check your Wi-Fi or signal, then tap Submit again."
+      : "Sorry, we couldn't save your drop-off. Please tap Submit to try again, or let a staff member know.";
+    const detail = error && error.message ? '<span class="status-detail">Details: ' + escHtml(error.message) + '</span>' : '';
+    status.innerHTML = escHtml(head) + detail;
     btn.disabled = false;
     btn.textContent = 'Submit Drop-Off ✓';
+    status.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
+  submitted = true;
 
   // Hide form, show success
   for (let i = 1; i <= TOTAL_STEPS; i++) $('step-' + i).hidden = true;
   $('progressWrap').style.display = 'none';
   $('successCard').hidden = false;
   $('successName').textContent = payload.p_name.split(' ')[0];
-  $('successId').textContent = 'Drop-off ID: ' + String(data).slice(0,8);
+  if (data) $('successId').textContent = 'Drop-off ID: ' + String(data).slice(0,8);
+  else $('successId').style.display = 'none';
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
