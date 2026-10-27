@@ -1186,13 +1186,10 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
-    <div id="lockBar" class="lock-bar no-pw">
+    <div id="lockBar" class="lock-bar locked" style="display:none">
       <div class="lock-info">
-        <span class="lock-icon">🔓</span>
-        <span id="lockText">No admin password set — editing is open. Set one in Settings to require a password.</span>
-      </div>
-      <div>
-        <button class="btn btn-sm" id="lockBtn" onclick="toggleLock()" style="display:none">Unlock Editing</button>
+        <span class="lock-icon">🔒</span>
+        <span id="lockText">Only an owner or manager can change this.</span>
       </div>
     </div>
 
@@ -1213,17 +1210,14 @@ a{color:inherit;text-decoration:none}
     <div class="page-header">
       <div>
         <div class="page-title">Settings</div>
-        <div class="page-sub">Store-wide configuration. Admin password required to edit.</div>
+        <div class="page-sub">Store-wide configuration. Owners and managers can edit.</div>
       </div>
     </div>
 
-    <div id="settingsLockBar" class="lock-bar no-pw" style="max-width:560px">
+    <div id="settingsLockBar" class="lock-bar locked" style="max-width:560px;display:none">
       <div class="lock-info">
-        <span class="lock-icon">🔓</span>
-        <span id="settingsLockText">No admin password set — editing is open.</span>
-      </div>
-      <div>
-        <button class="btn btn-sm" id="settingsLockBtn" onclick="toggleSettingsLock()" style="display:none">Unlock</button>
+        <span class="lock-icon">🔒</span>
+        <span id="settingsLockText">Only an owner or manager can change this.</span>
       </div>
     </div>
 
@@ -1271,18 +1265,9 @@ a{color:inherit;text-decoration:none}
     </div>
 
     <div class="card" style="max-width:560px;margin-top:18px">
-      <div class="card-title">Pricing Admin Password</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px">
-        Anyone signed in can <em>view</em> pricing and settings. To <em>edit</em> them, this password is required. Leave unset to allow all staff to edit.
-      </div>
-      <div id="pwStatus" style="font-size:13px;font-weight:600;margin-bottom:12px"></div>
-      <button class="btn btn-primary btn-sm" id="changePwBtn" onclick="openSetPwModal()">Set / Change Password</button>
-    </div>
-
-    <div class="card" style="max-width:560px;margin-top:18px">
       <div class="card-title">Import Historical Data</div>
       <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px">
-        Bulk-import drop-offs from a spreadsheet. Use this once to load existing customer history into the app. Protected by the admin password.
+        Bulk-import drop-offs from a spreadsheet. Use this once to load existing customer history into the app. Owners and managers only.
       </div>
       <button class="btn btn-primary btn-sm" id="openImporterBtn" onclick="openImportModal()">Open Importer</button>
     </div>
@@ -1294,17 +1279,14 @@ a{color:inherit;text-decoration:none}
   <div class="page-header">
     <div>
       <div class="page-title">Business Rules</div>
-      <div class="page-sub">All automatic behaviors in one place. Editable by admin.</div>
+      <div class="page-sub">All automatic behaviors in one place. Owners and managers can edit.</div>
     </div>
   </div>
 
-  <div id="rulesLockBar" class="lock-bar no-pw" style="max-width:860px">
+  <div id="rulesLockBar" class="lock-bar locked" style="max-width:860px;display:none">
     <div class="lock-info">
-      <span class="lock-icon">🔓</span>
-      <span id="rulesLockText">No admin password set — editing is open.</span>
-    </div>
-    <div>
-      <button class="btn btn-sm" id="rulesLockBtn" onclick="toggleSettingsLock()" style="display:none">Unlock</button>
+      <span class="lock-icon">🔒</span>
+      <span id="rulesLockText">Only an owner or manager can change this.</span>
     </div>
   </div>
 
@@ -1316,19 +1298,6 @@ a{color:inherit;text-decoration:none}
   <div class="modal" style="max-width:760px">
     <div class="modal-title">Import Historical Drop-Offs</div>
     <div class="modal-desc">Bulk-load drop-offs from a spreadsheet. Run this <strong>once</strong> on a fresh database — re-running creates duplicates.</div>
-
-    <!-- Step 1: Password gate -->
-    <div id="importStep1">
-      <div class="field">
-        <label>Admin Password</label>
-        <input id="importPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')importUnlock()">
-      </div>
-      <div id="importPwErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="importUnlock()">Continue</button>
-      </div>
-    </div>
 
     <!-- Step 2: Choose file -->
     <div id="importStep2" style="display:none">
@@ -1457,49 +1426,6 @@ a{color:inherit;text-decoration:none}
 <div class="review-overlay" id="reviewOverlay">
   <div class="review-container" id="reviewContainer">
     <!-- Populated by renderReviewOverlay() -->
-  </div>
-</div>
-
-<!-- UNLOCK PASSWORD MODAL -->
-<div class="modal-overlay" id="unlockModal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-title">Unlock Pricing Edits</div>
-    <div class="modal-desc">Enter the admin password to enable editing brands, types, sizes, and the pricing matrix.</div>
-    <div class="field">
-      <label>Admin Password</label>
-      <input id="unlockPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()">
-    </div>
-    <div id="unlockErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeUnlockModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitUnlock()">Unlock</button>
-    </div>
-  </div>
-</div>
-
-<!-- SET ADMIN PASSWORD MODAL -->
-<div class="modal-overlay" id="setPwModal">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title" id="setPwTitle">Set Admin Password</div>
-    <div class="modal-desc" id="setPwDesc">Pick a password that only senior staff should know. Anyone signed in can still <em>view</em> pricing — but editing requires this password.</div>
-    <div class="field" id="currentPwField" style="display:none">
-      <label>Current Password</label>
-      <input id="currentPw" type="password" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>New Password</label>
-      <input id="newPw" type="password" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Confirm New Password</label>
-      <input id="confirmPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')submitSetPw()">
-    </div>
-    <div id="setPwErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeSetPwModal()">Cancel</button>
-      <button class="btn btn-danger" id="clearPwBtn" onclick="clearAdminPw()" style="display:none">Remove Password</button>
-      <button class="btn btn-primary" onclick="submitSetPw()">Save Password</button>
-    </div>
   </div>
 </div>
 
@@ -2775,11 +2701,8 @@ async function doSetNewPassword(e) {
 // ============================================================
 async function initApp() {
   // Only owners/managers can change pricing, rules, and settings — the
-  // database enforces this, but hide the buttons from staff too so they
-  // don't open an editor that would just error when they try to save.
-  if (!isAdmin()) {
-    ['navPricing','navRules','navSettings'].forEach(id => { const b = $(id); if (b) b.style.display = 'none'; });
-  }
+  // database enforces this. Staff can still open those screens, read-only,
+  // with a note saying who can change them (see updateLockBar()).
   await Promise.all([loadPricingConfig(), loadSettings()]);
   await Promise.all([loadDropoffs(), loadCustomers()]);
   document.addEventListener('click', (e) => {
@@ -2959,10 +2882,6 @@ function showView(v) {
     if (!btn) return;
     btn.classList.toggle('active', x.toLowerCase() === v);
   });
-  // Relock admin edits whenever we leave a protected view (Pricing, Settings, or Rules)
-  if (v !== 'pricing' && v !== 'settings' && v !== 'rules' && adminUnlocked) {
-    adminUnlocked = false;
-  }
   if (v === 'customers') {
     renderCustomers();
     // Customer stats need full history — load it once, then re-render
@@ -6216,20 +6135,11 @@ function renderSettings() {
   if ($('setShoeNotGreat')) $('setShoeNotGreat').value = settings.shoe_condition_not_great ?? 0.50;
   if ($('setBabyCarrierDivisor')) $('setBabyCarrierDivisor').value = settings.baby_carrier_divisor ?? 3.00;
   if ($('setHatFlatPrice')) $('setHatFlatPrice').value = settings.hat_flat_price ?? 5.00;
-  // Password status pill
-  const pwStatus = $('pwStatus');
-  if (pwStatus) {
-    if (isPasswordSet()) {
-      pwStatus.innerHTML = '<span style="background:var(--good-bg);color:var(--good);padding:4px 10px;border-radius:3px">🔒 Password is set</span>';
-    } else {
-      pwStatus.innerHTML = '<span style="background:#fff3dc;color:var(--warn);padding:4px 10px;border-radius:3px">🔓 No password set — editing is open</span>';
-    }
-  }
   updateSettingsLockBar();
 }
 
 async function saveSettings() {
-  if (!canEditAdmin()) { toast('Unlock settings first'); return; }
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   const update = {
     store_name: $('setStoreName').value.trim(),
     cash_pct: Math.min(Math.max(Number($('setCashPct').value) || 30, 0), 100) / 100,
@@ -6246,7 +6156,7 @@ async function saveSettings() {
 }
 
 async function saveBehavior() {
-  if (!canEditAdmin()) { toast('Unlock settings first'); return; }
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   const update = {
     shoe_condition_excellent: Number($('setShoeExcellent').value) || 1.00,
     shoe_condition_gently_used: Number($('setShoeGently').value) || 0.75,
@@ -6264,7 +6174,7 @@ async function saveBehavior() {
 //  Business Rules view — the "what does this app do automatically?" page
 // ============================================================
 function renderRules() {
-  // Mirror the lock state from the settings bar
+  // Staff see rules read-only; owners/managers can edit
   updateRulesLockBar();
   const rules = getBusinessRules();
   const brandRules = rules.brand_rules || [];
@@ -6321,7 +6231,7 @@ function renderRules() {
       `).join('')
     : '<div style="color:var(--muted);font-style:italic;padding:8px 0">No type behaviors.</div>';
 
-  // Chip-style shoe types — each with an × to remove (when unlocked)
+  // Chip-style shoe types — each with an × to remove (owners/managers only)
   const shoeTypesHtml = shoeTypes.length
     ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${shoeTypes.map(s => `
         <span style="display:inline-flex;align-items:center;gap:6px;background:var(--better-bg);color:var(--better);padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700">
@@ -6377,30 +6287,7 @@ function renderRules() {
 }
 
 function updateRulesLockBar() {
-  const bar = $('rulesLockBar');
-  if (!bar) return;
-  const text = $('rulesLockText');
-  const btn = $('rulesLockBtn');
-  if (!isPasswordSet()) {
-    bar.className = 'lock-bar no-pw';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'No admin password set — editing is open.';
-    btn.style.display = 'none';
-  } else if (adminUnlocked) {
-    bar.className = 'lock-bar unlocked';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'Rules unlocked for this session.';
-    btn.textContent = 'Lock';
-    btn.className = 'btn btn-sm btn-ghost';
-    btn.style.display = 'inline-block';
-  } else {
-    bar.className = 'lock-bar locked';
-    bar.querySelector('.lock-icon').textContent = '🔒';
-    text.textContent = 'Rules are locked. Unlock with the admin password to edit.';
-    btn.textContent = 'Unlock';
-    btn.className = 'btn btn-sm btn-accent';
-    btn.style.display = 'inline-block';
-  }
+  setLockBar('rulesLockBar', 'rulesLockText');
 }
 
 // ─── Brand rule editing (modal-based) ───
@@ -6637,218 +6524,47 @@ async function removeFromDnb(brand) {
 //  Pricing admin — with lock + card-based matrix view
 // ============================================================
 let adminTab = 'brands';
-let adminUnlocked = false;          // session-scoped admin unlock (pricing + settings + importer)
 let matrixSearch = '';
 let matrixShowEmpty = true;
 
-// ─── PASSWORD HASHING (Web Crypto SHA-256 with project-specific salt) ───
-async function hashPassword(pw) {
-  const salt = 'dandelion-kids:' + (CFG.SUPABASE_URL || '');
-  const enc = new TextEncoder().encode(salt + ':' + pw);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// ─── LOCK STATE ───
-// Single shared unlock for everything admin-gated: pricing edits, settings edits,
-// and the data importer. Unlocking one unlocks all for the session; locks reset
-// whenever the user navigates away from a protected view.
-function isPasswordSet() {
-  return !!(settings && settings.admin_password_hash);
-}
-function canEditAdmin() {
-  return !isPasswordSet() || adminUnlocked;
-}
-// Backwards-compat alias for existing callers
+// ─── EDIT PERMISSIONS (role-based) ───
+// Owners and managers can edit pricing, rules and settings, and run the
+// importer. Staff see the same screens read-only. The database enforces the
+// same rule (pricing_config/settings writes need owner or manager), so this
+// only keeps staff out of editors whose saves would be refused anyway.
+// myRole is set at sign-in by resolveMyRole().
+const READ_ONLY_MSG = 'Only an owner or manager can change this.';
+function canEditAdmin() { return isAdmin(); }
 function canEditPricing() { return canEditAdmin(); }
 
+// Show the read-only note to staff; hide the bar entirely for owners/managers.
+function setLockBar(barId, textId) {
+  const bar = $(barId);
+  if (!bar) return;
+  const readOnly = !canEditAdmin();
+  bar.style.display = readOnly ? '' : 'none';
+  const text = $(textId);
+  if (text) text.textContent = READ_ONLY_MSG;
+}
+
 function updateLockBar() {
-  // Pricing view lock bar
-  const bar = $('lockBar');
-  const text = $('lockText');
-  const btn = $('lockBtn');
+  // Pricing view
+  setLockBar('lockBar', 'lockText');
   const saveBtn = $('savePricingBtn');
-  if (bar) {
-    if (!isPasswordSet()) {
-      bar.className = 'lock-bar no-pw';
-      bar.querySelector('.lock-icon').textContent = '🔓';
-      text.textContent = 'No admin password set — editing is open. Set one in Settings to require a password.';
-      btn.style.display = 'none';
-      if (saveBtn) saveBtn.disabled = false;
-    } else if (adminUnlocked) {
-      bar.className = 'lock-bar unlocked';
-      bar.querySelector('.lock-icon').textContent = '🔓';
-      text.textContent = 'Editing unlocked. Make your changes and click Save Changes.';
-      btn.textContent = 'Lock Editing';
-      btn.className = 'btn btn-sm btn-ghost';
-      btn.style.display = 'inline-block';
-      if (saveBtn) saveBtn.disabled = false;
-    } else {
-      bar.className = 'lock-bar locked';
-      bar.querySelector('.lock-icon').textContent = '🔒';
-      text.textContent = 'Editing locked. Pricing is read-only until you unlock with the admin password.';
-      btn.textContent = 'Unlock Editing';
-      btn.className = 'btn btn-sm btn-accent';
-      btn.style.display = 'inline-block';
-      if (saveBtn) saveBtn.disabled = true;
-    }
-  }
-  // Settings view lock bar
+  if (saveBtn) saveBtn.disabled = !canEditPricing();
+  // Settings + Rules views
   updateSettingsLockBar();
 }
 
 function updateSettingsLockBar() {
-  const bar = $('settingsLockBar');
-  if (!bar) { updateRulesLockBar(); return; }
-  const text = $('settingsLockText');
-  const btn = $('settingsLockBtn');
-  const saveBtn = $('saveSettingsBtn');
-  const saveBehaviorBtn = $('saveBehaviorBtn');
-  const importBtn = $('openImporterBtn');
-
-  const lockInputs = (locked) => {
-    ['setStoreName','setCashPct','setCreditPct','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
-     'setShoeExcellent','setShoeGently','setShoeNotGreat','setBabyCarrierDivisor','setHatFlatPrice']
-      .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
-    if (saveBtn) saveBtn.disabled = locked;
-    if (saveBehaviorBtn) saveBehaviorBtn.disabled = locked;
-    if (importBtn) importBtn.disabled = locked;
-  };
-
-  if (!isPasswordSet()) {
-    bar.className = 'lock-bar no-pw';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'No admin password set — editing is open. Set one below to require a password.';
-    btn.style.display = 'none';
-    lockInputs(false);
-  } else if (adminUnlocked) {
-    bar.className = 'lock-bar unlocked';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'Settings unlocked for this session.';
-    btn.textContent = 'Lock';
-    btn.className = 'btn btn-sm btn-ghost';
-    btn.style.display = 'inline-block';
-    lockInputs(false);
-  } else {
-    bar.className = 'lock-bar locked';
-    bar.querySelector('.lock-icon').textContent = '🔒';
-    text.textContent = 'Settings are locked. Unlock with the admin password to edit.';
-    btn.textContent = 'Unlock';
-    btn.className = 'btn btn-sm btn-accent';
-    btn.style.display = 'inline-block';
-    lockInputs(true);
-  }
-  // Also update the Rules lock bar if it exists
+  setLockBar('settingsLockBar', 'settingsLockText');
+  const locked = !canEditAdmin();
+  ['setStoreName','setCashPct','setCreditPct','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
+   'setShoeExcellent','setShoeGently','setShoeNotGreat','setBabyCarrierDivisor','setHatFlatPrice']
+    .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
+  ['saveSettingsBtn','saveBehaviorBtn','openImporterBtn']
+    .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
   updateRulesLockBar();
-}
-
-function toggleLock() {
-  if (adminUnlocked) {
-    adminUnlocked = false;
-    updateLockBar();
-    renderPricingAdmin();
-    toast('Editing locked');
-  } else {
-    openUnlockModal();
-  }
-}
-
-function toggleSettingsLock() {
-  if (adminUnlocked) {
-    adminUnlocked = false;
-    updateSettingsLockBar();
-    toast('Settings locked');
-  } else {
-    openUnlockModal();
-  }
-}
-
-function openUnlockModal() {
-  $('unlockPw').value = '';
-  $('unlockErr').style.display = 'none';
-  $('unlockModal').classList.add('open');
-  setTimeout(() => $('unlockPw').focus(), 50);
-}
-function closeUnlockModal() { $('unlockModal').classList.remove('open'); }
-
-async function submitUnlock() {
-  const pw = $('unlockPw').value;
-  if (!pw) return;
-  if (!settings) { toast('Settings not loaded yet — try reloading the page.'); return; }
-  const hash = await hashPassword(pw);
-  if (hash === settings.admin_password_hash) {
-    adminUnlocked = true;
-    closeUnlockModal();
-    updateLockBar();
-    if (typeof renderPricingAdmin === 'function') renderPricingAdmin();
-    toast('Editing unlocked');
-  } else {
-    $('unlockErr').textContent = 'Incorrect password.';
-    $('unlockErr').style.display = 'block';
-  }
-}
-
-// ─── SET PASSWORD (in Settings view) ───
-function openSetPwModal() {
-  $('newPw').value = '';
-  $('confirmPw').value = '';
-  $('currentPw').value = '';
-  $('setPwErr').style.display = 'none';
-  const hasPw = isPasswordSet();
-  $('currentPwField').style.display = hasPw ? 'block' : 'none';
-  $('setPwTitle').textContent = hasPw ? 'Change Admin Password' : 'Set Admin Password';
-  $('clearPwBtn').style.display = hasPw ? 'inline-block' : 'none';
-  $('setPwModal').classList.add('open');
-  setTimeout(() => (hasPw ? $('currentPw') : $('newPw')).focus(), 50);
-}
-function closeSetPwModal() { $('setPwModal').classList.remove('open'); }
-
-async function submitSetPw() {
-  const err = $('setPwErr');
-  err.style.display = 'none';
-  const newPw = $('newPw').value;
-  const confirmPw = $('confirmPw').value;
-  if (isPasswordSet()) {
-    const current = $('currentPw').value;
-    const currentHash = await hashPassword(current);
-    if (currentHash !== settings.admin_password_hash) {
-      err.textContent = 'Current password is incorrect.'; err.style.display = 'block'; return;
-    }
-  }
-  if (!newPw || newPw.length < 4) {
-    err.textContent = 'Password must be at least 4 characters.'; err.style.display = 'block'; return;
-  }
-  if (newPw !== confirmPw) {
-    err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return;
-  }
-  const hash = await hashPassword(newPw);
-  const { error } = await sb.from('settings').update({ admin_password_hash: hash }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-  settings.admin_password_hash = hash;
-  adminUnlocked = true;  // user just set it, give them edit access this session
-  closeSetPwModal();
-  renderSettings();
-  updateLockBar();
-  toast('Admin password saved');
-}
-
-async function clearAdminPw() {
-  if (!confirm('Remove the admin password? Editing pricing will become open to all signed-in staff.')) return;
-  const current = $('currentPw').value;
-  const currentHash = await hashPassword(current);
-  if (currentHash !== settings.admin_password_hash) {
-    $('setPwErr').textContent = 'Current password is incorrect.';
-    $('setPwErr').style.display = 'block';
-    return;
-  }
-  const { error } = await sb.from('settings').update({ admin_password_hash: null }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
-  settings.admin_password_hash = null;
-  adminUnlocked = false;
-  closeSetPwModal();
-  renderSettings();
-  updateLockBar();
-  toast('Admin password removed');
 }
 
 // ─── TAB SWITCHING ───
@@ -6909,7 +6625,7 @@ function renderBrandsAdmin() {
 }
 
 function addBrand() {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
   const name = prompt('Brand name?'); if (!name) return;
   if (pricingData.brands[name]) { toast('Already exists'); return; }
   pricingData.brands[name] = 'Better';
@@ -6961,7 +6677,7 @@ function renderListAdmin(key) {
   `;
 }
 function addListItem(key) {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
   const v = prompt(`New ${key === 'types' ? 'type' : 'size'}?`); if (!v) return;
   pricingData[key].push(v);
   renderListAdmin(key);
@@ -7092,7 +6808,7 @@ function setMatrixCell(input) {
 }
 
 async function savePricingConfig() {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
   const { error } = await sb.from('pricing_config').update({
     data: pricingData,
     updated_at: new Date().toISOString(),
@@ -7364,29 +7080,20 @@ let importState = {
 };
 
 function openImportModal() {
-  // Settings page must be unlocked first (or no password set)
+  // Owners and managers only
   if (!canEditAdmin()) {
-    toast('Unlock settings first');
+    toast(READ_ONLY_MSG);
     return;
   }
-  // Reset everything
+  // Reset everything and go straight to choosing a file
   resetImportSteps();
-  $('importPw').value = '';
-  $('importPwErr').style.display = 'none';
-  // If admin already unlocked this session, skip the redundant password gate
-  if (adminUnlocked || !isPasswordSet()) {
-    $('importStep1').style.display = 'none';
-    $('importStep2').style.display = 'block';
-  } else {
-    $('importStep1').style.display = 'block';
-    setTimeout(() => $('importPw').focus(), 50);
-  }
+  $('importStep2').style.display = 'block';
   $('importModal').classList.add('open');
 }
 function closeImportModal() { $('importModal').classList.remove('open'); }
 
 function resetImportSteps() {
-  ['importStep1','importStep2','importStep3','importStep4','importStep5'].forEach(id => {
+  ['importStep2','importStep3','importStep4','importStep5'].forEach(id => {
     $(id).style.display = 'none';
   });
   importState = { rows: [], validRows: [], errors: [], existingCustomerMap: {}, columnMap: {} };
@@ -7397,27 +7104,6 @@ function resetImportSteps() {
 
 function resetImport() {
   $('importStep3').style.display = 'none';
-  $('importStep2').style.display = 'block';
-}
-
-// ─── STEP 1: Password unlock ───
-async function importUnlock() {
-  const err = $('importPwErr');
-  err.style.display = 'none';
-  if (!isPasswordSet()) {
-    // No password configured — skip the gate but warn
-    if (!confirm('No admin password is set. Anyone signed in can run this importer. Continue?')) return;
-    $('importStep1').style.display = 'none';
-    $('importStep2').style.display = 'block';
-    return;
-  }
-  const pw = $('importPw').value;
-  if (!pw) { err.textContent = 'Enter the admin password.'; err.style.display = 'block'; return; }
-  const hash = await hashPassword(pw);
-  if (hash !== settings.admin_password_hash) {
-    err.textContent = 'Incorrect password.'; err.style.display = 'block'; return;
-  }
-  $('importStep1').style.display = 'none';
   $('importStep2').style.display = 'block';
 }
 
@@ -7841,6 +7527,7 @@ async function previewImport() {
 
 // ─── STEP 4: Commit ───
 async function commitImport() {
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   if (!confirm(`Import ${importState.validRows.length} drop-offs? This will create new customer + drop-off records in your database. Cannot be easily undone.`)) return;
 
   $('importStep3').style.display = 'none';
