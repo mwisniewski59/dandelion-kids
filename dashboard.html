@@ -2617,7 +2617,7 @@ async function checkSession() {
 // Who is this person in this shop? owner | manager | staff.
 // The database decides what each role may write (pricing_config and settings
 // are owner/manager only); this just keeps the screens in step with that.
-// Order: get_my_role RPC → memberships row → role from my_tenants → 'staff'.
+// Order: memberships row → role from my_tenants → 'staff'.
 // Anything unrecognised falls back to 'staff' (read-only), never to admin.
 async function resolveMyRole() {
   const pick = v => {
@@ -2627,13 +2627,10 @@ async function resolveMyRole() {
     const r = String(v).trim().toLowerCase();
     return ['owner','manager','staff'].includes(r) ? r : null;
   };
+  // memberships is the source of truth for roles (get_my_role reads the
+  // legacy staff_profiles table, whose roles are admin/associate).
   let role = null;
-  try {
-    const { data, error } = await sb.rpc('get_my_role');
-    if (!error) role = pick(data);
-    else console.warn('get_my_role failed:', error.message);
-  } catch (e) { console.warn('get_my_role failed:', e); }
-  if (!role && me && currentTenantId) {
+  if (me && currentTenantId) {
     try {
       const { data, error } = await sb.from('memberships').select('role')
         .eq('tenant_id', currentTenantId).eq('user_id', me.id).maybeSingle();
