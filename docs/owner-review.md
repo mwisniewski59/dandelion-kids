@@ -9,7 +9,7 @@
 BST Flow is the shop's buy/sell back office, built around the way you already work. It does the same job as **the Google Form** customers fill in at drop-off plus **the Sellers' Sheet 2026** where the team tracks every bag. The difference is that it all lives in one place, and the customer's side is part of it too.
 
 - **Customers** still scan a QR code or tap a link to fill in a short drop-off form. The form walks them through the drop-off policy, they tick that they agree, and they pick a standard bag (25 items or fewer) or a bulk bag (26 or more).
-- **Staff** see every bag on a **board** with one column per step: New Drop-Offs → Tagging → Pricing → Awaiting Reply → Ready to Pay → Awaiting Pickup → Resolved. Clicking a bag opens its page, where a buyer selects what the shop buys (the Tagging step), a buyer or tagger prices it with the pricing tool, and anyone sends the offer. If you prefer rows and columns, a **Spreadsheet** view shows the same bags.
+- **Staff** see every bag on a **board** with one column per step: New Drop-Offs → Tagging → Pricing → Awaiting Reply → Ready to Pay → Awaiting Pickup → Resolved. Clicking a bag opens its page, where a buyer selects what the shop buys (the Tagging step), a buyer or pricer prices it with the pricing tool, and anyone sends the offer. If you prefer rows and columns, a **Spreadsheet** view shows the same bags.
 - **The offer** goes to the customer by email, either sent straight from the app or copied into Gmail. The email has a personal link to a simple page. There the customer picks **cash by Venmo** or **store credit**, and what should happen to anything you didn't buy (**pick up** or **donate**). Their answer lands back on the board on its own, so nobody has to retype it from an email.
 - **The rest of the app:** **Insights** gives you charts (drop-offs per week, cash vs credit, money paid out). **Customers** gives you everyone's history. **Pricing**, **Rules** and **Settings** hold your price list, the brands you don't buy, and your percentages.
 
@@ -33,7 +33,7 @@ They get a thank-you screen that says to expect an email in 1–3 business days.
 
 **2. A buyer selects what to buy (Tagging).** Buying and tagging are the same step. A buyer (or a manager, or you) opens the bag, clicks **Start Tagging**, picks the clothes the shop will buy, then clicks **Finish Tagging**. The app asks how many items were kept. This replaces the **T** column.
 
-**3. A buyer or tagger prices the bag.** For standard bags, the pricing tool asks for brand, item type and size, then suggests the resale price from your price list. Staff can nudge the price up or down, pick "Custom Price", and so on. A brand on your do-not-buy list can't be added. The tool keeps a running total and shows the **cash offer (30% of resale)** and the **store credit offer (40% of resale)**. For bulk bags, staff enter two counts instead: regular items at **$0.50** and onesies or baby pants at **$0.25**. For bulk, the cash and credit amounts are the same. This replaces the **P** column.
+**3. A buyer or pricer prices the bag.** For standard bags, the pricing tool asks for brand, item type and size, then suggests the resale price from your price list. Staff can nudge the price up or down, pick "Custom Price", and so on. A brand on your do-not-buy list can't be added. The tool keeps a running total and shows the **cash offer (30% of resale)** and the **store credit offer (40% of resale)**. For bulk bags, staff enter two counts instead: regular items at **$0.50** and onesies or baby pants at **$0.25**. For bulk, the cash and credit amounts are the same. This replaces the **P** column.
 
 **4. The offer goes out.** **Finish Pricing & Prepare Offer** opens a review screen with every item and the totals. From there, **Send Offer Email** shows the ready-made email, and staff have two choices:
 - **Send Email Now:** the app emails the customer from **offers@bstflow.com** under the shop's name, and replies go to the staff member who sent it.
@@ -65,12 +65,12 @@ Everyone signs in with their own email and password. There's no shared admin pas
 There are five roles:
 - **Owner** (you) and **Manager:** can do everything.
 - **Buyer:** selects which clothes the shop buys (the Tagging step), and prices them.
-- **Tagger:** prices clothes a buyer has already selected. Can't choose what the shop buys.
+- **Pricer:** prices clothes a buyer has already selected. Can't choose what the shop buys.
 - **Associate:** doesn't select or price. Does everything else: offers, payouts, pickups, donations, customers and notes.
 
 The two staff logins you have today become **buyers**, so nothing changes for them.
 
-| | **Owner** (you) | **Manager** | **Buyer** | **Tagger** | **Associate** |
+| | **Owner** (you) | **Manager** | **Buyer** | **Pricer** | **Associate** |
 |---|---|---|---|---|---|
 | Board, Spreadsheet, drop-off pages, Customers | Yes | Yes | Yes | Yes | Yes |
 | **Select** what the shop buys: Start Tagging, Finish Tagging (item count) | Yes | Yes | Yes | No | No |
@@ -83,7 +83,7 @@ The two staff logins you have today become **buyers**, so nothing changes for th
 | **Settings** (percentages, bulk prices, timing, history importer) | View & change | View & change | View only | View only | View only |
 | Add/remove logins, change roles | Done for you by hand in the database (see runbook) | | | | |
 
-Buyers, taggers and associates see Pricing, Rules and Settings read-only, and the database itself refuses their edits. The same goes for selecting and pricing: if someone's role can't do a step, the button stays on screen, greyed out, with the reason (for example, "Only a buyer, manager or owner can select clothes."), and the database refuses the change even if someone tries another way. Deleting a drop-off is a "soft" delete: there's an Undo, and the record is kept.
+Buyers, pricers and associates see Pricing, Rules and Settings read-only, and the database itself refuses their edits. The same goes for selecting and pricing: if someone's role can't do a step, the button stays on screen, greyed out, with the reason (for example, "Only a buyer, manager or owner can select clothes."), and the database refuses the change even if someone tries another way. Deleting a drop-off is a "soft" delete: there's an Undo, and the record is kept.
 
 ---
 
@@ -112,7 +112,7 @@ Buyers, taggers and associates see Pricing, Rules and Settings read-only, and th
 
 **What stays the same:**
 - The customer still scans a code and fills in a form, with the same policy wording, prices and 7-day leftover window.
-- Buyers still decide what to buy and price it. Taggers can help with pricing.
+- Buyers still decide what to buy and price it. Pricers can help with pricing.
 - Cash still goes out by Venmo from the shop's account, and store credit is still recorded where you record it now.
 - Leftovers are still picked up or donated to your local partners.
 - Bag descriptions and notes still work, and you can still export to a spreadsheet whenever you like.
@@ -133,7 +133,7 @@ Buyers, taggers and associates see Pricing, Rules and Settings read-only, and th
 | **Donation timing** | Customers are told 7 days; staff click "Donate Leftovers" when a pickup goes stale | Keep manual · automatic donation after N days (new feature) · different number of days |
 | **Bulk pricing** | $0.50 per item, $0.25 per onesie or baby pants; bulk = 26+ items; all leftovers donated | Keep · new prices or threshold (we update the form wording too) |
 | **Brands you don't buy** | A "DO NOT BUY" list under Rules; those brands can't be added during pricing | Review the list together during the pilot · add any missing brands |
-| **Who gets a login and what role** | Added by hand. You plus two staff logins, which become **buyers**. Roles: owner / manager / buyer / tagger / associate | Send us the list: name, email, role. Buyer selects and prices; tagger prices only; associate does everything else |
+| **Who gets a login and what role** | Added by hand. You plus two staff logins, which become **buyers**. Roles: owner / manager / buyer / pricer / associate | Send us the list: name, email, role. Buyer selects and prices; pricer prices only; associate does everything else |
 | **Staff access to Insights, customer exports, delete** | All roles can see Insights, export CSV/Excel, and delete (with Undo) | Keep · limit some of these to owner/manager (small change) |
 | **Import the sheet's history since May 26** (about 1,770 drop-offs) | Jan 2 – May 25 is already in BST Flow | **Mark has said yes.** We test it on a practice copy first, then import. Please confirm you're happy. |
 
@@ -147,7 +147,7 @@ Buyers, taggers and associates see Pricing, Rules and Settings read-only, and th
 
 ## (g) What happens next
 
-1. **Set-up (before the pilot).** You send us the staff list and each person's role (owner, manager, buyer, tagger or associate), plus answers to the questions above. We create the logins, and everyone tries the staff training guide (`bstflow.com/training.html`) on their phone.
+1. **Set-up (before the pilot).** You send us the staff list and each person's role (owner, manager, buyer, pricer or associate), plus answers to the questions above. We create the logins, and everyone tries the staff training guide (`bstflow.com/training.html`) on their phone.
 2. **Practice run.** We run the sheet import on a practice copy with fake data first. You look it over to check the numbers look right, then we import for real.
 3. **Pilot week, alongside the form.** For one week, new drop-offs come through BST Flow's QR code. Keep the Google Form and Sheet available as a safety net. Staff work the board, send offers, and mark bags paid. We check in daily and fix anything that gets in the way.
 4. **Switch.** If the week goes well, we retire the Google Form, put up the BST Flow QR code for good, and stop adding rows to the sheet. The sheet stays as a read-only record.

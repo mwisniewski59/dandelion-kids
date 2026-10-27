@@ -23,13 +23,13 @@ There is no self-signup for staff. Logins are created in Supabase.
 | `owner` | Everything, including changing Pricing, Rules and Settings. |
 | `manager` | Same as owner. |
 | `buyer` | Selects what the shop buys (Start Tagging, Finish Tagging), prices (pricing tool, Finish Pricing), Walk-In, plus everything an associate can do. Pricing, Rules and Settings are view only. |
-| `tagger` | Prices only (pricing tool, Finish Pricing), plus everything an associate can do. Can't select clothes or use Walk-In. |
+| `pricer` | Prices only (pricing tool, Finish Pricing), plus everything an associate can do. Can't select clothes or use Walk-In. |
 | `associate` | Everything else: send and resend offers, Mark Paid, pickups, donations, Manual Resolution, notes, reopen, customers. Can't select or price. |
 
 The old `staff` role no longer exists. Migration `0007_roles.sql` turns every `staff` login into `buyer`, and the dashboard treats any leftover `staff` as `buyer`. **Run 0007 on LIVE before using the new role names**, or the database will reject them.
 
 1. **Supabase dashboard → (LIVE project) → Authentication → Users → Add user → Create new user.** Enter their email and a temporary password. Tick **Auto Confirm User** so no confirmation email is needed. Give them the temporary password in person.
-2. **Give them a role in the shop.** Open **SQL Editor** and run the following. Change the email, and change `'buyer'` to the role you want (`owner`, `manager`, `buyer`, `tagger` or `associate`):
+2. **Give them a role in the shop.** Open **SQL Editor** and run the following. Change the email, and change `'buyer'` to the role you want (`owner`, `manager`, `buyer`, `pricer` or `associate`):
 
    ```sql
    insert into public.memberships (tenant_id, user_id, role)
@@ -42,7 +42,7 @@ The old `staff` role no longer exists. Migration `0007_roles.sql` turns every `s
    It should say `INSERT 0 1`. `INSERT 0 0` means no login has that email, so check step 1. The app reads roles from `memberships` only; a `staff_profiles` row is created automatically by the sign-up trigger.
 3. Have them sign in at `https://bstflow.com/dashboard.html` and change their password with **Forgot your password?** Their role shows next to their email in the sidebar.
    - Without a membership row, a signed-in user sees "This login isn't set up for the shop yet" and a Sign out button.
-   - If they press a button their role can't use, it stays greyed out with the reason, for example "Only a buyer, tagger, manager or owner can price clothes." The database refuses the change too.
+   - If they press a button their role can't use, it stays greyed out with the reason, for example "Only a buyer, pricer, manager or owner can price clothes." The database refuses the change too.
 
 **Check who has which role:**
 
@@ -54,11 +54,11 @@ where m.tenant_id = '95ba216b-2f0a-470b-accd-c4b8c08b333e'
 order by m.role, u.email;
 ```
 
-**Change a role** (for example, make someone a tagger):
+**Change a role** (for example, make someone a pricer):
 
 ```sql
 update public.memberships
-set role = 'tagger'
+set role = 'pricer'
 where tenant_id = '95ba216b-2f0a-470b-accd-c4b8c08b333e'
   and user_id = (select id from auth.users where email = 'person@example.com');
 ```

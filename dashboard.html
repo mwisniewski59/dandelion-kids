@@ -2454,14 +2454,14 @@ sb.auth.onAuthStateChange((event) => {
 let me = null;                 // current user
 let currentTenantId = null;    // which shop this session is working in
 let currentTenantSlug = null;
-let myRole = null;             // 'owner' | 'manager' | 'buyer' | 'tagger' | 'associate'
+let myRole = null;             // 'owner' | 'manager' | 'buyer' | 'pricer' | 'associate'
 const isAdmin = () => myRole === 'owner' || myRole === 'manager';
 // ── Who may select / price (docs/roles-plan.md permission matrix) ──
 // Select = the Tagging step (Start Tagging, Finish Tagging + item count) and
 // Walk-In. Price = pricing lines, bulk counts, Finish Pricing. The database
 // trigger is the real lock; these just keep the screens in step with it.
-const ROLES = ['owner', 'manager', 'buyer', 'tagger', 'associate'];
-const ROLE_LABELS = { owner: 'Owner', manager: 'Manager', buyer: 'Buyer', tagger: 'Tagger', associate: 'Associate' };
+const ROLES = ['owner', 'manager', 'buyer', 'pricer', 'associate'];
+const ROLE_LABELS = { owner: 'Owner', manager: 'Manager', buyer: 'Buyer', pricer: 'Pricer', associate: 'Associate' };
 // Legacy 'staff' is a buyer; anything unrecognised is null (caller falls back to associate).
 function normalizeRole(v) {
   if (v == null) return null;
@@ -2470,9 +2470,9 @@ function normalizeRole(v) {
   return ROLES.includes(r) ? r : null;
 }
 const canSelect = () => myRole === 'owner' || myRole === 'manager' || myRole === 'buyer';
-const canPrice = () => canSelect() || myRole === 'tagger';
+const canPrice = () => canSelect() || myRole === 'pricer';
 const SELECT_DENIED_MSG = 'Only a buyer, manager or owner can select clothes.';
-const PRICE_DENIED_MSG = 'Only a buyer, tagger, manager or owner can price clothes.';
+const PRICE_DENIED_MSG = 'Only a buyer, pricer, manager or owner can price clothes.';
 // Handler-side guard (defense in depth): true = refused, caller should return.
 function denyUnless(allowed, msg) {
   if (allowed) return false;
@@ -2653,7 +2653,7 @@ async function checkSession() {
   await initApp();
 }
 
-// Who is this person in this shop? owner | manager | buyer | tagger | associate.
+// Who is this person in this shop? owner | manager | buyer | pricer | associate.
 // The database decides what each role may write (pricing_config and settings
 // are owner/manager only; selecting/pricing per docs/roles-plan.md); this just
 // keeps the screens in step with that.
@@ -4121,7 +4121,7 @@ async function saveBulkAndAdvance() {
     priced_by: me.email,
     stage: 'awaiting_customer'
   };
-  // item_count is a select-guarded field (set at Finish Tagging). A tagger
+  // item_count is a select-guarded field (set at Finish Tagging). A pricer
   // pricing a bulk bag keeps the buyer's count rather than tripping the
   // BSTFLOW_ROLE_SELECT guard; buyers/managers/owners still overwrite it.
   if (canSelect()) update.item_count = items + onesies;
@@ -4201,7 +4201,7 @@ async function finishPricing() {
       && cents(resale * (settings?.credit_pct ?? 0.40)) === cents(d.credit_amount);
     if (!fresh) {
       toast(d.priced_at
-        ? 'The offer totals are out of date — a buyer, tagger, manager or owner needs to finish pricing again.'
+        ? 'The offer totals are out of date — a buyer, pricer, manager or owner needs to finish pricing again.'
         : PRICE_DENIED_MSG, { durationMs: 5000 });
       return;
     }
@@ -6698,7 +6698,7 @@ let matrixShowEmpty = true;
 
 // ─── EDIT PERMISSIONS (role-based) ───
 // Owners and managers can edit pricing, rules and settings, and run the
-// importer. Buyers, taggers and associates see the same screens read-only. The database enforces the
+// importer. Buyers, pricers and associates see the same screens read-only. The database enforces the
 // same rule (pricing_config/settings writes need owner or manager), so this
 // only keeps staff out of editors whose saves would be refused anyway.
 // myRole is set at sign-in by resolveMyRole().

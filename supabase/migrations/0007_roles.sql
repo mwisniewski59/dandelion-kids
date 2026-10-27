@@ -1,13 +1,13 @@
 -- ============================================================================
--- 0007 Buyer / tagger / associate roles (plan: docs/roles-plan.md, Oct 27 2026)
+-- 0007 Buyer / pricer / associate roles (plan: docs/roles-plan.md, Oct 27 2026)
 --
--- Roles become: owner, manager, buyer, tagger, associate.
+-- Roles become: owner, manager, buyer, pricer, associate.
 --   * legacy 'staff' memberships and invites are converted to 'buyer'
 --   * invite_member / set_member_role accept the five roles (owner/manager
 --     only, same rules as before)
 --   * get_my_role() reads memberships first (staff_profiles is the fallback)
 --   * can_select(tenant) = owner/manager/buyer, can_price(tenant) =
---     owner/manager/buyer/tagger
+--     owner/manager/buyer/pricer
 --   * BEFORE INSERT OR UPDATE trigger on public.dropoffs enforces the
 --     Select (Tagging step) and Price (Pricing step) permissions for direct
 --     dashboard writes (current_user = 'authenticated'). SECURITY DEFINER RPCs
@@ -31,9 +31,9 @@ update public.memberships set role = 'buyer' where role = 'staff';
 update public.invites     set role = 'buyer' where role = 'staff';
 
 alter table public.memberships add constraint memberships_role_check
-  check (role = any (array['owner'::text, 'manager'::text, 'buyer'::text, 'tagger'::text, 'associate'::text]));
+  check (role = any (array['owner'::text, 'manager'::text, 'buyer'::text, 'pricer'::text, 'associate'::text]));
 alter table public.invites add constraint invites_role_check
-  check (role = any (array['owner'::text, 'manager'::text, 'buyer'::text, 'tagger'::text, 'associate'::text]));
+  check (role = any (array['owner'::text, 'manager'::text, 'buyer'::text, 'pricer'::text, 'associate'::text]));
 
 -- ---------------------------------------------------------------------------
 -- 2. Permission helpers (reuse has_role).
@@ -53,7 +53,7 @@ create or replace function public.can_price(p_tenant uuid)
  stable security definer
  set search_path to 'public'
 as $function$
-  select public.has_role(p_tenant, array['owner','manager','buyer','tagger'])
+  select public.has_role(p_tenant, array['owner','manager','buyer','pricer'])
 $function$;
 
 revoke all on function public.can_select(uuid) from public, anon, authenticated;
@@ -99,7 +99,7 @@ begin
   if not has_role(p_tenant, array['owner','manager']) then
     raise exception 'only an owner or manager can invite people';
   end if;
-  if p_role is null or p_role not in ('owner','manager','buyer','tagger','associate') then
+  if p_role is null or p_role not in ('owner','manager','buyer','pricer','associate') then
     raise exception 'invalid role';
   end if;
   -- Only an OWNER may create another owner. Otherwise a manager could
@@ -125,7 +125,7 @@ create or replace function public.set_member_role(p_tenant uuid, p_user uuid, p_
 as $function$
 declare v_current text; v_owner_count int;
 begin
-  if p_role is null or p_role not in ('owner','manager','buyer','tagger','associate') then
+  if p_role is null or p_role not in ('owner','manager','buyer','pricer','associate') then
     raise exception 'invalid role';
   end if;
   if not has_role(p_tenant, array['owner','manager']) then raise exception 'not permitted'; end if;
@@ -174,7 +174,7 @@ grant execute on function public.set_member_role(uuid, uuid, text) to authentica
 --      bag is in Pricing: bulk counts are a pricing action); stage entering
 --      'tagging'; stage leaving intake/tagging for pricing or
 --      awaiting_customer (covers tagging -> pricing and skipping the step).
---    Price-guarded (owner/manager/buyer/tagger):
+--    Price-guarded (owner/manager/buyer/pricer):
 --      pricing_lines, venmo_amount, credit_amount, priced_at, priced_by
 --      changing; item_count changing while in Pricing.
 --    INSERT (Walk-In): stage other than intake, or any guarded field set,

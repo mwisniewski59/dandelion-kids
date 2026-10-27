@@ -1,17 +1,17 @@
-# Plan: Buyer / Tagger / Associate roles (Oct 27, 2026)
+# Plan: Buyer / Pricer / Associate roles (Oct 27, 2026)
 
 Supervisor: lead agent (talks to Mark). Developers: Dev A (database), Dev B (dashboard),
 Dev C (training + docs). Everyone works on their own branch; the supervisor reviews and merges.
 
 ## What Mark asked for
 - **Buyer**: selects which clothes the shop buys (the Tagging step) **and** prices them.
-- **Tagger**: prices only. Cannot select clothes.
+- **Pricer**: prices only. Cannot select clothes.
 - **General warehouse associate**: neither selecting nor pricing. Everything else.
 - **Manager (general manager) and owner**: everything, as today.
 
 ## Mark's decisions (Oct 27, 7:40am)
 1. "Buying and tagging is the same thing." The app's **Tagging step = the buyer's step**
-   (Start Tagging, Finish Tagging, item count). Taggers do the **Pricing step**.
+   (Start Tagging, Finish Tagging, item count). Pricers do the **Pricing step**.
 2. Associates can do everything else: send offers, resend, mark paid, pickups and
    donations, customers, manual resolution, notes.
 3. Anyone signed in can send offers and mark paid (same as today).
@@ -19,11 +19,11 @@ Dev C (training + docs). Everyone works on their own branch; the supervisor revi
 
 ## Permission matrix (the contract every developer builds to)
 
-Role names, exactly: `owner`, `manager`, `buyer`, `tagger`, `associate`.
+Role names, exactly: `owner`, `manager`, `buyer`, `pricer`, `associate`.
 Legacy `staff` is converted to `buyer` by the migration; the dashboard treats any leftover
 `staff` as `buyer`, and any unknown role as `associate` (least power).
 
-| Action | owner | manager | buyer | tagger | associate |
+| Action | owner | manager | buyer | pricer | associate |
 |---|---|---|---|---|---|
 | See board, bag pages, customers, spreadsheet | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Select**: Start Tagging (intake → tagging), Finish Tagging (item count, tagging → pricing) | ✓ | ✓ | ✓ | ✗ | ✗ |
@@ -45,14 +45,14 @@ fields only.
 - **Select-guarded changes** (need owner/manager/buyer): `tagged_at`, `tagged_by`,
   `item_count` changing; stage entering `tagging` from anything else; stage going
   `tagging → pricing`.
-- **Price-guarded changes** (need owner/manager/buyer/tagger): `pricing_lines`,
+- **Price-guarded changes** (need owner/manager/buyer/pricer): `pricing_lines`,
   `venmo_amount`, `credit_amount`, `priced_at`, `priced_by` changing.
 - **INSERT** of a drop-off that already has a stage past `intake` or non-empty
   `pricing_lines` (Walk-In) needs owner/manager/buyer.
 - Error: `raise exception using errcode = '42501', message = 'BSTFLOW_ROLE_SELECT'` or
   `'BSTFLOW_ROLE_PRICE'`. The dashboard maps these to friendly toasts:
   - SELECT: "Only a buyer, manager or owner can select clothes."
-  - PRICE: "Only a buyer, tagger, manager or owner can price clothes."
+  - PRICE: "Only a buyer, pricer, manager or owner can price clothes."
 - Role checks reuse `public.has_role(p_tenant uuid, p_roles text[])`.
 
 ## Rollout
@@ -72,7 +72,7 @@ fields only.
   - `get_my_role()` reads `memberships` first.
   - helper functions `can_select(p_tenant)` and `can_price(p_tenant)` (stable, security definer, search_path set).
   - the dropoffs trigger above.
-- Staging: apply 0007; add fake test logins `buyer@`, `tagger@`, `associate@example.test` (same test password as the others) with memberships; update `supabase/seed` files.
+- Staging: apply 0007; add fake test logins `buyer@`, `pricer@`, `associate@example.test` (same test password as the others) with memberships; update `supabase/seed` files.
 - `tests/sql/roles_test.sql`: role simulations in a rolled-back transaction proving each
   matrix row for each role (pass/fail lines). Run it on staging and report results.
 - Never write to live. Read-only checks on live are fine (no personal data).
@@ -82,10 +82,10 @@ fields only.
   unknown→associate). Gate Start/Finish Tagging, the pricing tool (add/edit/remove lines,
   bulk counts, Finish Pricing), Walk-In, any spreadsheet inline edit or stage dropdown that
   touches guarded fields. Disabled buttons show the reason; don't hide the flow.
-- Show the signed-in role next to the email in the sidebar (e.g. "Tagger").
+- Show the signed-in role next to the email in the sidebar (e.g. "Pricer").
 - Map `BSTFLOW_ROLE_*` errors to the toasts above.
 - Audit every `sb.from('dropoffs').update/insert` call and list which matrix row it falls under.
-- Playwright smoke tests (mocked Supabase) per role: buyer, tagger, associate, manager.
+- Playwright smoke tests (mocked Supabase) per role: buyer, pricer, associate, manager.
 
 ### Dev C: training and docs (`devC/roles-docs`)
 - `training.html`: a "Who does what" section with the matrix in plain words.

@@ -33,7 +33,7 @@
 --   end $$;
 -- Fixture logins (same uuids as supabase/seed/staging_01_tenant_and_auth.sql):
 --   ...0001 owner  ...0002 manager  ...0003 staff@ (now buyer)
---   ...0005 tagger ...0006 associate ...0007 buyer@
+--   ...0005 pricer ...0006 associate ...0007 buyer@
 -- ============================================================================
 begin;
 
@@ -50,7 +50,7 @@ select u.id, u.email from (values
   ('0b5f1a00-0000-4000-8000-000000000001'::uuid, 'owner@example.test'),
   ('0b5f1a00-0000-4000-8000-000000000002'::uuid, 'manager@example.test'),
   ('0b5f1a00-0000-4000-8000-000000000003'::uuid, 'staff@example.test'),
-  ('0b5f1a00-0000-4000-8000-000000000005'::uuid, 'tagger@example.test'),
+  ('0b5f1a00-0000-4000-8000-000000000005'::uuid, 'pricer@example.test'),
   ('0b5f1a00-0000-4000-8000-000000000006'::uuid, 'associate@example.test'),
   ('0b5f1a00-0000-4000-8000-000000000007'::uuid, 'buyer@example.test')) u(id, email)
 where not exists (select 1 from auth.users a where a.id = u.id);
@@ -59,7 +59,7 @@ insert into public.memberships (user_id, tenant_id, role) values
   ('0b5f1a00-0000-4000-8000-000000000001', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'owner'),
   ('0b5f1a00-0000-4000-8000-000000000002', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'manager'),
   ('0b5f1a00-0000-4000-8000-000000000003', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'buyer'),
-  ('0b5f1a00-0000-4000-8000-000000000005', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'tagger'),
+  ('0b5f1a00-0000-4000-8000-000000000005', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'pricer'),
   ('0b5f1a00-0000-4000-8000-000000000006', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'associate'),
   ('0b5f1a00-0000-4000-8000-000000000007', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'buyer')
 on conflict (user_id, tenant_id) do update set role = excluded.role;
@@ -71,7 +71,7 @@ insert into _who values
   ('manager',           'manager',   '0b5f1a00-0000-4000-8000-000000000002', 2),
   ('buyer (buyer@)',    'buyer',     '0b5f1a00-0000-4000-8000-000000000007', 3),
   ('buyer (ex-staff@)', 'buyer',     '0b5f1a00-0000-4000-8000-000000000003', 4),
-  ('tagger',            'tagger',    '0b5f1a00-0000-4000-8000-000000000005', 5),
+  ('pricer',            'pricer',    '0b5f1a00-0000-4000-8000-000000000005', 5),
   ('associate',         'associate', '0b5f1a00-0000-4000-8000-000000000006', 6);
 
 -- Fake customer + one drop-off per starting stage (inserted as the migration
@@ -208,7 +208,7 @@ begin
     for a in select * from _act order by ord loop
       v_exp := case
         when a.guard in ('S','W') and w.role not in ('owner','manager','buyer') then 'BSTFLOW_ROLE_SELECT'
-        when a.guard = 'P' and w.role not in ('owner','manager','buyer','tagger') then 'BSTFLOW_ROLE_PRICE'
+        when a.guard = 'P' and w.role not in ('owner','manager','buyer','pricer') then 'BSTFLOW_ROLE_PRICE'
         else 'ALLOWED' end;
       insert into _rt (role, ord, action, expected, got)
       values (w.label, w.ord, lpad(a.ord::text, 2, '0') || ' ' || a.action, v_exp,
@@ -227,7 +227,7 @@ begin
     insert into _rt (role, ord, action, expected, got) values
       (w.label, w.ord, '20 can_select()', (w.role in ('owner','manager','buyer'))::text,
          public.can_select('95ba216b-2f0a-470b-accd-c4b8c08b333e')::text),
-      (w.label, w.ord, '21 can_price()', (w.role in ('owner','manager','buyer','tagger'))::text,
+      (w.label, w.ord, '21 can_price()', (w.role in ('owner','manager','buyer','pricer'))::text,
          public.can_price('95ba216b-2f0a-470b-accd-c4b8c08b333e')::text),
       (w.label, w.ord, '22 get_my_role()', w.role, public.get_my_role());
   end loop;

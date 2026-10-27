@@ -1,5 +1,5 @@
 // ============================================================
-// SMOKE TEST — buyer / tagger / associate / manager roles.
+// SMOKE TEST — buyer / pricer / associate / manager roles.
 //
 // Fully offline (support/mock-supabase.js, fake data only). Checks that each
 // role sees the select (Tagging) and price (Pricing) actions enabled or
@@ -15,7 +15,7 @@ const id = n => `00000000-0000-4000-8000-0000000001${String(n).padStart(2, '0')}
 const BAG = { intake: id(0), tagging: id(1), pricing: id(2), priced: id(7), bulk: id(8) };
 
 const SELECT_MSG = 'Only a buyer, manager or owner can select clothes.';
-const PRICE_MSG = 'Only a buyer, tagger, manager or owner can price clothes.';
+const PRICE_MSG = 'Only a buyer, pricer, manager or owner can price clothes.';
 
 const IGNORE = [/favicon\.ico/i];
 
@@ -49,7 +49,7 @@ const dropoffWrites = log => log.writes.filter(w => w.table === 'dropoffs');
 // Expected matrix per role (as the dashboard should resolve it).
 const CASES = [
   { role: 'buyer',     label: 'Buyer',     select: true,  price: true  },
-  { role: 'tagger',    label: 'Tagger',    select: false, price: true  },
+  { role: 'pricer',    label: 'Pricer',    select: false, price: true  },
   { role: 'associate', label: 'Associate', select: false, price: false },
   { role: 'manager',   label: 'Manager',   select: true,  price: true  },
   // Legacy and unknown roles.
@@ -175,9 +175,9 @@ test('associate: Review & Send Offer opens review without writing amounts', asyn
   await context.close();
 });
 
-// Tagger pricing a bulk bag must not write item_count (select-guarded).
-test('tagger: bulk save writes pricing fields but not item_count', async ({ browser }) => {
-  const { context, page, log, errors } = await openAs(browser, 'tagger');
+// Pricer pricing a bulk bag must not write item_count (select-guarded).
+test('pricer: bulk save writes pricing fields but not item_count', async ({ browser }) => {
+  const { context, page, log, errors } = await openAs(browser, 'pricer');
   await openBag(page, BAG.bulk);
   await page.locator('#bulkItems').fill('10');
   await page.locator('#bulkSaveBtn').click();
