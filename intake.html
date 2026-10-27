@@ -621,6 +621,8 @@ function escHtml(s) {
 }
 
 // ─── Submit ──────────────────────────────────────────────────
+const INTAKE_CLIENT_KEY = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
 let submitting = false;
 let submitted = false;
 
@@ -678,7 +680,10 @@ async function submitForm() {
     p_drop_type: dropType,
     p_bag_description: $('bag').value.trim(),
     p_donate_all: donateAll,
-    p_consented: true
+    p_consented: true,
+    // One key per form load: if a reply is lost and the customer taps Submit
+    // again, the database returns the same drop-off instead of a duplicate.
+    p_client_key: INTAKE_CLIENT_KEY
   };
 
   let res;
