@@ -5,6 +5,11 @@
 -- gone, workflow tables are scoped to tenant membership, settings/pricing
 -- writes need owner/manager, and ls_* tables are read-only to members of the
 -- Dandelion Kids tenant (id hard-coded below, as on live).
+--
+-- ORDERING NOTE: this file mirrors live exactly, including live's table grants
+-- to `anon`. 0005_revoke_anon_table_grants.sql removes those again, so 0005
+-- must always run AFTER this file (it does when files are applied in order).
+-- Re-running 0003 on its own after 0005 would re-grant anon; re-run 0005 then.
 -- ============================================================================
 
 -- Row level security: enabled on every public table (none FORCEd).
