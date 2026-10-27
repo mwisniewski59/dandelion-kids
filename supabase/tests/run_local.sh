@@ -26,4 +26,9 @@ for t in "$HERE"/*_test.sql; do
   echo "running $(basename "$t")"
   "${PSQL[@]}" -f "$t"
 done
+# Role matrix (0007): prints PASS/FAIL per role x action, fails on any FAIL.
+echo "running tests/sql/roles_test.sql"
+OUT="$("${PSQL[@]}" -f "$ROOT/tests/sql/roles_test.sql")"
+echo "$OUT" | tail -5
+if echo "$OUT" | grep -q '| FAIL'; then echo "$OUT" | grep '| FAIL'; exit 1; fi
 echo "local migration + RLS smoke test: OK"

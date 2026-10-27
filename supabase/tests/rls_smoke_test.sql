@@ -16,7 +16,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 insert into public.memberships (user_id, tenant_id, role) values
   ('0b5f1a00-0000-4000-8000-000000000001', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'owner'),
   ('0b5f1a00-0000-4000-8000-000000000002', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'manager'),
-  ('0b5f1a00-0000-4000-8000-000000000003', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'staff'),
+  ('0b5f1a00-0000-4000-8000-000000000003', '95ba216b-2f0a-470b-accd-c4b8c08b333e', 'buyer'),   -- legacy staff -> buyer (0007)
   ('0b5f1a00-0000-4000-8000-000000000004', '00000000-0000-4000-8000-0000000000bb', 'owner');
 insert into public.settings (tenant_id, store_name, cash_pct, credit_pct) values
   ('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'Dandelion Kids (TEST)', 0.3, 0.4),
@@ -108,7 +108,7 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
-    perform public.invite_member('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'new@example.test', 'staff');
+    perform public.invite_member('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'new@example.test', 'associate');
     raise exception 'FAIL: staff could invite';
   exception when raise_exception then
     if sqlerrm like 'FAIL%' then raise; end if;
@@ -130,7 +130,7 @@ begin
   update public.settings set reminder_days = 5 where tenant_id = '95ba216b-2f0a-470b-accd-c4b8c08b333e';
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'FAIL: manager could not update settings'; end if;
-  perform public.invite_member('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'new@example.test', 'staff');
+  perform public.invite_member('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'new@example.test', 'associate');
   begin
     perform public.invite_member('95ba216b-2f0a-470b-accd-c4b8c08b333e', 'boss@example.test', 'owner');
     raise exception 'FAIL: manager could invite an owner';
