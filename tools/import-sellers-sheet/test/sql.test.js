@@ -44,8 +44,8 @@ test('rollback + JSON payload', () => {
   const rb = buildRollbackSql(plan, { tenantId: TENANT });
   assert.ok(rb.includes(`details->>'batch' = '${plan.batchId}'`));
   const j = buildJson(plan, { tenantId: TENANT });
-  assert.equal(j.dropoffs.length, 123);
-  assert.equal(j.customers.length, 62);
+  assert.equal(j.dropoffs.length, 139);
+  assert.equal(j.customers.length, 78);
 });
 
 // Optional end-to-end run against a LOCAL throwaway Postgres.
@@ -67,15 +67,15 @@ test('end-to-end on local Postgres: import, re-import (idempotent), rollback', {
     run(`insert into public.tenants (id, name, slug) values ('${TENANT}', 'Dandelion Kids (TEST)', 'dandelion-kids');`);
     const sql = buildSql(plan, { tenantId: TENANT });
     const r1 = JSON.parse(run(sql).trim().split('\n').pop());
-    assert.equal(r1.dropoffs_inserted, 123);
-    assert.equal(r1.customers_created, 62);
-    assert.equal(Number(r1.inserted_venmo_total), 2467.5);
+    assert.equal(r1.dropoffs_inserted, 139);
+    assert.equal(r1.customers_created, 78);
+    assert.equal(Number(r1.inserted_venmo_total), 2627.5);
     const r2 = JSON.parse(run(sql).trim().split('\n').pop());
     assert.equal(r2.dropoffs_inserted, 0);
-    assert.equal(r2.dropoffs_skipped_already_present, 123);
+    assert.equal(r2.dropoffs_skipped_already_present, 139);
     assert.equal(r2.customers_created, 0);
-    assert.equal(run('select count(*) from public.dropoffs').trim(), '123');
-    assert.equal(run('select sum(total_drops) from public.customers').trim(), '123');
+    assert.equal(run('select count(*) from public.dropoffs').trim(), '139');
+    assert.equal(run('select sum(total_drops) from public.customers').trim(), '139');
     run(buildRollbackSql(plan, { tenantId: TENANT }));
     assert.equal(run('select count(*) from public.dropoffs').trim(), '0');
     assert.equal(run('select count(*) from public.customers').trim(), '0');

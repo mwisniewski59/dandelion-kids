@@ -38,7 +38,7 @@ test('email sent: month/day without year, year inferred from drop-off', () => {
 });
 
 test('T / P marks', () => {
-  for (const y of ['x', 'X', ' X ', 'xx']) assert.equal(P.parseMark(y).value, true, y);
+  for (const y of ['x', 'X', ' X ', 'xx', '1', 'done', 'Done', 'yes']) assert.equal(P.parseMark(y).value, true, y);
   for (const n of ['', '-', '--', 'na', 'n/a', 'N/A']) assert.deepEqual(P.parseMark(n), { value: false }, n);
   assert.equal(P.parseMark('maybe').flag, 'mark_unrecognized');
 });
@@ -73,12 +73,23 @@ test('donate question', () => {
 });
 
 test('Venmo or Credit', () => {
-  for (const s of ['credited', 'CREDITED', 'Credited']) assert.deepEqual(P.parsePayment(s), { choice: 'credit', paid: true });
-  for (const s of ['venmoed', 'Venmoed', 'venmo']) assert.deepEqual(P.parsePayment(s), { choice: 'cash', paid: true });
+  for (const v of ['credited', 'CREDITED', 'Credited', 'store credit', 'credited 6/3']) assert.deepEqual(P.parsePayment(v), { choice: 'credit', paid: true }, v);
+  for (const v of ['venmoed', 'Venmoed', 'venmo', 'Paid venmo', 'venmo paid', 'paid via venmo']) assert.deepEqual(P.parsePayment(v), { choice: 'cash', paid: true }, v);
+  assert.deepEqual(P.parsePayment('paid'), { choice: 'cash', paid: true, flag: 'paid_method_assumed_venmo' });
   assert.deepEqual(P.parsePayment('cash'), { choice: 'cash', paid: false, flag: 'cash_not_confirmed_paid' });
-  for (const s of ['took none', 'none', 'n/a']) assert.deepEqual(P.parsePayment(s), { choice: 'none', paid: false });
+  for (const v of ['took none', 'none', 'n/a', 'N/A']) assert.deepEqual(P.parsePayment(v), { choice: 'none', paid: false }, v);
   assert.deepEqual(P.parsePayment(''), { choice: null, paid: false });
-  assert.equal(P.parsePayment('split 50/50 credit+venmo').flag, 'payment_unrecognized');
+  // Pending / questioned / future tense: never paid, flagged for review.
+  for (const [v, choice] of [['Venmo pending', 'cash'], ['venmo?', 'cash'], ['will venmo', 'cash'], ['credit next visit?', 'credit'], ['?', null], ['pending', null]]) {
+    assert.deepEqual(P.parsePayment(v), { choice, paid: false, review: true, flag: 'payment_pending_or_uncertain' }, v);
+  }
+  for (const v of ['Credited/Venmoed', 'split 50/50 credit+venmo', 'credit + cash']) {
+    assert.deepEqual(P.parsePayment(v), { choice: null, paid: false, review: true, flag: 'payment_split_or_ambiguous' }, v);
+  }
+  for (const v of ['PayPal', 'paypal', 'check', 'Check #1234', 'zelle']) {
+    assert.deepEqual(P.parsePayment(v), { choice: null, paid: false, review: true, flag: 'payment_other_method' }, v);
+  }
+  assert.deepEqual(P.parsePayment('split 50/50'), { choice: null, paid: false, review: true, flag: 'payment_unrecognized' });
 });
 
 test('Pick Up or Donate', () => {
@@ -89,11 +100,24 @@ test('Pick Up or Donate', () => {
   assert.deepEqual(P.parseLeftover('picked up', ref), { kind: 'picked_up', leftover: 'pickup', done: true, date: null });
   assert.equal(P.parseLeftover('Picked up', ref).kind, 'picked_up');
   assert.equal(P.parseLeftover('took all', ref).leftover, 'took_all');
-  assert.deepEqual(P.parseLeftover('picking up', ref), { kind: 'picking_up', leftover: 'pickup', done: false });
+  for (const v of ['picking up', 'Pick up', 'pickup', 'will pick up', 'to pick up']) {
+    assert.deepEqual(P.parseLeftover(v, ref), { kind: 'picking_up', leftover: 'pickup', done: false }, v);
+  }
   assert.deepEqual(P.parseLeftover('bulk', ref), { kind: 'bulk', leftover: 'bulk', done: true });
   assert.deepEqual(P.parseLeftover('no leftovers', ref), { kind: 'no_leftovers', leftover: null, done: true });
+  for (const v of ['none', 'N/A', 'n/a']) {
+    assert.deepEqual(P.parseLeftover(v, ref), { kind: 'no_leftovers', leftover: null, done: true, flag: 'leftover_none_assumed_no_leftovers' }, v);
+  }
+  for (const v of ['donating', 'donated?', 'donate', 'maybe donate?', 'will donate', 'to donate']) {
+    const x = P.parseLeftover(v, ref);
+    assert.equal(x.done, false, v); assert.equal(x.review, true, v);
+    assert.equal(x.leftover, 'donate', v); assert.equal(x.flag, 'leftover_pending_or_uncertain', v);
+  }
+  assert.equal(P.parseLeftover('picked up?', ref).done, false);
+  assert.equal(P.parseLeftover('picked up?', ref).review, true);
   assert.deepEqual(P.parseLeftover('', ref), { kind: null, leftover: null, done: false });
-  assert.equal(P.parseLeftover('maybe donate?', ref).flag, 'leftover_unrecognized');
+  assert.equal(P.parseLeftover('in back room', ref).flag, 'leftover_unrecognized');
+  assert.equal(P.parseLeftover('in back room', ref).review, true);
 });
 
 test('phone + email normalisation', () => {

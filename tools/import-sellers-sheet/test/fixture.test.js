@@ -41,16 +41,16 @@ test('fixture generator is deterministic and matches the committed file', () => 
 test('fixture plan: counts, reconciliation and valid enum values', () => {
   const plan = buildPlan(parseCsv(fs.readFileSync(FIXTURE, 'utf8')));
   const s = summarize(plan);
-  assert.equal(s.data_rows, 208);
+  assert.equal(s.data_rows, 224);
   assert.equal(s.blank_rows, 1);
-  assert.equal(s.dropoffs_to_add, 123);
+  assert.equal(s.dropoffs_to_add, 139);
   assert.deepEqual(s.skipped_by_reason, { before_cutoff: 81, duplicate_in_file: 1, timestamp_unparsed: 1, no_identity: 1 });
-  assert.equal(s.customers_in_file, 62);
-  assert.deepEqual(s.dropoffs_by_month, { '2026-05': 6, '2026-06': 24, '2026-07': 26, '2026-08': 25, '2026-09': 24, '2026-10': 18 });
-  assert.equal(s.total_venmo_amount, 2467.5);
-  assert.equal(s.total_credit_amount, 3310);
-  assert.equal(s.open_bags, 33);
-  assert.deepEqual(s.dropoffs_by_stage, { resolved: 90, awaiting_customer: 21, awaiting_pickup: 4, intake: 4, pricing: 4 });
+  assert.equal(s.customers_in_file, 78);
+  assert.deepEqual(s.dropoffs_by_month, { '2026-05': 6, '2026-06': 24, '2026-07': 26, '2026-08': 25, '2026-09': 40, '2026-10': 18 });
+  assert.equal(s.total_venmo_amount, 2627.5);
+  assert.equal(s.total_credit_amount, 3534);
+  assert.equal(s.open_bags, 56);
+  assert.deepEqual(s.dropoffs_by_stage, { resolved: 83, awaiting_customer: 34, awaiting_pickup: 14, intake: 4, pricing: 4 });
   for (const d of plan.dropoffs) {
     assert.ok(STAGES.includes(d.stage), d.stage);
     assert.ok(PAY.includes(d.payment_choice), d.payment_choice);
@@ -62,7 +62,9 @@ test('fixture plan: counts, reconciliation and valid enum values', () => {
     if (d.paid_at) assert.ok(['cash', 'credit'].includes(d.payment_choice));
   }
   // Every messy variant in the fixture surfaces as a flag.
-  for (const f of ['cash_not_confirmed_paid', 'payment_unrecognized', 'leftover_unrecognized', 'email_sent_unparsed',
+  for (const f of ['cash_not_confirmed_paid', 'payment_pending_or_uncertain', 'payment_split_or_ambiguous',
+    'payment_other_method', 'leftover_pending_or_uncertain', 'leftover_none_assumed_no_leftovers',
+    'kept_open_for_review', 'paid_method_assumed_venmo', 'leftover_unrecognized', 'email_sent_unparsed',
     'email_sent_far_after_dropoff', 'amount_unparsed', 'bulk_but_donate_no', 'email_invalid', 'name_missing',
     'no_email_matched_by_phone', 'paid_no_leftover_decision']) {
     assert.ok(s.flags[f] > 0, `expected flag ${f}`);
@@ -74,8 +76,8 @@ test('CLI dry run prints report and writes nothing', () => {
   const out = execFileSync(process.execPath, [path.join(ROOT, 'import.js'), '--input', FIXTURE, '--dry-run',
     '--out-sql', path.join(tmp, 'x.sql')], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   assert.match(out, /DRY RUN/);
-  assert.match(out, /to add:\s+123/);
-  assert.match(out, /open bags \(not resolved\/cancelled\): 33/);
+  assert.match(out, /to add:\s+139/);
+  assert.match(out, /open bags \(not resolved\/cancelled\): 56/);
   assert.doesNotMatch(out, /example\.test|Test Seller/);   // report never prints contact data
   assert.equal(fs.existsSync(path.join(tmp, 'x.sql')), false);
 });

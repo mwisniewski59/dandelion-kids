@@ -92,12 +92,44 @@ Delete `existing.json` when you are done, because it holds customer emails.
 | 6 | Drop Off Type | `drop_type`: "25 or Less..." is `standard`, "Bulk" is `bulk` |
 | 7 | Donate question | `donate_all`: YES is true, NO is false. Bulk drops are always true, which matches live |
 | 8 | Bag Description | `bag_description` |
-| 9, 10 | T, P | tagged / priced. `x` or `X` means yes. `-`, `--`, `na`, `n/a` or blank means no |
+| 9, 10 | T, P | tagged / priced. `x`, `X`, `1`, `done`, `yes` mean yes. `-`, `--`, `na`, `n/a` or blank means no |
 | 11 | Email Sent (`10/10`, no year) | `offer_sent_at` at 12:00 shop time. The year is taken from the Timestamp, or the next year if the month/day comes before the drop-off date. A date that would land more than 90 days after the drop-off is treated as a typo: the tool uses the drop-off date, flags the row and keeps the text in notes |
 | 12, 13 | Venmo Amount, Store Credit Amount | `venmo_amount`, `credit_amount` |
-| 14 | Venmo or Credit | credited: `credit` (paid). venmoed / venmo: `cash` (paid). cash: `cash`, payment **not** confirmed, so the bag stays open and is flagged. took none / none / n/a: `none` |
-| 15 | Pick Up or Donate | donated (the "donated 5/31" date becomes `resolved_at`): `donate`. picked up: `pickup` (done). took all: `took_all`, the value live already uses. picking up: `pickup` (waiting). bulk: `bulk`. no leftovers: none |
+| 14 | Venmo or Credit | see the payment table below |
+| 15 | Pick Up or Donate | see the leftovers table below |
 | 16 | notes | `notes`. Any text the tool could not map is added as `[sheet import] ...` |
+
+### Venmo or Credit (column 14)
+
+Only plain, past-tense values count as paid. Anything that is pending,
+questioned, split between methods, or paid some other way is **flagged and
+never closes the bag**. The original text is kept in the notes.
+
+| Sheet value | payment_choice | Paid? | Flag |
+|-------------|----------------|-------|------|
+| credited, CREDITED, store credit, credited 6/3 | `credit` | yes | |
+| venmoed, Venmoed, venmo, Paid venmo, venmo paid | `cash` | yes | |
+| paid | `cash` | yes | `paid_method_assumed_venmo` |
+| cash | `cash` | no (open, Ready to Pay) | `cash_not_confirmed_paid` |
+| took none, none, n/a | `none` | no | |
+| Venmo pending, venmo?, will venmo, credit next visit?, pending, ? | method if named, else empty | no (open) | `payment_pending_or_uncertain` |
+| Credited/Venmoed, credit + cash, split ... credit+venmo | empty | no (open) | `payment_split_or_ambiguous` |
+| PayPal, check, Zelle, Cash App | empty | no (open) | `payment_other_method` |
+| anything else | method if named, else empty | no (open) | `payment_unrecognized` |
+
+### Pick Up or Donate (column 15)
+
+| Sheet value | leftover_choice | Leftovers done? | Flag |
+|-------------|-----------------|-----------------|------|
+| donated, Donated, donated 5/31 (the date becomes `resolved_at`) | `donate` | yes | |
+| picked up, Picked up | `pickup` | yes | |
+| took all | `took_all` (the value live already uses) | yes | |
+| picking up, Pick up, pickup, will pick up, to pick up | `pickup` | no: **awaiting pickup** | |
+| bulk | `bulk` | yes | |
+| no leftovers | empty | yes | |
+| none, N/A | empty | yes (treated as no leftovers) | `leftover_none_assumed_no_leftovers` |
+| donating, donated?, donate, will donate, picked up?, anything with ? or "pending" | `donate` / `pickup` if named | no (open) | `leftover_pending_or_uncertain` |
+| anything else | empty | no (open) | `leftover_unrecognized` |
 
 ### Stage rules (same as live)
 
@@ -106,8 +138,10 @@ Delete `existing.json` when you are done, because it holds customer emails.
 | nothing marked | `intake` |
 | T, or T and P, but no email sent | `pricing` |
 | Email Sent, no answer | `awaiting_customer` |
-| cash chosen but not "venmoed" | `awaiting_customer` (shows as Ready to Pay) |
-| paid (credited or venmoed) and "picking up" | `awaiting_pickup` (needs migration 0004) |
+| a method is named but not confirmed paid (cash, Venmo pending...) | `awaiting_customer` (shows as Ready to Pay) |
+| paid and leftovers waiting (picking up / pick up / will pick up) | `awaiting_pickup` (needs migration 0004) |
+| paid, but the leftovers value is uncertain (donating, donated?) | `awaiting_pickup`, flagged `kept_open_for_review` |
+| payment flagged for review (pending, split, PayPal, check, unrecognized) | `awaiting_customer`, flagged `kept_open_for_review` |
 | paid or took none, and leftovers handled | `resolved` |
 | donated or picked up with no payment (auto-donate) | `resolved` |
 
@@ -159,7 +193,7 @@ actor `import:sellers-sheet`, and `{batch, source, sheet_row}`. Its
 ## 5. Development
 
 ```bash
-npm test                    # node --test (30 tests; 1 is skipped unless IMPORT_TEST_PG is set)
+npm test                    # node --test (33 tests; 1 is skipped unless IMPORT_TEST_PG is set)
 npm run fixture             # regenerate fixtures/form-responses-5.sample.csv (deterministic)
 npm run dry-run:sample      # dry run on the synthetic sample
 IMPORT_TEST_PG="-h /tmp/pgsock -p 5432 -U postgres" npm test   # adds a real Postgres run: import, re-import, rollback
