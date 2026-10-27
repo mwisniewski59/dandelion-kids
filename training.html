@@ -191,6 +191,14 @@ html,body{
 .finish p{font-size:16px;line-height:1.5;margin-bottom:18px}
 .finish .pdf-btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-deep);font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;padding:14px 22px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(245,203,92,.4)}
 .finish .pdf-btn svg{width:18px;height:18px;stroke-width:2.4}
+.role-table{width:100%;border-collapse:collapse;background:var(--card);border:2px solid var(--border);border-radius:16px;overflow:hidden;margin:18px 0;font-size:13px;line-height:1.35}
+.role-table th{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent-deep);background:#fff5d6;padding:9px 4px;text-align:center}
+.role-table th:first-child{text-align:left;padding-left:12px}
+.role-table td{padding:9px 4px;border-top:1px solid var(--border);text-align:center;font-weight:700}
+.role-table td:first-child{text-align:left;font-weight:400;padding-left:12px}
+.role-table .y{color:var(--good)}
+.role-table .n{color:#c9c1b1}
+.role-table .v{color:var(--accent-deep);font-size:11px}
 .kbd{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;background:#fff;border:1.5px solid var(--border-strong);border-bottom-width:2px;border-radius:6px;padding:2px 7px;color:var(--text);display:inline-block}
 
 /* PRINT — flatten to a linear doc */
@@ -204,7 +212,7 @@ html,body{
   .slide:last-child{page-break-after:auto}
   .cover{padding:60px 24px 30px;text-align:center}
   .finish .pdf-btn{display:none}
-  .hero-icon,.hl-card,.mini-card,.ui-mock,.cl{box-shadow:none !important;break-inside:avoid}
+  .hero-icon,.hl-card,.mini-card,.ui-mock,.cl,.role-table{box-shadow:none !important;break-inside:avoid}
   .slide-title{font-size:24pt}
   .cover h1{font-size:32pt}
 }
@@ -228,7 +236,7 @@ html,body{
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     <div class="progress-meta">
-      <span id="progressStep">Step 1 of 30</span>
+      <span id="progressStep">Step 1 of 32</span>
       <span id="progressLabel">Welcome</span>
     </div>
   </header>
@@ -272,8 +280,8 @@ html,body{
       <p class="lede">Every drop-off moves through these in order. Your job is to push them along.</p>
       <div class="mini-stack">
         <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="mini-card-text"><strong>1. New</strong><span>A bag was dropped off</span></div></div>
-        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div class="mini-card-text"><strong>2. Tagging</strong><span>We sort &amp; label items</span></div></div>
-        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="mini-card-text"><strong>3. Pricing</strong><span>We set prices</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div class="mini-card-text"><strong>2. Tagging</strong><span>A buyer picks what we buy</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="mini-card-text"><strong>3. Pricing</strong><span>A buyer or tagger sets prices</span></div></div>
         <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="mini-card-text"><strong>4. Awaiting Reply</strong><span>Offer email sent</span></div></div>
         <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="mini-card-text"><strong>5. Ready to Pay</strong><span>Customer responded</span></div></div>
         <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div><div class="mini-card-text"><strong>6. Awaiting Pickup</strong><span>If they want leftovers</span></div></div>
@@ -349,7 +357,43 @@ html,body{
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         </div>
         <div class="hl-card-title">Some tabs are for owners &amp; managers</div>
-        <div class="hl-card-body">Pricing, Rules, and Settings belong to the owner and managers. Your login has a role; if you're signed in as staff, those tabs won't show up for you. No extra password needed.</div>
+        <div class="hl-card-body">Pricing, Rules, and Settings belong to the owner and managers. Everyone else can open them and look, but can't change anything. Your role shows next to your email in the sidebar. No extra password needed.</div>
+      </div>
+    </section>
+
+    <section class="slide" data-label="Who does what" data-section="Getting Started">
+      <div class="module-label">Module 2 · Getting Started</div>
+      <h1 class="slide-title">Who does what</h1>
+      <p class="lede">Everyone has their own login and a <strong>role</strong>. Your role decides which steps you can do.</p>
+      <div class="mini-stack">
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15L19 4M18 5l2 2M15 8l2 2"/></svg></div><div class="mini-card-text"><strong>Owner</strong><span>Can do everything, including changing prices and settings.</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="mini-card-text"><strong>Manager</strong><span>Same as the owner. Can do everything.</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div class="mini-card-text"><strong>Buyer</strong><span>Picks which clothes we buy (that's the Tagging step), then prices them.</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="mini-card-text"><strong>Tagger</strong><span>Prices clothes a buyer has already picked. Doesn't choose what we buy.</span></div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><div class="mini-card-text"><strong>Associate</strong><span>Doesn't pick or price. Does everything else: offers, payouts, pickups, donations and customers.</span></div></div>
+      </div>
+      <div class="cl info">
+        <div class="cl-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Easy to mix up</div>
+        The <strong>Tagging</strong> step is where a <strong>buyer</strong> chooses what we buy. A <strong>tagger</strong> works in the <strong>Pricing</strong> step.
+      </div>
+    </section>
+
+    <section class="slide" data-label="Can I do this?" data-section="Getting Started">
+      <div class="module-label">Module 2 · Getting Started</div>
+      <h1 class="slide-title">Can I do this?</h1>
+      <p class="lede">A quick check. Find your role along the top.</p>
+      <table class="role-table">
+        <tr><th>Step</th><th>Owner &amp; Mgr</th><th>Buyer</th><th>Tagger</th><th>Assoc.</th></tr>
+        <tr><td>See the board, bags and customers</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Pick what we buy (Start &amp; Finish Tagging)</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td><td class="n">–</td></tr>
+        <tr><td>Price the clothes (Finish Pricing)</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td>Walk-In drop-off</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td><td class="n">–</td></tr>
+        <tr><td>Send offers, Mark Paid, pickups, donations, notes</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Change Pricing, Rules, Settings</td><td class="y">✓</td><td class="v">Look</td><td class="v">Look</td><td class="v">Look</td></tr>
+      </table>
+      <div class="cl">
+        <div class="cl-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Grey button?</div>
+        That step isn't part of your role. The button stays grey and tells you who can do it. Ask a buyer, a manager, or Colleen.
       </div>
     </section>
 
@@ -461,7 +505,7 @@ html,body{
     <section class="slide" data-label="What tagging means" data-section="The Workflow">
       <div class="step-pill">Step 2 of 7 · Tagging</div>
       <h1 class="slide-title">What tagging means</h1>
-      <p class="lede">Physically sort the bag. Decide what we're buying. Label the keepers.</p>
+      <p class="lede">Tagging is buying. Sort the bag, decide what we're buying, and label the keepers. <strong>Buyers</strong> do this step (managers and the owner can too).</p>
       <div class="mini-stack">
         <div class="mini-card"><div class="mini-card-icon" style="background:var(--accent);color:var(--accent-deep);font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px">1</div><div class="mini-card-text"><strong>Pull out rejects</strong><span>Stained, ripped, wrong season, or brands we don't carry</span></div></div>
         <div class="mini-card"><div class="mini-card-icon" style="background:var(--accent);color:var(--accent-deep);font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px">2</div><div class="mini-card-text"><strong>Tag the keepers</strong><span>Use the physical tagging process Colleen showed you</span></div></div>
@@ -499,7 +543,7 @@ html,body{
       </div>
       <div class="cl">
         <div class="cl-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> What happens</div>
-        Drop-off moves to <strong>Tagging</strong>. Your name is recorded as the tagger.
+        Drop-off moves to <strong>Tagging</strong>. Your name is saved as the buyer for this bag.
       </div>
     </section>
 
@@ -539,7 +583,7 @@ html,body{
     <section class="slide" data-label="The pricing tool" data-section="The Workflow">
       <div class="step-pill">Step 3 of 7 · Pricing</div>
       <h1 class="slide-title">The pricing tool</h1>
-      <p class="lede">Simple form. Pick brand, type, size — price auto-suggests.</p>
+      <p class="lede">Simple form. Pick brand, type, size — price auto-suggests. <strong>Buyers and taggers</strong> do this step.</p>
       <div class="screen-mock">
         <div class="sm-screen">
           <div class="sm-detail-header sm-dim">
@@ -852,6 +896,10 @@ html,body{
         <div class="hl-card-title">Skips the email</div>
         <div class="hl-card-body">Fill in customer info, amount, leftover choice — everything in one form. Lands in <strong>Resolved</strong> instantly.</div>
       </div>
+      <div class="cl info">
+        <div class="cl-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Buyers only</div>
+        A walk-in picks and prices in one go, so it needs a buyer, a manager or the owner.
+      </div>
     </section>
 
     <section class="slide" data-label="Manual resolution" data-section="Special Cases">
@@ -940,7 +988,7 @@ html,body{
       <h1 class="slide-title">Button cheat sheet</h1>
       <p class="lede">The most common buttons.</p>
       <div class="mini-stack">
-        <div class="mini-card"><div style="flex-shrink:0"><button class="mock-btn" style="padding:6px 10px;font-size:11px">Start Tagging →</button></div><div class="mini-card-text" style="font-size:13px">Begin sorting/labeling the bag</div></div>
+        <div class="mini-card"><div style="flex-shrink:0"><button class="mock-btn" style="padding:6px 10px;font-size:11px">Start Tagging →</button></div><div class="mini-card-text" style="font-size:13px">Buyer starts picking what we buy</div></div>
         <div class="mini-card"><div style="flex-shrink:0"><button class="mock-btn" style="padding:6px 10px;font-size:11px">Finish Pricing →</button></div><div class="mini-card-text" style="font-size:13px">Open the review screen</div></div>
         <div class="mini-card"><div style="flex-shrink:0"><button class="mock-btn green" style="padding:6px 10px;font-size:11px">Mark Offer Sent</button></div><div class="mini-card-text" style="font-size:13px">After sending in Gmail</div></div>
         <div class="mini-card"><div style="flex-shrink:0"><button class="mock-btn green" style="padding:6px 10px;font-size:11px">Mark Paid ✓</button></div><div class="mini-card-text" style="font-size:13px">After Venmoing customer</div></div>
@@ -960,7 +1008,7 @@ html,body{
       </div>
     </section>
 
-    <!-- SLIDE 30 — FINISH -->
+    <!-- SLIDE 32 — FINISH -->
     <section class="slide" data-label="You're ready!" data-section="Finish">
       <div class="finish">
         <span class="daisy">🌼</span>

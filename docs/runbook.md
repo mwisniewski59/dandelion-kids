@@ -16,22 +16,56 @@ For whoever looks after BST Flow for Dandelion Kids. Items marked **(to confirm)
 
 There is no self-signup for staff. Logins are created in Supabase.
 
+**The five roles** (exact spelling, lower case). The full matrix is in `docs/roles-plan.md`.
+
+| Role | Can do |
+|---|---|
+| `owner` | Everything, including changing Pricing, Rules and Settings. |
+| `manager` | Same as owner. |
+| `buyer` | Selects what the shop buys (Start Tagging, Finish Tagging), prices (pricing tool, Finish Pricing), Walk-In, plus everything an associate can do. Pricing, Rules and Settings are view only. |
+| `tagger` | Prices only (pricing tool, Finish Pricing), plus everything an associate can do. Can't select clothes or use Walk-In. |
+| `associate` | Everything else: send and resend offers, Mark Paid, pickups, donations, Manual Resolution, notes, reopen, customers. Can't select or price. |
+
+The old `staff` role no longer exists. Migration `0007_roles.sql` turns every `staff` login into `buyer`, and the dashboard treats any leftover `staff` as `buyer`. **Run 0007 on LIVE before using the new role names**, or the database will reject them.
+
 1. **Supabase dashboard → (LIVE project) → Authentication → Users → Add user → Create new user.** Enter their email and a temporary password. Tick **Auto Confirm User** so no confirmation email is needed. Give them the temporary password in person.
-2. **Give them a role in the shop.** Open **SQL Editor** and run the following, changing the email and the role (`owner`, `manager` or `staff`):
+2. **Give them a role in the shop.** Open **SQL Editor** and run the following. Change the email, and change `'buyer'` to the role you want (`owner`, `manager`, `buyer`, `tagger` or `associate`):
 
    ```sql
    insert into public.memberships (tenant_id, user_id, role)
-   select '95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid, u.id, 'staff'
+   select '95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid, u.id, 'buyer'
    from auth.users u
-   where u.email = 'new.person@example.com';
+   where u.email = 'new.person@example.com'
+   on conflict (user_id, tenant_id) do update set role = excluded.role;
    ```
 
-   The `memberships(tenant_id, user_id, role)` columns come from the code, which reads them in `ask_claude`. Roles are exactly `owner`, `manager` or `staff`. A `staff_profiles` row is created automatically by the sign-up trigger; the app reads roles from `memberships` only.
-3. Have them sign in at `https://bstflow.com/dashboard.html` and change their password with **Forgot your password?**
-   - What each role gets: **Owner** and **manager** can change Pricing, Rules and Settings. **Staff** see those tabs read-only with a lock note, and the database itself refuses staff edits (checked Oct 27).
+   It should say `INSERT 0 1`. `INSERT 0 0` means no login has that email, so check step 1. The app reads roles from `memberships` only; a `staff_profiles` row is created automatically by the sign-up trigger.
+3. Have them sign in at `https://bstflow.com/dashboard.html` and change their password with **Forgot your password?** Their role shows next to their email in the sidebar.
    - Without a membership row, a signed-in user sees "This login isn't set up for the shop yet" and a Sign out button.
+   - If they press a button their role can't use, it stays greyed out with the reason, for example "Only a buyer, tagger, manager or owner can price clothes." The database refuses the change too.
 
-**Change a role:** `update public.memberships set role = 'manager' where user_id = (select id from auth.users where email = '…') and tenant_id = '95ba216b-…';`
+**Check who has which role:**
+
+```sql
+select u.email, m.role
+from public.memberships m
+join auth.users u on u.id = m.user_id
+where m.tenant_id = '95ba216b-2f0a-470b-accd-c4b8c08b333e'
+order by m.role, u.email;
+```
+
+**Change a role** (for example, make someone a tagger):
+
+```sql
+update public.memberships
+set role = 'tagger'
+where tenant_id = '95ba216b-2f0a-470b-accd-c4b8c08b333e'
+  and user_id = (select id from auth.users where email = 'person@example.com');
+```
+
+It should say `UPDATE 1`. The person sees the new role the next time they sign in or reload the page. Don't demote the last `owner`.
+
+**Why not `set_member_role`?** `public.set_member_role(p_tenant uuid, p_user uuid, p_role text)` does the same job with safety checks: only an owner or manager can use it, nobody can change their own role, only an owner can appoint a manager or owner, and the last owner can't be demoted. But it checks the *signed-in* user, and the SQL Editor isn't signed in as anyone, so there it stops with "not permitted". Use the plain `update` above in the SQL Editor. `set_member_role` (and `invite_member(p_tenant, p_email, p_role)`) are for calls made from the app by a signed-in owner or manager; after 0007 both accept the five roles.
 
 **Remove someone:** delete their `memberships` row. To block the login entirely, also go to **Authentication → Users → … → Delete user** (or ban the user).
 
