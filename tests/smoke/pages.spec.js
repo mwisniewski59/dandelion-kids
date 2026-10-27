@@ -39,7 +39,7 @@ const PAGES = [
   { name: 'landing',            url: '/index.html',                 check: p => expect(p.locator('body')).toBeVisible() },
   { name: 'signup',             url: '/signup.html',                check: p => expect(p.locator('body')).toBeVisible() },
   { name: 'training',           url: '/training.html',              check: p => expect(p.locator('.slide.active').first()).toBeVisible() },
-  { name: 'intake (no shop)',   url: '/intake.html',                check: p => expect(p.getByText(/missing its shop/i)).toBeVisible(), allowShopError: true },
+  { name: 'intake (no shop)',   url: '/intake.html',                check: p => expect(p.getByRole('button', { name: /Get Started/ })).toBeVisible() },  // defaults to dandelion-kids
   { name: 'intake',             url: '/intake.html?shop=test-shop', check: p => expect(p.getByRole('button', { name: /Get Started/ })).toBeVisible() },
   { name: 'offer (no token)',   url: '/offer.html',                 check: p => expect(p.getByText(/can't find that offer/i)).toBeVisible() },
   { name: 'offer',              url: '/offer.html?t=smoke-token',   check: p => expect(p.getByText('Cash via Venmo')).toBeVisible() },

@@ -2417,13 +2417,7 @@ function configFromSupabase(pricingData = {}, settings = {}) {
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
-<script>
-window.DANDELION_CONFIG = {
-  SUPABASE_URL: 'https://acmjbeatbwetjmkibfvm.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbWpiZWF0YndldGpta2liZnZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM3OTgsImV4cCI6MjA5NDc4OTc5OH0.9Du9L2i_Ku3m2cW0_Md8mZutfDpMC-5HYnY1TV0FUCU',
-  PUBLIC_BASE_URL: window.location.origin
-};
-</script>
+<script src="config.js"></script>
 <script>
 // ============================================================
 //  Supabase
@@ -3606,7 +3600,7 @@ function sheetRowHtml(d, cols) {
 }
 
 function copyIntakeLink() {
-  const url = `${CFG.PUBLIC_BASE_URL.replace(/\/$/,'')}/intake.html`;
+  const url = `${CFG.PUBLIC_BASE_URL.replace(/\/$/,'')}/intake.html?shop=${encodeURIComponent(currentTenantSlug || 'dandelion-kids')}`;
   navigator.clipboard.writeText(url).then(() => toast('Intake link copied'));
 }
 
@@ -3850,7 +3844,7 @@ function pricingPanelHtml(d) {
   // each a configurable fraction of resale (Settings → cash %, credit %).
   const sumDol = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
   const cashTotal = sumDol * (settings?.cash_pct ?? 0.30);
-  const creditTotal = sumDol * (settings?.credit_pct ?? 0.50);
+  const creditTotal = sumDol * (settings?.credit_pct ?? 0.40);
 
   // Items are locked once the drop-off leaves the Pricing stage — the offer
   // the customer received must always match the item list on record.
@@ -4109,7 +4103,7 @@ async function finishPricing() {
   const lines = d.pricing_lines || [];
   const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
   const cash = cents(resale * (settings?.cash_pct ?? 0.30));
-  const credit = cents(resale * (settings?.credit_pct ?? 0.50));
+  const credit = cents(resale * (settings?.credit_pct ?? 0.40));
   const { error } = await sb.from('dropoffs').update({
     venmo_amount: cash,
     credit_amount: credit,
@@ -4148,7 +4142,7 @@ function renderReviewOverlay() {
   const sumQty = lines.reduce((a, l) => a + (l.qty||0), 0);
   const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
   const cash = resale * (settings?.cash_pct ?? 0.30);
-  const credit = resale * (settings?.credit_pct ?? 0.50);
+  const credit = resale * (settings?.credit_pct ?? 0.40);
 
   // Step indicators
   const offerSent = !!d.offer_sent_at;
@@ -4261,7 +4255,7 @@ async function reviewRemoveLine(i) {
   // Recompute totals so the review header stays in sync
   const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
   const cash = cents(resale * (settings?.cash_pct ?? 0.30));
-  const credit = cents(resale * (settings?.credit_pct ?? 0.50));
+  const credit = cents(resale * (settings?.credit_pct ?? 0.40));
   const { error } = await sb.from('dropoffs').update({
     pricing_lines: lines,
     venmo_amount: cash,
@@ -6157,7 +6151,7 @@ function renderSettings() {
   if (!settings) return;
   $('setStoreName').value = settings.store_name ?? '';
   $('setCashPct').value = Math.round((settings.cash_pct ?? 0.30) * 100);
-  $('setCreditPct').value = Math.round((settings.credit_pct ?? 0.50) * 100);
+  $('setCreditPct').value = Math.round((settings.credit_pct ?? 0.40) * 100);
   $('setReminderDays').value = settings.reminder_days;
   $('setBulkItem').value = settings.bulk_item_price;
   $('setBulkOnesie').value = settings.bulk_onesie_price;
