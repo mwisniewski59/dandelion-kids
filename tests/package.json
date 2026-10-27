@@ -1,0 +1,15 @@
+{
+  "name": "bstflow-tests",
+  "private": true,
+  "description": "BST Flow browser tests: local smoke test (mocked Supabase) and staging end-to-end core loop.",
+  "scripts": {
+    "smoke": "playwright test --project=smoke",
+    "e2e": "playwright test --project=e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0",
+    "@supabase/supabase-js": "2.118.0",
+    "chart.js": "4.4.0",
+    "xlsx": "0.18.5"
+  }
+}
