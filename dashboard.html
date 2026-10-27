@@ -2396,7 +2396,7 @@ function configFromSupabase(pricingData = {}, settings = {}) {
 
     payout: {
       cash: { pct: num(settings.cash_pct, 0.3) },
-      credit: { pct: num(settings.credit_pct, 0.5) },
+      credit: { pct: num(settings.credit_pct, 0.4) },
     },
   };
 }
@@ -3351,7 +3351,7 @@ function filterBarHtml() {
   const stageOpts = ['all', ...STAGES].map(s =>
     `<option value="${s}" ${sheetFilters.stage === s ? 'selected' : ''}>${s === 'all' ? 'All' : (STAGE_NAMES[s] || s)}</option>`).join('');
   const empOpts = ['all', ...employees].map(e =>
-    `<option value="${e}" ${sheetFilters.employee === e ? 'selected' : ''}>${e === 'all' ? 'All' : esc(e)}</option>`).join('');
+    `<option value="${esc(e)}" ${sheetFilters.employee === e ? 'selected' : ''}>${e === 'all' ? 'All' : esc(e)}</option>`).join('');
 
   let itemFilters = '';
   if (sheetSubView === 'by_item') {
@@ -4996,7 +4996,7 @@ function dynFieldHtml(attr, config) {
     const btns = values.map(v => {
       const sel = String(cur) === String(v) ? 'selected' : '';
       const mult = hint && hint[v] != null ? `<span class="cond-mult">×${Number(hint[v]).toFixed(2)}</span>` : '';
-      return `<button type="button" class="cond-btn ${sel}" data-v="${esc(v)}" onclick="pickDyn('${esc(key)}', this.dataset.v)">${esc(v)}${mult}</button>`;
+      return `<button type="button" class="cond-btn ${sel}" data-key="${esc(key)}" data-v="${esc(v)}" onclick="pickDyn(this.dataset.key, this.dataset.v)">${esc(v)}${mult}</button>`;
     }).join('');
     return `<div class="field"><label class="flabel">${label}</label><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div></div>`;
   }
@@ -5004,14 +5004,14 @@ function dynFieldHtml(attr, config) {
     const val = (cur === undefined || cur === null) ? '' : cur;
     return `<div class="field"><label class="flabel">${label}</label>
       <div class="price-stepper">
-        <button class="step-btn" onclick="stepDyn('${esc(key)}', -5)" title="−5">−5</button>
-        <input id="dyn_${esc(key)}" type="number" step="1" min="0" value="${esc(String(val))}" placeholder="0.00" oninput="setDyn('${esc(key)}', this.value)">
-        <button class="step-btn" onclick="stepDyn('${esc(key)}', 5)" title="+5">+5</button>
+        <button class="step-btn" data-key="${esc(key)}" onclick="stepDyn(this.dataset.key, -5)" title="−5">−5</button>
+        <input id="dyn_${esc(key)}" type="number" step="1" min="0" value="${esc(String(val))}" placeholder="0.00" data-key="${esc(key)}" oninput="setDyn(this.dataset.key, this.value)">
+        <button class="step-btn" data-key="${esc(key)}" onclick="stepDyn(this.dataset.key, 5)" title="+5">+5</button>
       </div></div>`;
   }
   const val = (cur === undefined || cur === null) ? '' : cur;
   return `<div class="field"><label class="flabel">${label}</label>
-    <input id="dyn_${esc(key)}" type="text" class="finput" value="${esc(String(val))}" placeholder="${esc(attr.placeholder || '')}" oninput="setDyn('${esc(key)}', this.value)"></div>`;
+    <input id="dyn_${esc(key)}" type="text" class="finput" value="${esc(String(val))}" placeholder="${esc(attr.placeholder || '')}" data-key="${esc(key)}" oninput="setDyn(this.dataset.key, this.value)"></div>`;
 }
 
 function renderDynAttrs(resolved, config, force) {
@@ -6165,12 +6165,29 @@ function renderSettings() {
   updateSettingsLockBar();
 }
 
+// Read a 0–100 percentage field as a fraction. 0 is a valid value; blank or
+// out-of-range shows a message and returns null so nothing is saved.
+function readPctField(id, label) {
+  const raw = String($(id).value ?? '').trim();
+  const n = Number(raw);
+  if (raw === '' || !Number.isFinite(n) || n < 0 || n > 100) {
+    toast(`Enter a ${label} percentage from 0 to 100. Nothing was saved.`, { durationMs: 5000 });
+    $(id).focus();
+    return null;
+  }
+  return n / 100;
+}
+
 async function saveSettings() {
   if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
+  const cashPct = readPctField('setCashPct', 'cash offer');
+  if (cashPct === null) return;
+  const creditPct = readPctField('setCreditPct', 'store credit');
+  if (creditPct === null) return;
   const update = {
     store_name: $('setStoreName').value.trim(),
-    cash_pct: Math.min(Math.max(Number($('setCashPct').value) || 30, 0), 100) / 100,
-    credit_pct: Math.min(Math.max(Number($('setCreditPct').value) || 50, 0), 100) / 100,
+    cash_pct: cashPct,
+    credit_pct: creditPct,
     reminder_days: Number($('setReminderDays').value) || 4,
     bulk_item_price: Number($('setBulkItem').value) || 0.5,
     bulk_onesie_price: Number($('setBulkOnesie').value) || 0.25,
@@ -6250,8 +6267,8 @@ function renderRules() {
             </div>
             ${locked ? '' : `
               <div style="display:flex;gap:6px">
-                <button class="btn btn-ghost btn-sm" onclick="openEditTypeBehavior('${esc(type)}')">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="removeTypeBehavior('${esc(type)}')">Delete</button>
+                <button class="btn btn-ghost btn-sm" data-name="${esc(type)}" onclick="openEditTypeBehavior(this.dataset.name)">Edit</button>
+                <button class="btn btn-danger btn-sm" data-name="${esc(type)}" onclick="removeTypeBehavior(this.dataset.name)">Delete</button>
               </div>`}
           </div>
         </div>
@@ -6263,7 +6280,7 @@ function renderRules() {
     ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${shoeTypes.map(s => `
         <span style="display:inline-flex;align-items:center;gap:6px;background:var(--better-bg);color:var(--better);padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700">
           ${esc(s)}
-          ${locked ? '' : `<button onclick="removeShoeType('${esc(s)}')" style="background:none;border:none;color:var(--better);font-size:14px;cursor:pointer;padding:0;line-height:1;font-weight:700" title="Remove">×</button>`}
+          ${locked ? '' : `<button data-name="${esc(s)}" onclick="removeShoeType(this.dataset.name)" style="background:none;border:none;color:var(--better);font-size:14px;cursor:pointer;padding:0;line-height:1;font-weight:700" title="Remove">×</button>`}
         </span>
       `).join('')}</div>`
     : '<div style="color:var(--muted);font-style:italic;padding:8px 0">No shoe types defined.</div>';
@@ -6304,7 +6321,7 @@ function renderRules() {
         ${dnbBrands.length === 0 ? '<em style="color:var(--muted)">None yet.</em>' : dnbBrands.map(b => `
           <span style="display:inline-flex;align-items:center;gap:6px;background:var(--dnb-bg);color:var(--dnb);padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700">
             ${esc(b)}
-            ${locked ? '' : `<button onclick="removeFromDnb('${esc(b)}')" style="background:none;border:none;color:var(--dnb);font-size:14px;cursor:pointer;padding:0;line-height:1;font-weight:700" title="Remove from DO NOT BUY">×</button>`}
+            ${locked ? '' : `<button data-name="${esc(b)}" onclick="removeFromDnb(this.dataset.name)" style="background:none;border:none;color:var(--dnb);font-size:14px;cursor:pointer;padding:0;line-height:1;font-weight:700" title="Remove from DO NOT BUY">×</button>`}
           </span>
         `).join('')}
       </div>
@@ -6635,15 +6652,15 @@ function renderBrandsAdmin() {
           <tr>
             <td>${locked
               ? `<strong>${esc(name)}</strong>`
-              : `<input class="edit-inline" value="${esc(name)}" onchange="renameBrand('${esc(name).replace(/'/g,"\\'")}', this.value)">`}</td>
+              : `<input class="edit-inline" value="${esc(name)}" data-name="${esc(name)}" onchange="renameBrand(this.dataset.name, this.value)">`}</td>
             <td>${locked
               ? `<span class="badge ${esc(tierClass(tier))}">${esc(tier)}</span>`
-              : `<select class="fselect-inline" onchange="setBrandTier('${esc(name).replace(/'/g,"\\'")}', this.value)">
+              : `<select class="fselect-inline" data-name="${esc(name)}" onchange="setBrandTier(this.dataset.name, this.value)">
                   ${tiers.map(t => `<option value="${esc(t)}" ${t === tier ? 'selected' : ''}>${esc(t)}</option>`).join('')}
                 </select>`}</td>
             <td style="text-align:right">${locked
               ? ''
-              : `<button class="btn btn-danger btn-sm" onclick="deleteBrand('${esc(name).replace(/'/g,"\\'")}')">Delete</button>`}</td>
+              : `<button class="btn btn-danger btn-sm" data-name="${esc(name)}" onclick="deleteBrand(this.dataset.name)">Delete</button>`}</td>
           </tr>`).join('')}</tbody>
       </table>
       <div style="font-size:12px;color:#888;margin-top:10px">${entries.length} brands shown · ${Object.keys(brands).length} total</div>
