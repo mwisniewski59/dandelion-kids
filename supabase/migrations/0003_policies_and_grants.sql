@@ -37,33 +37,33 @@ alter table public.tenants enable row level security;
 -- Policies (all PERMISSIVE, role authenticated). anon has NO policies:
 -- anon reaches data only through the SECURITY DEFINER RPCs.
 -- _migration_report: RLS on, no policies (fully locked).
-create policy "tenant_all_activity" on public.activity_log as permissive for ALL to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)) with check (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ai_usage_select" on public.ai_usage as permissive for SELECT to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "tenant_all_customers" on public.customers as permissive for ALL to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)) with check (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "tenant_all_dropoffs" on public.dropoffs as permissive for ALL to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)) with check (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "invites_manage" on public.invites as permissive for ALL to authenticated using has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]) with check has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]);
-create policy "membership_select" on public.memberships as permissive for SELECT to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "pricing_read" on public.pricing_config as permissive for SELECT to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "pricing_write" on public.pricing_config as permissive for ALL to authenticated using has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]) with check has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]);
-create policy "settings_read" on public.settings as permissive for SELECT to authenticated using (tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "settings_write" on public.settings as permissive for ALL to authenticated using has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]) with check has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]);
-create policy "staff_profiles_self_read" on public.staff_profiles as permissive for SELECT to authenticated using (id = auth.uid());
-create policy "tenant_select" on public.tenants as permissive for SELECT to authenticated using (id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "tenant_update" on public.tenants as permissive for UPDATE to authenticated using has_role(id, ARRAY['owner'::text]) with check has_role(id, ARRAY['owner'::text]);
-create policy "ls_brands_member_read" on public.ls_brands as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_inventory_levels_member_read" on public.ls_inventory_levels as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_outlets_member_read" on public.ls_outlets as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_payment_types_member_read" on public.ls_payment_types as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_product_categories_member_read" on public.ls_product_categories as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_product_types_member_read" on public.ls_product_types as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_products_member_read" on public.ls_products as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_registers_member_read" on public.ls_registers as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_sale_line_items_member_read" on public.ls_sale_line_items as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_sale_payments_member_read" on public.ls_sale_payments as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_sales_member_read" on public.ls_sales as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_sync_state_member_read" on public.ls_sync_state as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_used_sku_catalog_member_read" on public.ls_used_sku_catalog as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
-create policy "ls_users_member_read" on public.ls_users as permissive for SELECT to authenticated using ('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids));
+create policy "tenant_all_activity" on public.activity_log as permissive for ALL to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids))) with check ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ai_usage_select" on public.ai_usage as permissive for SELECT to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "tenant_all_customers" on public.customers as permissive for ALL to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids))) with check ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "tenant_all_dropoffs" on public.dropoffs as permissive for ALL to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids))) with check ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "invites_manage" on public.invites as permissive for ALL to authenticated using (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text])) with check (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]));
+create policy "membership_select" on public.memberships as permissive for SELECT to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "pricing_read" on public.pricing_config as permissive for SELECT to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "pricing_write" on public.pricing_config as permissive for ALL to authenticated using (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text])) with check (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]));
+create policy "settings_read" on public.settings as permissive for SELECT to authenticated using ((tenant_id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "settings_write" on public.settings as permissive for ALL to authenticated using (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text])) with check (has_role(tenant_id, ARRAY['owner'::text, 'manager'::text]));
+create policy "staff_profiles_self_read" on public.staff_profiles as permissive for SELECT to authenticated using ((id = auth.uid()));
+create policy "tenant_select" on public.tenants as permissive for SELECT to authenticated using ((id IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "tenant_update" on public.tenants as permissive for UPDATE to authenticated using (has_role(id, ARRAY['owner'::text])) with check (has_role(id, ARRAY['owner'::text]));
+create policy "ls_brands_member_read" on public.ls_brands as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_inventory_levels_member_read" on public.ls_inventory_levels as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_outlets_member_read" on public.ls_outlets as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_payment_types_member_read" on public.ls_payment_types as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_product_categories_member_read" on public.ls_product_categories as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_product_types_member_read" on public.ls_product_types as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_products_member_read" on public.ls_products as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_registers_member_read" on public.ls_registers as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_sale_line_items_member_read" on public.ls_sale_line_items as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_sale_payments_member_read" on public.ls_sale_payments as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_sales_member_read" on public.ls_sales as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_sync_state_member_read" on public.ls_sync_state as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_used_sku_catalog_member_read" on public.ls_used_sku_catalog as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
+create policy "ls_users_member_read" on public.ls_users as permissive for SELECT to authenticated using (('95ba216b-2f0a-470b-accd-c4b8c08b333e'::uuid IN ( SELECT auth_tenant_ids() AS auth_tenant_ids)));
 
 -- ---------------------------------------------------------------------------
 -- Table / view / sequence grants. Start from a clean slate, then grant exactly
