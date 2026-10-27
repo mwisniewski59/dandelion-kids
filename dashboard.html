@@ -1033,6 +1033,12 @@ a{color:inherit;text-decoration:none}
       <div class="login-alt"><a onclick="showLogin()">&larr; Back to sign in</a></div>
     </div>
 
+    <!-- ── signed in, but this login isn't linked to the shop ── -->
+    <div id="noShopWrap" style="display:none">
+      <div class="login-sub">This login isn't set up for the shop yet. Ask an owner or manager to add you, then sign in again.</div>
+      <button type="button" class="btn btn-ghost btn-lg" style="width:100%" onclick="doLogout()">Sign out</button>
+    </div>
+
     <!-- ── choose a new password (arrived from the reset email) ── -->
     <div id="newPwFormWrap" style="display:none">
       <div class="login-sub">Choose a new password</div>
@@ -2627,8 +2633,9 @@ async function checkSession() {
   const { data: tenants, error: tErr } = await sb.rpc('my_tenants');
   if (tErr) throw new Error('Could not load your shop: ' + tErr.message);
   if (!tenants || !tenants.length) {
-    // Signed in but no shop yet — send them through setup.
-    window.location.href = 'signup.html';
+    // Signed in but not linked to the shop. Sign-ups are closed, so there is
+    // no setup flow to send them to — staff are added by hand.
+    showNoShop();
     return;
   }
   currentTenantId = tenants[0].tenant_id;
@@ -2636,10 +2643,44 @@ async function checkSession() {
   // Sidebar shows the signed-in shop's own name (was hardcoded before).
   { const el = $('navShopName'); if (el) el.textContent = tenants[0].name || ''; }
   myRole = tenants[0].role;
-  if (!tenants[0].onboarded_at) { window.location.href = 'signup.html'; return; }
+  // Sign-ups are closed, so there's no onboarding flow to send anyone to.
+  // The shop is already set up; just note it if the flag is somehow missing.
+  if (!tenants[0].onboarded_at) console.warn('Shop is not marked onboarded; continuing.');
+  await resolveMyRole();
 
   $('appView').style.display = 'block';
   await initApp();
+}
+
+// Who is this person in this shop? owner | manager | staff.
+// The database decides what each role may write (pricing_config and settings
+// are owner/manager only); this just keeps the screens in step with that.
+// Order: get_my_role RPC → memberships row → role from my_tenants → 'staff'.
+// Anything unrecognised falls back to 'staff' (read-only), never to admin.
+async function resolveMyRole() {
+  const pick = v => {
+    if (v == null) return null;
+    if (Array.isArray(v)) return pick(v[0]);
+    if (typeof v === 'object') return pick(v.role ?? v.get_my_role ?? null);
+    const r = String(v).trim().toLowerCase();
+    return ['owner','manager','staff'].includes(r) ? r : null;
+  };
+  let role = null;
+  try {
+    const { data, error } = await sb.rpc('get_my_role');
+    if (!error) role = pick(data);
+    else console.warn('get_my_role failed:', error.message);
+  } catch (e) { console.warn('get_my_role failed:', e); }
+  if (!role && me && currentTenantId) {
+    try {
+      const { data, error } = await sb.from('memberships').select('role')
+        .eq('tenant_id', currentTenantId).eq('user_id', me.id).maybeSingle();
+      if (!error) role = pick(data);
+      else console.warn('memberships lookup failed:', error.message);
+    } catch (e) { console.warn('memberships lookup failed:', e); }
+  }
+  myRole = role || pick(myRole) || 'staff';
+  return myRole;
 }
 
 async function doLogin(e) {
@@ -2666,7 +2707,7 @@ async function doLogout() {
 
 // ── password reset ─────────────────────────────────────────
 function _loginPane(which) {
-  for (const id of ['loginFormWrap','resetFormWrap','newPwFormWrap']) {
+  for (const id of ['loginFormWrap','resetFormWrap','newPwFormWrap','noShopWrap']) {
     const el = $(id); if (el) el.style.display = (id === which) ? 'block' : 'none';
   }
 }
@@ -2678,6 +2719,7 @@ function showReset()       {
   if (typed && $('resetEmail')) $('resetEmail').value = typed;
 }
 function showNewPassword() { $('loginView').style.display = 'flex'; _loginPane('newPwFormWrap'); }
+function showNoShop()      { $('loginView').style.display = 'flex'; _loginPane('noShopWrap'); }
 
 async function doResetRequest(e) {
   e.preventDefault();
