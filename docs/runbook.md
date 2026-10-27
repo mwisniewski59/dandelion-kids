@@ -8,7 +8,7 @@ For whoever looks after BST Flow for Dandelion Kids. Items marked **(to confirm)
 | Used by | `bstflow.com`, `www.bstflow.com` | every other host: Vercel previews, localhost |
 | Dandelion Kids tenant id | `95ba216b-2f0a-470b-accd-c4b8c08b333e` (from `supabase/functions/ask_claude`) | (to confirm, staging has its own) |
 
-`config.js` picks the database by hostname. Known gap: `dashboard.html` and `signup.html` still set their own inline LIVE config and do not load `config.js`, so previews of those two pages hit LIVE until that is fixed. `tests/smoke` fails until then.
+`config.js` picks the database by hostname, and every page loads it, so previews always use STAGING. `tests/smoke` passes (12/12 on Oct 27).
 
 ---
 
@@ -26,10 +26,10 @@ There is no self-signup for staff. Logins are created in Supabase.
    where u.email = 'new.person@example.com';
    ```
 
-   The `memberships(tenant_id, user_id, role)` columns come from the code, which reads them in `ask_claude`. **(To confirm:** any other required columns, whether the role check allows exactly `owner`/`manager`/`staff`, and whether a `staff_profiles` row is also expected.**)**
+   The `memberships(tenant_id, user_id, role)` columns come from the code, which reads them in `ask_claude`. Roles are exactly `owner`, `manager` or `staff`. A `staff_profiles` row is created automatically by the sign-up trigger; the app reads roles from `memberships` only.
 3. Have them sign in at `https://bstflow.com/dashboard.html` and change their password with **Forgot your password?**
-   - What each role gets: **staff** see Drop-Offs, Insights and Customers. **Owner** and **manager** also see Pricing, Rules and Settings. The app hides those tabs from staff, and the code says the database also blocks staff edits **(to confirm the RLS policies)**.
-   - Without a membership row, a signed-in user is sent to `signup.html` (the new-shop setup).
+   - What each role gets: **Owner** and **manager** can change Pricing, Rules and Settings. **Staff** see those tabs read-only with a lock note, and the database itself refuses staff edits (checked Oct 27).
+   - Without a membership row, a signed-in user sees "This login isn't set up for the shop yet" and a Sign out button.
 
 **Change a role:** `update public.memberships set role = 'manager' where user_id = (select id from auth.users where email = '…') and tenant_id = '95ba216b-…';`
 
@@ -39,7 +39,7 @@ There is no self-signup for staff. Logins are created in Supabase.
 
 - **Self-serve (preferred):** on the sign-in screen, click **Forgot your password?** and enter the email. The person gets a reset link that opens `dashboard.html` with a "new password" form. The link expires in about an hour, according to the app's message.
   - The link uses Supabase's built-in email unless custom SMTP is set up. The built-in sender is rate-limited to a few emails per hour. **(To confirm:** whether custom SMTP is configured.**)**
-  - The URL `https://bstflow.com/dashboard.html` must be on the redirect allow list under **Authentication → URL Configuration → Redirect URLs** **(to confirm)**.
+  - The URL `https://www.bstflow.com/dashboard.html` must be on the redirect allow list under **Authentication → URL Configuration → Redirect URLs** **(to confirm)**.
 - **From Supabase:** go to **Authentication → Users**, open the user's **…** menu and choose **Send password recovery**. This sends the same email.
 - **If email isn't working:** an admin can set a password directly with the Admin API (`auth.admin.updateUserById(id, { password })` using the service-role key). Do this only from a trusted machine and never put the service-role key in the repo.
 

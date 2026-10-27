@@ -69,12 +69,12 @@ Everyone signs in with their own email and password. There's no shared admin pas
 | Walk-In, Manual Resolution, Reopen, Delete a drop-off, Export to Excel/CSV | Yes | Yes | Yes *(today; see decisions)* |
 | Insights (money paid out, charts) | Yes | Yes | Yes *(today)* |
 | Customers (names, emails, phones, history) | Yes | Yes | Yes |
-| **Pricing** (brands, price list) | View & change | View & change | Tab hidden |
-| **Rules** (do-not-buy brands, special pricing) | View & change | View & change | Tab hidden |
-| **Settings** (percentages, bulk prices, timing, history importer) | View & change | View & change | Tab hidden |
+| **Pricing** (brands, price list) | View & change | View & change | View only |
+| **Rules** (do-not-buy brands, special pricing) | View & change | View & change | View only |
+| **Settings** (percentages, bulk prices, timing, history importer) | View & change | View & change | View only |
 | Add/remove logins, change roles | Done for you by hand in the database (see runbook) | | |
 
-The app hides Pricing, Rules and Settings from staff, and the code says the database also refuses staff edits (**to confirm** on the live database). Deleting a drop-off is a "soft" delete: there's an Undo, and the record is kept.
+Staff see Pricing, Rules and Settings read-only, and the database itself refuses staff edits (checked Oct 27). Deleting a drop-off is a "soft" delete: there's an Undo, and the record is kept.
 
 ---
 
@@ -149,9 +149,8 @@ Thank you. The aim is that your team spends less time on the sheet and more time
 ---
 
 ### To confirm (summary)
-- Whether anything automatic runs for reminders or donation behind the scenes. In the app's code, both are manual.
+- Confirmed Oct 27: nothing automatic runs for reminders or donation; the database has no scheduled jobs.
 - Where store credit is recorded (the "credit log" or point-of-sale).
-- That the database itself blocks staff from changing pricing and settings, not just hides the tabs.
 - That the email sent directly from offers@bstflow.com matches the Gmail version's wording.
 - The meaning of T and P, and which sheet rows to exclude.
 - Whether you want cash-in-store as a payment option.
