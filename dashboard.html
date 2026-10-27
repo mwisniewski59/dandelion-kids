@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"/>
-<title>BST Flow — Staff</title>
+<title>Dandelion Kids — Staff</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEUeHRv5+Pa4hC4gHhyufCzu7eslIh0qKCWOZyk2NTPBiTBKOyLLyshYRCR3WCa5uLVXVlSJiIZKSkd3dnSqqaeYl5WccSppZ2XT09E8NSmgcyva2NZjSyM8MR5tUiU1LB7i4d5oTiSAXSaAfnw2LiBENh9hYF6hoJ7KkDLAvrwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6yuT1AAAAQHRSTlP+/v388vj08M3l/8vXxMHLzb/UwcXA2sXd2d7jwNa/3uq/xMDe0MjD/9EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAul3rWAAAAtdJREFUeNrdVtly2zAMlEgKJHUflmRJtuM0Pf//BwtAnjqODtLpU8uZXA52CSzBBYPgf12AX7qu++qtLC3+LuVTcIzWZZtGUYgrmoqm5s+ewTdpyOCZI4xa+xS+LhgchneWqAJOwiuRJrptPU1pOkU3ssL6oSW0MyCtSmtBW9sfrvxJakka7ZSf8Ajv30UOM+fR6iKsXPU3jG/1/ejoZ3nkHFCbg0s/rD+M+rkT7mUFtmDiyEEQ6F8U1j/A58r0gZR1EEDQU6btAk//avhIHRnoFEOOelWbyIegpJBlAYi3M95F0CI+XT1paIojcxycFVQbDSd1/b0qinqvH2vao1yP8GpjlCC8bt87KcFBUG1K4LmYYCV5bz9iAhl8WgJstrU2ykyegB9FSdfl0TdkkAhc6hV8MrDTohGRIFZKiVhlPkkU3OyPcfCFMlBCGHAzkAjR8DHu66kjirhzM1iyk3YZBpmiJEZwGvoP8pP643WUXAgyGJAOgoxSmOziQiPugmXEeeBiqOjOFzpYbCWDPEYlv7kYoGADXxmGMjACi3AehE2J4fpmlxSASorEeRKaGcKp0YsUXrEI4yIAyoEpqI5FCkK9uIezrmb/rD4cBuqIB3HyeR6UNN/DZkGQkIx+L4zycFx5VFANHfgxBKvWZlAEr4tNFHKD4OXznkkqCnX+GwKPDPYd2FeDLRJAZ9k1BW1Mng3bEYOrD5KYLdhkG+PxhJ142SUQ5MDi50adYPg67hJQAmI8rydAnbzfiEywpbOEke+SdJSAu+Sg17tIuQ5xLoG8c8XRMnLVbN9P8BQy9E7K4TEQ/yA8WuK+H4HBHQwxmOHxrQt0C7y6UCILMVAS7ybTyOqc3dNRch6xUNxPgwbQOrnwbPTC39Zpnsf4vetGNU/n2Gc6/1lnwyg19wW/D07yCTxGJmZG04rFeIHn7QOy3ODmqjMX3zfS0lhAo47+r7R/c/0GJMIbjfsDefkAAAAASUVORK5CYII=">
 <link rel="apple-touch-icon" href="data:image/png;base64,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">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,8 +52,8 @@ a{color:inherit;text-decoration:none}
 .nav-logo{padding:18px 16px 15px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;
   border-bottom:1px solid var(--charcoal-2)}
 .nav-logo img{width:104px;height:auto;display:block}
-.nav-shop{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:10.5px;
-  letter-spacing:.9px;text-transform:uppercase;color:#8a8884;
+.nav-shop{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;
+  letter-spacing:-.3px;color:#fff;
   max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-tabs{display:flex;flex-direction:column;padding:8px 0;flex:1;min-height:0;overflow-y:auto}
 .nav-btn{background:none;border:none;border-left:3px solid transparent;color:#e4e2df;
@@ -472,6 +472,8 @@ a{color:inherit;text-decoration:none}
 .login-card{max-width:400px;width:100%;background:var(--card);border-radius:3px;padding:40px 36px;box-shadow:none;border:1.5px solid var(--border)}
 .login-brand{margin:0 auto 14px;text-align:center;display:flex;justify-content:center}
 .login-brand img{width:190px;height:auto;display:block}
+.login-wordmark{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:30px;letter-spacing:-.8px;color:var(--text)}
+.login-wordmark span{color:var(--accent)}
 .login-sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:28px}
 .login-card .field input{padding:13px 16px;font-size:16px}
 .login-err{margin-top:10px;color:var(--err);font-size:13px;font-weight:600;display:none}
@@ -689,7 +691,7 @@ a{color:inherit;text-decoration:none}
     border-bottom: none;
   }
   .nav-logo img { width: 86px; }
-  .nav-shop { display: none; }
+  .nav-shop { font-size: 15px; }
   .nav-right {
     order: 2;
     margin: 0;
@@ -999,7 +1001,7 @@ a{color:inherit;text-decoration:none}
 <!-- LOGIN VIEW -->
 <div id="loginView" class="login-page" style="display:none">
   <div class="login-card">
-    <div class="login-brand"><img src="data:image/png;base64,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" alt="BST Flow"/></div>
+    <div class="login-brand"><div class="login-wordmark">Dandelion <span>Kids</span></div></div>
     <!-- ── sign in ── -->
     <div id="loginFormWrap">
       <div class="login-sub">Staff sign-in</div>
@@ -1033,6 +1035,12 @@ a{color:inherit;text-decoration:none}
       <div class="login-alt"><a onclick="showLogin()">&larr; Back to sign in</a></div>
     </div>
 
+    <!-- ── signed in, but this login isn't linked to the shop ── -->
+    <div id="noShopWrap" style="display:none">
+      <div class="login-sub">This login isn't set up for the shop yet. Ask an owner or manager to add you, then sign in again.</div>
+      <button type="button" class="btn btn-ghost btn-lg" style="width:100%" onclick="doLogout()">Sign out</button>
+    </div>
+
     <!-- ── choose a new password (arrived from the reset email) ── -->
     <div id="newPwFormWrap" style="display:none">
       <div class="login-sub">Choose a new password</div>
@@ -1056,8 +1064,7 @@ a{color:inherit;text-decoration:none}
 <div id="appView" style="display:none">
   <aside class="sidebar">
     <div class="nav-logo">
-      <img src="data:image/png;base64,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" alt="BST Flow"/>
-      <div class="nav-shop" id="navShopName">&nbsp;</div>
+      <div class="nav-shop" id="navShopName">Dandelion Kids</div>
     </div>
     <div class="nav-tabs">
       <button class="nav-btn active" id="navDash" onclick="showView('dash')">Drop-Offs</button>
@@ -1069,7 +1076,7 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="nav-right">
       <span class="nav-email" id="navEmail"></span>
-      <button class="nav-logout" onclick="doLogout()">Sign out</button>
+      <button class="nav-logout" id="navLogout" onclick="doLogout()" style="display:none">Sign out</button>
     </div>
   </aside>
 
@@ -1179,13 +1186,10 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
-    <div id="lockBar" class="lock-bar no-pw">
+    <div id="lockBar" class="lock-bar locked" style="display:none">
       <div class="lock-info">
-        <span class="lock-icon">🔓</span>
-        <span id="lockText">No admin password set — editing is open. Set one in Settings to require a password.</span>
-      </div>
-      <div>
-        <button class="btn btn-sm" id="lockBtn" onclick="toggleLock()" style="display:none">Unlock Editing</button>
+        <span class="lock-icon">🔒</span>
+        <span id="lockText">Only an owner or manager can change this.</span>
       </div>
     </div>
 
@@ -1206,17 +1210,14 @@ a{color:inherit;text-decoration:none}
     <div class="page-header">
       <div>
         <div class="page-title">Settings</div>
-        <div class="page-sub">Store-wide configuration. Admin password required to edit.</div>
+        <div class="page-sub">Store-wide configuration. Owners and managers can edit.</div>
       </div>
     </div>
 
-    <div id="settingsLockBar" class="lock-bar no-pw" style="max-width:560px">
+    <div id="settingsLockBar" class="lock-bar locked" style="max-width:560px;display:none">
       <div class="lock-info">
-        <span class="lock-icon">🔓</span>
-        <span id="settingsLockText">No admin password set — editing is open.</span>
-      </div>
-      <div>
-        <button class="btn btn-sm" id="settingsLockBtn" onclick="toggleSettingsLock()" style="display:none">Unlock</button>
+        <span class="lock-icon">🔒</span>
+        <span id="settingsLockText">Only an owner or manager can change this.</span>
       </div>
     </div>
 
@@ -1264,18 +1265,9 @@ a{color:inherit;text-decoration:none}
     </div>
 
     <div class="card" style="max-width:560px;margin-top:18px">
-      <div class="card-title">Pricing Admin Password</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px">
-        Anyone signed in can <em>view</em> pricing and settings. To <em>edit</em> them, this password is required. Leave unset to allow all staff to edit.
-      </div>
-      <div id="pwStatus" style="font-size:13px;font-weight:600;margin-bottom:12px"></div>
-      <button class="btn btn-primary btn-sm" id="changePwBtn" onclick="openSetPwModal()">Set / Change Password</button>
-    </div>
-
-    <div class="card" style="max-width:560px;margin-top:18px">
       <div class="card-title">Import Historical Data</div>
       <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px">
-        Bulk-import drop-offs from a spreadsheet. Use this once to load existing customer history into the app. Protected by the admin password.
+        Bulk-import drop-offs from a spreadsheet. Use this once to load existing customer history into the app. Owners and managers only.
       </div>
       <button class="btn btn-primary btn-sm" id="openImporterBtn" onclick="openImportModal()">Open Importer</button>
     </div>
@@ -1287,17 +1279,14 @@ a{color:inherit;text-decoration:none}
   <div class="page-header">
     <div>
       <div class="page-title">Business Rules</div>
-      <div class="page-sub">All automatic behaviors in one place. Editable by admin.</div>
+      <div class="page-sub">All automatic behaviors in one place. Owners and managers can edit.</div>
     </div>
   </div>
 
-  <div id="rulesLockBar" class="lock-bar no-pw" style="max-width:860px">
+  <div id="rulesLockBar" class="lock-bar locked" style="max-width:860px;display:none">
     <div class="lock-info">
-      <span class="lock-icon">🔓</span>
-      <span id="rulesLockText">No admin password set — editing is open.</span>
-    </div>
-    <div>
-      <button class="btn btn-sm" id="rulesLockBtn" onclick="toggleSettingsLock()" style="display:none">Unlock</button>
+      <span class="lock-icon">🔒</span>
+      <span id="rulesLockText">Only an owner or manager can change this.</span>
     </div>
   </div>
 
@@ -1309,19 +1298,6 @@ a{color:inherit;text-decoration:none}
   <div class="modal" style="max-width:760px">
     <div class="modal-title">Import Historical Drop-Offs</div>
     <div class="modal-desc">Bulk-load drop-offs from a spreadsheet. Run this <strong>once</strong> on a fresh database — re-running creates duplicates.</div>
-
-    <!-- Step 1: Password gate -->
-    <div id="importStep1">
-      <div class="field">
-        <label>Admin Password</label>
-        <input id="importPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')importUnlock()">
-      </div>
-      <div id="importPwErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="importUnlock()">Continue</button>
-      </div>
-    </div>
 
     <!-- Step 2: Choose file -->
     <div id="importStep2" style="display:none">
@@ -1450,49 +1426,6 @@ a{color:inherit;text-decoration:none}
 <div class="review-overlay" id="reviewOverlay">
   <div class="review-container" id="reviewContainer">
     <!-- Populated by renderReviewOverlay() -->
-  </div>
-</div>
-
-<!-- UNLOCK PASSWORD MODAL -->
-<div class="modal-overlay" id="unlockModal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-title">Unlock Pricing Edits</div>
-    <div class="modal-desc">Enter the admin password to enable editing brands, types, sizes, and the pricing matrix.</div>
-    <div class="field">
-      <label>Admin Password</label>
-      <input id="unlockPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()">
-    </div>
-    <div id="unlockErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeUnlockModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitUnlock()">Unlock</button>
-    </div>
-  </div>
-</div>
-
-<!-- SET ADMIN PASSWORD MODAL -->
-<div class="modal-overlay" id="setPwModal">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title" id="setPwTitle">Set Admin Password</div>
-    <div class="modal-desc" id="setPwDesc">Pick a password that only senior staff should know. Anyone signed in can still <em>view</em> pricing — but editing requires this password.</div>
-    <div class="field" id="currentPwField" style="display:none">
-      <label>Current Password</label>
-      <input id="currentPw" type="password" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>New Password</label>
-      <input id="newPw" type="password" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Confirm New Password</label>
-      <input id="confirmPw" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')submitSetPw()">
-    </div>
-    <div id="setPwErr" style="color:var(--err);font-size:12px;font-weight:600;display:none;margin-bottom:8px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeSetPwModal()">Cancel</button>
-      <button class="btn btn-danger" id="clearPwBtn" onclick="clearAdminPw()" style="display:none">Remove Password</button>
-      <button class="btn btn-primary" onclick="submitSetPw()">Save Password</button>
-    </div>
   </div>
 </div>
 
@@ -2595,6 +2528,40 @@ function toast(msg, opts) {
   const dur = (opts && opts.durationMs) || 2400;
   toast._t = setTimeout(() => el.classList.remove('open'), dur);
 }
+// ── Write failures ─────────────────────────────────────────
+// Staff need a plain message, not a Postgres error. Full detail goes to the
+// console for whoever is debugging.
+const SAVE_DENIED_MSG = "Couldn't save — you may not have permission. Nothing was changed.";
+const SAVE_FAILED_MSG = "Couldn't save — please try again. Nothing was changed.";
+function isPermissionError(error) {
+  if (!error) return false;
+  const code = String(error.code || '');
+  const msg = String(error.message || '') + ' ' + String(error.details || '') + ' ' + String(error.hint || '');
+  return code === '42501' || code === 'PGRST301' || code === 'PGRST116' ||
+         error.status === 401 || error.status === 403 ||
+         /permission|row-level security|not allowed|denied|unauthori[sz]ed/i.test(msg);
+}
+// Toast a plain message for a failed write. If errEl (an inline error
+// element in an open modal) is given, show the same text there too.
+function saveFailed(error, errEl) {
+  console.error('Save failed:', error);
+  const msg = isPermissionError(error) ? SAVE_DENIED_MSG : SAVE_FAILED_MSG;
+  toast(msg, { durationMs: 5000 });
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+// Update this shop's row in an owner/manager-only table (settings,
+// pricing_config). Row-level security does NOT error on a blocked UPDATE —
+// it just matches zero rows — so ask for the row back and treat "nothing
+// came back" as refused.
+async function adminUpdate(table, values) {
+  if (!canEditAdmin()) return { error: { code: '42501', message: READ_ONLY_MSG } };
+  const { data, error } = await sb.from(table).update(values)
+    .eq('tenant_id', currentTenantId).select('tenant_id');
+  if (error) return { error };
+  if (!data || !data.length) return { error: { code: '42501', message: 'Update matched no rows (blocked by row-level security?)' } };
+  return { error: null };
+}
+
 function tierClass(tier) {
   if (tier === 'Even Better') return 'b-EvenBetter';
   if (tier === 'DO NOT BUY') return 'b-DNB';
@@ -2622,24 +2589,60 @@ async function checkSession() {
   if (!session) { $('loginView').style.display = 'flex'; return; }
   me = session.user;
   $('navEmail').textContent = me.email;
+  { const lo = $('navLogout'); if (lo) lo.style.display = ''; }
 
   // Which shop does this login belong to? Everything below is scoped to it.
   const { data: tenants, error: tErr } = await sb.rpc('my_tenants');
   if (tErr) throw new Error('Could not load your shop: ' + tErr.message);
   if (!tenants || !tenants.length) {
-    // Signed in but no shop yet — send them through setup.
-    window.location.href = 'signup.html';
+    // Signed in but not linked to the shop. Sign-ups are closed, so there is
+    // no setup flow to send them to — staff are added by hand.
+    showNoShop();
     return;
   }
   currentTenantId = tenants[0].tenant_id;
   currentTenantSlug = tenants[0].slug;
   // Sidebar shows the signed-in shop's own name (was hardcoded before).
-  { const el = $('navShopName'); if (el) el.textContent = tenants[0].name || ''; }
+  { const el = $('navShopName'); if (el) el.textContent = tenants[0].name || 'Dandelion Kids'; }
   myRole = tenants[0].role;
-  if (!tenants[0].onboarded_at) { window.location.href = 'signup.html'; return; }
+  // Sign-ups are closed, so there's no onboarding flow to send anyone to.
+  // The shop is already set up; just note it if the flag is somehow missing.
+  if (!tenants[0].onboarded_at) console.warn('Shop is not marked onboarded; continuing.');
+  await resolveMyRole();
 
   $('appView').style.display = 'block';
   await initApp();
+}
+
+// Who is this person in this shop? owner | manager | staff.
+// The database decides what each role may write (pricing_config and settings
+// are owner/manager only); this just keeps the screens in step with that.
+// Order: get_my_role RPC → memberships row → role from my_tenants → 'staff'.
+// Anything unrecognised falls back to 'staff' (read-only), never to admin.
+async function resolveMyRole() {
+  const pick = v => {
+    if (v == null) return null;
+    if (Array.isArray(v)) return pick(v[0]);
+    if (typeof v === 'object') return pick(v.role ?? v.get_my_role ?? null);
+    const r = String(v).trim().toLowerCase();
+    return ['owner','manager','staff'].includes(r) ? r : null;
+  };
+  let role = null;
+  try {
+    const { data, error } = await sb.rpc('get_my_role');
+    if (!error) role = pick(data);
+    else console.warn('get_my_role failed:', error.message);
+  } catch (e) { console.warn('get_my_role failed:', e); }
+  if (!role && me && currentTenantId) {
+    try {
+      const { data, error } = await sb.from('memberships').select('role')
+        .eq('tenant_id', currentTenantId).eq('user_id', me.id).maybeSingle();
+      if (!error) role = pick(data);
+      else console.warn('memberships lookup failed:', error.message);
+    } catch (e) { console.warn('memberships lookup failed:', e); }
+  }
+  myRole = role || pick(myRole) || 'staff';
+  return myRole;
 }
 
 async function doLogin(e) {
@@ -2666,7 +2669,7 @@ async function doLogout() {
 
 // ── password reset ─────────────────────────────────────────
 function _loginPane(which) {
-  for (const id of ['loginFormWrap','resetFormWrap','newPwFormWrap']) {
+  for (const id of ['loginFormWrap','resetFormWrap','newPwFormWrap','noShopWrap']) {
     const el = $(id); if (el) el.style.display = (id === which) ? 'block' : 'none';
   }
 }
@@ -2678,6 +2681,7 @@ function showReset()       {
   if (typed && $('resetEmail')) $('resetEmail').value = typed;
 }
 function showNewPassword() { $('loginView').style.display = 'flex'; _loginPane('newPwFormWrap'); }
+function showNoShop()      { $('loginView').style.display = 'flex'; _loginPane('noShopWrap'); }
 
 async function doResetRequest(e) {
   e.preventDefault();
@@ -2731,11 +2735,8 @@ async function doSetNewPassword(e) {
 // ============================================================
 async function initApp() {
   // Only owners/managers can change pricing, rules, and settings — the
-  // database enforces this, but hide the buttons from staff too so they
-  // don't open an editor that would just error when they try to save.
-  if (!isAdmin()) {
-    ['navPricing','navRules','navSettings'].forEach(id => { const b = $(id); if (b) b.style.display = 'none'; });
-  }
+  // database enforces this. Staff can still open those screens, read-only,
+  // with a note saying who can change them (see updateLockBar()).
   await Promise.all([loadPricingConfig(), loadSettings()]);
   await Promise.all([loadDropoffs(), loadCustomers()]);
   document.addEventListener('click', (e) => {
@@ -2915,10 +2916,6 @@ function showView(v) {
     if (!btn) return;
     btn.classList.toggle('active', x.toLowerCase() === v);
   });
-  // Relock admin edits whenever we leave a protected view (Pricing, Settings, or Rules)
-  if (v !== 'pricing' && v !== 'settings' && v !== 'rules' && adminUnlocked) {
-    adminUnlocked = false;
-  }
   if (v === 'customers') {
     renderCustomers();
     // Customer stats need full history — load it once, then re-render
@@ -4047,7 +4044,7 @@ async function saveBulkAndAdvance() {
     priced_by: me.email,
     stage: 'awaiting_customer'
   }).eq('id', currentDropoffId);
-  if (error) { toast('Error: ' + error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('priced', { items, onesies, total });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4061,7 +4058,7 @@ async function advance(toStage) {
   const update = { stage: toStage };
   if (toStage === 'tagging') update.tagged_at = null; // will set later
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('advanced', { to: toStage });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4098,7 +4095,7 @@ async function submitItemCount() {
     tagged_by: me.email,
     item_count: itemCount
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('tagged', { item_count: itemCount });
   closeItemCountModal();
   await refreshDropoff(currentDropoffId);
@@ -4122,7 +4119,7 @@ async function finishPricing() {
     priced_at: new Date().toISOString(),
     priced_by: me.email,
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('priced', { cash, credit });
   await refreshDropoff(currentDropoffId);
   // Open the review overlay (stage still 'pricing')
@@ -4273,7 +4270,7 @@ async function reviewRemoveLine(i) {
     venmo_amount: cash,
     credit_amount: credit,
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderReviewOverlay();
 }
@@ -4316,7 +4313,7 @@ async function markPaid() {
   }
 
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity(wantsPickup ? 'paid_awaiting_pickup' : 'paid_and_resolved');
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4332,7 +4329,7 @@ async function markPickedUp() {
     picked_up_at: now,
     picked_up_by: me.email
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('picked_up');
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4351,7 +4348,7 @@ async function markPickupDonated() {
     picked_up_at: now,
     picked_up_by: me.email
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('pickup_donated', { reason: 'customer_no_show' });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -4483,13 +4480,15 @@ async function submitOverride() {
   }
 
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  if (error) { saveFailed(error, err); return; }
 
   // If they entered a Venmo handle, save it to the customer record
   if (venmoHandle && d.customer_id) {
-    await sb.from('customers').update({
+    const { error: vErr } = await sb.from('customers').update({
       venmo_handle: venmoHandle.startsWith('@') ? venmoHandle : '@' + venmoHandle
     }).eq('id', d.customer_id);
+    // The drop-off itself saved; only the handle on the customer record didn't.
+    if (vErr) { console.error('Venmo handle save failed:', vErr); toast("Drop-off saved, but the Venmo handle couldn't be saved to the customer.", { durationMs: 5000 }); }
   }
 
   await logActivity('manual_resolution', {
@@ -4602,7 +4601,9 @@ async function submitWalkIn() {
       if (v !== existing.venmo_handle) updates.venmo_handle = v;
     }
     if (Object.keys(updates).length > 0) {
-      await sb.from('customers').update(updates).eq('id', customerId);
+      const { error: uErr } = await sb.from('customers').update(updates).eq('id', customerId);
+      // Not fatal — the drop-off can still be created for this customer.
+      if (uErr) { console.error('Customer update failed:', uErr); toast("Couldn't update the customer's contact details — continuing with the drop-off.", { durationMs: 5000 }); }
     }
   } else {
     // Create new customer
@@ -4682,7 +4683,7 @@ async function reopenDropoff() {
     picked_up_at: null,
     picked_up_by: null
   }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
 }
@@ -4725,9 +4726,7 @@ async function confirmDeleteDropoff() {
   }).eq('id', deletedId);
 
   if (error) {
-    const err = $('deleteDropoffErr');
-    err.textContent = 'Could not delete: ' + error.message;
-    err.style.display = 'block';
+    saveFailed(error, $('deleteDropoffErr'));
     btn.disabled = false;
     btn.textContent = 'Delete Drop-Off';
     return;
@@ -4760,7 +4759,7 @@ async function undoDeleteDropoff(id) {
     deleted_at: null,
     deleted_by: null
   }).eq('id', id);
-  if (error) { toast('Could not undo: ' + error.message); return; }
+  if (error) { saveFailed(error); return; }
   await sb.from('activity_log').insert({
     tenant_id: currentTenantId,
     dropoff_id: id,
@@ -4775,7 +4774,7 @@ async function undoDeleteDropoff(id) {
 async function saveNotes() {
   const notes = $('notesField').value;
   const { error } = await sb.from('dropoffs').update({ notes }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   toast('Notes saved');
 }
@@ -4783,7 +4782,7 @@ async function saveNotes() {
 async function saveBagDescription() {
   const bag = ($('bagField').value || '').trim();
   const { error } = await sb.from('dropoffs').update({ bag_description: bag }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await logActivity('bag_described', { bag });
   await refreshDropoff(currentDropoffId);
   renderDetail();
@@ -5187,7 +5186,7 @@ async function addLine() {
   }
   const lines = (fresh.pricing_lines || []).concat([line]);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
   initPricingTool(getDropoff(currentDropoffId));
@@ -5234,7 +5233,7 @@ async function removeLine(i) {
   const lines = current.slice();
   lines.splice(i, 1);
   const { error } = await sb.from('dropoffs').update({ pricing_lines: lines }).eq('id', currentDropoffId);
-  if (error) { toast(error.message); return; }
+  if (error) { saveFailed(error); return; }
   await refreshDropoff(currentDropoffId);
   renderDetail();
 }
@@ -5256,7 +5255,7 @@ async function openOfferModal() {
     const { error } = await sb.from('dropoffs').update({
       offer_token: token
     }).eq('id', currentDropoffId);
-    if (error) { toast(error.message); return; }
+    if (error) { saveFailed(error); return; }
     await logActivity('offer_prepared', { token });
     await refreshDropoff(currentDropoffId);
   }
@@ -5464,7 +5463,7 @@ async function markOfferSentFromModal() {
   }
   if (Object.keys(update).length > 0) {
     const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
-    if (error) { toast(error.message); return; }
+    if (error) { saveFailed(error); return; }
     await logActivity('offer_sent', {});
     await refreshDropoff(currentDropoffId);
   }
@@ -6172,20 +6171,11 @@ function renderSettings() {
   if ($('setShoeNotGreat')) $('setShoeNotGreat').value = settings.shoe_condition_not_great ?? 0.50;
   if ($('setBabyCarrierDivisor')) $('setBabyCarrierDivisor').value = settings.baby_carrier_divisor ?? 3.00;
   if ($('setHatFlatPrice')) $('setHatFlatPrice').value = settings.hat_flat_price ?? 5.00;
-  // Password status pill
-  const pwStatus = $('pwStatus');
-  if (pwStatus) {
-    if (isPasswordSet()) {
-      pwStatus.innerHTML = '<span style="background:var(--good-bg);color:var(--good);padding:4px 10px;border-radius:3px">🔒 Password is set</span>';
-    } else {
-      pwStatus.innerHTML = '<span style="background:#fff3dc;color:var(--warn);padding:4px 10px;border-radius:3px">🔓 No password set — editing is open</span>';
-    }
-  }
   updateSettingsLockBar();
 }
 
 async function saveSettings() {
-  if (!canEditAdmin()) { toast('Unlock settings first'); return; }
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   const update = {
     store_name: $('setStoreName').value.trim(),
     cash_pct: Math.min(Math.max(Number($('setCashPct').value) || 30, 0), 100) / 100,
@@ -6195,14 +6185,14 @@ async function saveSettings() {
     bulk_onesie_price: Number($('setBulkOnesie').value) || 0.25,
     auto_donate_days: Number($('setAutoDonate').value) || 7
   };
-  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', update);
+  if (error) { saveFailed(error); return; }
   settings = { ...settings, ...update };
   toast('Settings saved');
 }
 
 async function saveBehavior() {
-  if (!canEditAdmin()) { toast('Unlock settings first'); return; }
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   const update = {
     shoe_condition_excellent: Number($('setShoeExcellent').value) || 1.00,
     shoe_condition_gently_used: Number($('setShoeGently').value) || 0.75,
@@ -6210,8 +6200,8 @@ async function saveBehavior() {
     baby_carrier_divisor: Number($('setBabyCarrierDivisor').value) || 3.00,
     hat_flat_price: Number($('setHatFlatPrice').value) || 5.00,
   };
-  const { error } = await sb.from('settings').update(update).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', update);
+  if (error) { saveFailed(error); return; }
   settings = { ...settings, ...update };
   toast('Behavior settings saved');
 }
@@ -6220,7 +6210,7 @@ async function saveBehavior() {
 //  Business Rules view — the "what does this app do automatically?" page
 // ============================================================
 function renderRules() {
-  // Mirror the lock state from the settings bar
+  // Staff see rules read-only; owners/managers can edit
   updateRulesLockBar();
   const rules = getBusinessRules();
   const brandRules = rules.brand_rules || [];
@@ -6277,7 +6267,7 @@ function renderRules() {
       `).join('')
     : '<div style="color:var(--muted);font-style:italic;padding:8px 0">No type behaviors.</div>';
 
-  // Chip-style shoe types — each with an × to remove (when unlocked)
+  // Chip-style shoe types — each with an × to remove (owners/managers only)
   const shoeTypesHtml = shoeTypes.length
     ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${shoeTypes.map(s => `
         <span style="display:inline-flex;align-items:center;gap:6px;background:var(--better-bg);color:var(--better);padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700">
@@ -6333,30 +6323,7 @@ function renderRules() {
 }
 
 function updateRulesLockBar() {
-  const bar = $('rulesLockBar');
-  if (!bar) return;
-  const text = $('rulesLockText');
-  const btn = $('rulesLockBtn');
-  if (!isPasswordSet()) {
-    bar.className = 'lock-bar no-pw';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'No admin password set — editing is open.';
-    btn.style.display = 'none';
-  } else if (adminUnlocked) {
-    bar.className = 'lock-bar unlocked';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'Rules unlocked for this session.';
-    btn.textContent = 'Lock';
-    btn.className = 'btn btn-sm btn-ghost';
-    btn.style.display = 'inline-block';
-  } else {
-    bar.className = 'lock-bar locked';
-    bar.querySelector('.lock-icon').textContent = '🔒';
-    text.textContent = 'Rules are locked. Unlock with the admin password to edit.';
-    btn.textContent = 'Unlock';
-    btn.className = 'btn btn-sm btn-accent';
-    btn.style.display = 'inline-block';
-  }
+  setLockBar('rulesLockBar', 'rulesLockText');
 }
 
 // ─── Brand rule editing (modal-based) ───
@@ -6416,8 +6383,8 @@ async function submitBrandRule() {
     rules.brand_rules.push(ruleObj);
   }
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error, err); return; }
   settings.business_rules = rules;
   closeBrandRuleModal();
   toast(brandRuleEditIdx !== null ? 'Brand rule updated' : 'Brand rule added');
@@ -6428,8 +6395,8 @@ async function removeBrandRule(idx) {
   if (!confirm('Delete this brand rule?')) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   (rules.brand_rules || []).splice(idx, 1);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Brand rule deleted');
   renderRules();
@@ -6493,8 +6460,8 @@ async function submitTypeBehavior() {
   // If renaming wasn't allowed via disabled input, this still works as create-or-update
   rules.type_behaviors[type] = { kind, note };
 
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error, err); return; }
   settings.business_rules = rules;
   closeTypeBehaviorModal();
   toast(typeBehaviorEditKey ? 'Type behavior updated' : 'Type behavior added');
@@ -6505,8 +6472,8 @@ async function removeTypeBehavior(type) {
   if (!confirm(`Delete the special behavior for "${type}"? Pricing will revert to standard matrix lookup.`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   delete (rules.type_behaviors || {})[type];
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Type behavior deleted');
   renderRules();
@@ -6524,8 +6491,8 @@ async function addShoeType() {
     return;
   }
   rules.shoe_types.push(norm);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Shoe type added');
   renderRules();
@@ -6535,8 +6502,8 @@ async function removeShoeType(name) {
   if (!confirm(`Remove "${name}" from the shoe condition list?`)) return;
   const rules = JSON.parse(JSON.stringify(getBusinessRules()));
   rules.shoe_types = (rules.shoe_types || []).filter(t => t !== name);
-  const { error } = await sb.from('settings').update({ business_rules: rules }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('settings', { business_rules: rules });
+  if (error) { saveFailed(error); return; }
   settings.business_rules = rules;
   toast('Removed');
   renderRules();
@@ -6569,8 +6536,8 @@ async function submitDnbBrands() {
   const updated = JSON.parse(JSON.stringify(pricingData));
   for (const b of brands) updated.brands[b] = 'DO NOT BUY';
 
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  const { error } = await adminUpdate('pricing_config', { data: updated });
+  if (error) { saveFailed(error, err); return; }
   pricingData = updated;
   closeDnbModal();
   toast(`${brands.length} brand${brands.length === 1 ? '' : 's'} added to DO NOT BUY`);
@@ -6582,8 +6549,8 @@ async function removeFromDnb(brand) {
   const updated = JSON.parse(JSON.stringify(pricingData));
   // Default to "Good" tier on removal — staff can change in Pricing
   updated.brands[brand] = 'Good';
-  const { error } = await sb.from('pricing_config').update({ data: updated }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  const { error } = await adminUpdate('pricing_config', { data: updated });
+  if (error) { saveFailed(error); return; }
   pricingData = updated;
   toast(`${brand} reset to Good tier — adjust in Pricing`);
   renderRules();
@@ -6593,218 +6560,47 @@ async function removeFromDnb(brand) {
 //  Pricing admin — with lock + card-based matrix view
 // ============================================================
 let adminTab = 'brands';
-let adminUnlocked = false;          // session-scoped admin unlock (pricing + settings + importer)
 let matrixSearch = '';
 let matrixShowEmpty = true;
 
-// ─── PASSWORD HASHING (Web Crypto SHA-256 with project-specific salt) ───
-async function hashPassword(pw) {
-  const salt = 'dandelion-kids:' + (CFG.SUPABASE_URL || '');
-  const enc = new TextEncoder().encode(salt + ':' + pw);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// ─── LOCK STATE ───
-// Single shared unlock for everything admin-gated: pricing edits, settings edits,
-// and the data importer. Unlocking one unlocks all for the session; locks reset
-// whenever the user navigates away from a protected view.
-function isPasswordSet() {
-  return !!(settings && settings.admin_password_hash);
-}
-function canEditAdmin() {
-  return !isPasswordSet() || adminUnlocked;
-}
-// Backwards-compat alias for existing callers
+// ─── EDIT PERMISSIONS (role-based) ───
+// Owners and managers can edit pricing, rules and settings, and run the
+// importer. Staff see the same screens read-only. The database enforces the
+// same rule (pricing_config/settings writes need owner or manager), so this
+// only keeps staff out of editors whose saves would be refused anyway.
+// myRole is set at sign-in by resolveMyRole().
+const READ_ONLY_MSG = 'Only an owner or manager can change this.';
+function canEditAdmin() { return isAdmin(); }
 function canEditPricing() { return canEditAdmin(); }
 
+// Show the read-only note to staff; hide the bar entirely for owners/managers.
+function setLockBar(barId, textId) {
+  const bar = $(barId);
+  if (!bar) return;
+  const readOnly = !canEditAdmin();
+  bar.style.display = readOnly ? '' : 'none';
+  const text = $(textId);
+  if (text) text.textContent = READ_ONLY_MSG;
+}
+
 function updateLockBar() {
-  // Pricing view lock bar
-  const bar = $('lockBar');
-  const text = $('lockText');
-  const btn = $('lockBtn');
+  // Pricing view
+  setLockBar('lockBar', 'lockText');
   const saveBtn = $('savePricingBtn');
-  if (bar) {
-    if (!isPasswordSet()) {
-      bar.className = 'lock-bar no-pw';
-      bar.querySelector('.lock-icon').textContent = '🔓';
-      text.textContent = 'No admin password set — editing is open. Set one in Settings to require a password.';
-      btn.style.display = 'none';
-      if (saveBtn) saveBtn.disabled = false;
-    } else if (adminUnlocked) {
-      bar.className = 'lock-bar unlocked';
-      bar.querySelector('.lock-icon').textContent = '🔓';
-      text.textContent = 'Editing unlocked. Make your changes and click Save Changes.';
-      btn.textContent = 'Lock Editing';
-      btn.className = 'btn btn-sm btn-ghost';
-      btn.style.display = 'inline-block';
-      if (saveBtn) saveBtn.disabled = false;
-    } else {
-      bar.className = 'lock-bar locked';
-      bar.querySelector('.lock-icon').textContent = '🔒';
-      text.textContent = 'Editing locked. Pricing is read-only until you unlock with the admin password.';
-      btn.textContent = 'Unlock Editing';
-      btn.className = 'btn btn-sm btn-accent';
-      btn.style.display = 'inline-block';
-      if (saveBtn) saveBtn.disabled = true;
-    }
-  }
-  // Settings view lock bar
+  if (saveBtn) saveBtn.disabled = !canEditPricing();
+  // Settings + Rules views
   updateSettingsLockBar();
 }
 
 function updateSettingsLockBar() {
-  const bar = $('settingsLockBar');
-  if (!bar) { updateRulesLockBar(); return; }
-  const text = $('settingsLockText');
-  const btn = $('settingsLockBtn');
-  const saveBtn = $('saveSettingsBtn');
-  const saveBehaviorBtn = $('saveBehaviorBtn');
-  const importBtn = $('openImporterBtn');
-
-  const lockInputs = (locked) => {
-    ['setStoreName','setCashPct','setCreditPct','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
-     'setShoeExcellent','setShoeGently','setShoeNotGreat','setBabyCarrierDivisor','setHatFlatPrice']
-      .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
-    if (saveBtn) saveBtn.disabled = locked;
-    if (saveBehaviorBtn) saveBehaviorBtn.disabled = locked;
-    if (importBtn) importBtn.disabled = locked;
-  };
-
-  if (!isPasswordSet()) {
-    bar.className = 'lock-bar no-pw';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'No admin password set — editing is open. Set one below to require a password.';
-    btn.style.display = 'none';
-    lockInputs(false);
-  } else if (adminUnlocked) {
-    bar.className = 'lock-bar unlocked';
-    bar.querySelector('.lock-icon').textContent = '🔓';
-    text.textContent = 'Settings unlocked for this session.';
-    btn.textContent = 'Lock';
-    btn.className = 'btn btn-sm btn-ghost';
-    btn.style.display = 'inline-block';
-    lockInputs(false);
-  } else {
-    bar.className = 'lock-bar locked';
-    bar.querySelector('.lock-icon').textContent = '🔒';
-    text.textContent = 'Settings are locked. Unlock with the admin password to edit.';
-    btn.textContent = 'Unlock';
-    btn.className = 'btn btn-sm btn-accent';
-    btn.style.display = 'inline-block';
-    lockInputs(true);
-  }
-  // Also update the Rules lock bar if it exists
+  setLockBar('settingsLockBar', 'settingsLockText');
+  const locked = !canEditAdmin();
+  ['setStoreName','setCashPct','setCreditPct','setReminderDays','setBulkItem','setBulkOnesie','setAutoDonate',
+   'setShoeExcellent','setShoeGently','setShoeNotGreat','setBabyCarrierDivisor','setHatFlatPrice']
+    .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
+  ['saveSettingsBtn','saveBehaviorBtn','openImporterBtn']
+    .forEach(id => { const el = $(id); if (el) el.disabled = locked; });
   updateRulesLockBar();
-}
-
-function toggleLock() {
-  if (adminUnlocked) {
-    adminUnlocked = false;
-    updateLockBar();
-    renderPricingAdmin();
-    toast('Editing locked');
-  } else {
-    openUnlockModal();
-  }
-}
-
-function toggleSettingsLock() {
-  if (adminUnlocked) {
-    adminUnlocked = false;
-    updateSettingsLockBar();
-    toast('Settings locked');
-  } else {
-    openUnlockModal();
-  }
-}
-
-function openUnlockModal() {
-  $('unlockPw').value = '';
-  $('unlockErr').style.display = 'none';
-  $('unlockModal').classList.add('open');
-  setTimeout(() => $('unlockPw').focus(), 50);
-}
-function closeUnlockModal() { $('unlockModal').classList.remove('open'); }
-
-async function submitUnlock() {
-  const pw = $('unlockPw').value;
-  if (!pw) return;
-  if (!settings) { toast('Settings not loaded yet — try reloading the page.'); return; }
-  const hash = await hashPassword(pw);
-  if (hash === settings.admin_password_hash) {
-    adminUnlocked = true;
-    closeUnlockModal();
-    updateLockBar();
-    if (typeof renderPricingAdmin === 'function') renderPricingAdmin();
-    toast('Editing unlocked');
-  } else {
-    $('unlockErr').textContent = 'Incorrect password.';
-    $('unlockErr').style.display = 'block';
-  }
-}
-
-// ─── SET PASSWORD (in Settings view) ───
-function openSetPwModal() {
-  $('newPw').value = '';
-  $('confirmPw').value = '';
-  $('currentPw').value = '';
-  $('setPwErr').style.display = 'none';
-  const hasPw = isPasswordSet();
-  $('currentPwField').style.display = hasPw ? 'block' : 'none';
-  $('setPwTitle').textContent = hasPw ? 'Change Admin Password' : 'Set Admin Password';
-  $('clearPwBtn').style.display = hasPw ? 'inline-block' : 'none';
-  $('setPwModal').classList.add('open');
-  setTimeout(() => (hasPw ? $('currentPw') : $('newPw')).focus(), 50);
-}
-function closeSetPwModal() { $('setPwModal').classList.remove('open'); }
-
-async function submitSetPw() {
-  const err = $('setPwErr');
-  err.style.display = 'none';
-  const newPw = $('newPw').value;
-  const confirmPw = $('confirmPw').value;
-  if (isPasswordSet()) {
-    const current = $('currentPw').value;
-    const currentHash = await hashPassword(current);
-    if (currentHash !== settings.admin_password_hash) {
-      err.textContent = 'Current password is incorrect.'; err.style.display = 'block'; return;
-    }
-  }
-  if (!newPw || newPw.length < 4) {
-    err.textContent = 'Password must be at least 4 characters.'; err.style.display = 'block'; return;
-  }
-  if (newPw !== confirmPw) {
-    err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return;
-  }
-  const hash = await hashPassword(newPw);
-  const { error } = await sb.from('settings').update({ admin_password_hash: hash }).eq('tenant_id', currentTenantId);
-  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-  settings.admin_password_hash = hash;
-  adminUnlocked = true;  // user just set it, give them edit access this session
-  closeSetPwModal();
-  renderSettings();
-  updateLockBar();
-  toast('Admin password saved');
-}
-
-async function clearAdminPw() {
-  if (!confirm('Remove the admin password? Editing pricing will become open to all signed-in staff.')) return;
-  const current = $('currentPw').value;
-  const currentHash = await hashPassword(current);
-  if (currentHash !== settings.admin_password_hash) {
-    $('setPwErr').textContent = 'Current password is incorrect.';
-    $('setPwErr').style.display = 'block';
-    return;
-  }
-  const { error } = await sb.from('settings').update({ admin_password_hash: null }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
-  settings.admin_password_hash = null;
-  adminUnlocked = false;
-  closeSetPwModal();
-  renderSettings();
-  updateLockBar();
-  toast('Admin password removed');
 }
 
 // ─── TAB SWITCHING ───
@@ -6865,7 +6661,7 @@ function renderBrandsAdmin() {
 }
 
 function addBrand() {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
   const name = prompt('Brand name?'); if (!name) return;
   if (pricingData.brands[name]) { toast('Already exists'); return; }
   pricingData.brands[name] = 'Better';
@@ -6917,7 +6713,7 @@ function renderListAdmin(key) {
   `;
 }
 function addListItem(key) {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
   const v = prompt(`New ${key === 'types' ? 'type' : 'size'}?`); if (!v) return;
   pricingData[key].push(v);
   renderListAdmin(key);
@@ -7048,13 +6844,13 @@ function setMatrixCell(input) {
 }
 
 async function savePricingConfig() {
-  if (!canEditPricing()) { toast('Unlock editing first'); return; }
-  const { error } = await sb.from('pricing_config').update({
+  if (!canEditPricing()) { toast(READ_ONLY_MSG); return; }
+  const { error } = await adminUpdate('pricing_config', {
     data: pricingData,
     updated_at: new Date().toISOString(),
     updated_by: me.email
-  }).eq('tenant_id', currentTenantId);
-  if (error) { toast(error.message); return; }
+  });
+  if (error) { saveFailed(error); return; }
   toast('Pricing config saved');
 }
 
@@ -7320,29 +7116,20 @@ let importState = {
 };
 
 function openImportModal() {
-  // Settings page must be unlocked first (or no password set)
+  // Owners and managers only
   if (!canEditAdmin()) {
-    toast('Unlock settings first');
+    toast(READ_ONLY_MSG);
     return;
   }
-  // Reset everything
+  // Reset everything and go straight to choosing a file
   resetImportSteps();
-  $('importPw').value = '';
-  $('importPwErr').style.display = 'none';
-  // If admin already unlocked this session, skip the redundant password gate
-  if (adminUnlocked || !isPasswordSet()) {
-    $('importStep1').style.display = 'none';
-    $('importStep2').style.display = 'block';
-  } else {
-    $('importStep1').style.display = 'block';
-    setTimeout(() => $('importPw').focus(), 50);
-  }
+  $('importStep2').style.display = 'block';
   $('importModal').classList.add('open');
 }
 function closeImportModal() { $('importModal').classList.remove('open'); }
 
 function resetImportSteps() {
-  ['importStep1','importStep2','importStep3','importStep4','importStep5'].forEach(id => {
+  ['importStep2','importStep3','importStep4','importStep5'].forEach(id => {
     $(id).style.display = 'none';
   });
   importState = { rows: [], validRows: [], errors: [], existingCustomerMap: {}, columnMap: {} };
@@ -7353,27 +7140,6 @@ function resetImportSteps() {
 
 function resetImport() {
   $('importStep3').style.display = 'none';
-  $('importStep2').style.display = 'block';
-}
-
-// ─── STEP 1: Password unlock ───
-async function importUnlock() {
-  const err = $('importPwErr');
-  err.style.display = 'none';
-  if (!isPasswordSet()) {
-    // No password configured — skip the gate but warn
-    if (!confirm('No admin password is set. Anyone signed in can run this importer. Continue?')) return;
-    $('importStep1').style.display = 'none';
-    $('importStep2').style.display = 'block';
-    return;
-  }
-  const pw = $('importPw').value;
-  if (!pw) { err.textContent = 'Enter the admin password.'; err.style.display = 'block'; return; }
-  const hash = await hashPassword(pw);
-  if (hash !== settings.admin_password_hash) {
-    err.textContent = 'Incorrect password.'; err.style.display = 'block'; return;
-  }
-  $('importStep1').style.display = 'none';
   $('importStep2').style.display = 'block';
 }
 
@@ -7797,6 +7563,7 @@ async function previewImport() {
 
 // ─── STEP 4: Commit ───
 async function commitImport() {
+  if (!canEditAdmin()) { toast(READ_ONLY_MSG); return; }
   if (!confirm(`Import ${importState.validRows.length} drop-offs? This will create new customer + drop-off records in your database. Cannot be easily undone.`)) return;
 
   $('importStep3').style.display = 'none';
