@@ -1,0 +1,7 @@
+# Real exports of the Sellers' Sheet contain customer names, emails and
+# phone numbers. They must NEVER be committed (this repo is public).
+*.csv
+!fixtures/form-responses-5.sample.csv
+out/
+existing*.json
+*.sql
