@@ -1,0 +1,15 @@
+{
+  "name": "import-sellers-sheet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline importer: Sellers' Sheet 2026 'Form Responses 5' CSV export -> BST Flow customers/dropoffs (dry-run report + SQL/JSON). No network calls, no dependencies.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bin": { "import-sellers-sheet": "import.js" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dry-run:sample": "node import.js --input fixtures/form-responses-5.sample.csv --dry-run",
+    "fixture": "node fixtures/generate-sample.js"
+  },
+  "engines": { "node": ">=18" }
+}

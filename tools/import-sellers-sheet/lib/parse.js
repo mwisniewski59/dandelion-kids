@@ -1,0 +1,238 @@
+'use strict';
+// Cell-level parsers for the "Form Responses 5" tab of Sellers' Sheet 2026.
+// Every parser is pure and returns { value, flag? } so the planner can count
+// and report problems without losing the original text.
+
+const SHOP_TZ = 'America/New_York';
+
+// ---------------------------------------------------------------------------
+// Time zone helpers (no dependencies; uses Node's built-in ICU via Intl)
+// ---------------------------------------------------------------------------
+const dtfCache = new Map();
+function tzParts(ms, tz) {
+  let dtf = dtfCache.get(tz);
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    dtfCache.set(tz, dtf);
+  }
+  const p = {};
+  for (const { type, value } of dtf.formatToParts(new Date(ms))) p[type] = value;
+  return {
+    y: +p.year, mo: +p.month, d: +p.day,
+    h: +p.hour === 24 ? 0 : +p.hour, mi: +p.minute, s: +p.second,
+  };
+}
+
+/** Wall-clock time in `tz` -> UTC ISO string (DST aware). */
+function zonedToIso(y, mo, d, h = 0, mi = 0, s = 0, tz = SHOP_TZ) {
+  const wallAsUtc = Date.UTC(y, mo - 1, d, h, mi, s);
+  let guess = wallAsUtc;
+  for (let k = 0; k < 3; k++) {
+    const p = tzParts(guess, tz);
+    const shownAsUtc = Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi, p.s);
+    const diff = wallAsUtc - shownAsUtc;
+    if (diff === 0) break;
+    guess += diff;
+  }
+  return new Date(guess).toISOString();
+}
+
+/** UTC ISO -> { y, mo, d } in shop time zone. */
+function localDate(iso, tz = SHOP_TZ) {
+  const p = tzParts(Date.parse(iso), tz);
+  return { y: p.y, mo: p.mo, d: p.d };
+}
+
+function validYmd(y, mo, d) {
+  if (!(mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && y >= 2000 && y <= 2100)) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+// ---------------------------------------------------------------------------
+// Generic helpers
+// ---------------------------------------------------------------------------
+const clean = v => (v == null ? '' : String(v).replace(/ /g, ' ').trim());
+const BLANKISH = new Set(['', '-', '--', '---', 'na', 'n/a', 'n.a.', 'none', 'null', '?']);
+const isBlankish = s => BLANKISH.has(clean(s).toLowerCase());
+
+// ---------------------------------------------------------------------------
+// Column parsers
+// ---------------------------------------------------------------------------
+
+/** Col 1 Timestamp: "5/27/2026 14:03:11" (Google Forms, shop local time). */
+function parseTimestamp(raw, tz = SHOP_TZ) {
+  const s = clean(raw);
+  if (!s) return { value: null, flag: 'timestamp_missing' };
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?)?$/);
+  let y, mo, d, h = 0, mi = 0, sec = 0;
+  if (m) {
+    mo = +m[1]; d = +m[2]; y = +m[3]; if (y < 100) y += 2000;
+    if (m[4] != null) {
+      h = +m[4]; mi = +m[5]; sec = m[6] ? +m[6] : 0;
+      const ap = m[7] && m[7].toLowerCase();
+      if (ap === 'pm' && h < 12) h += 12;
+      if (ap === 'am' && h === 12) h = 0;
+    }
+  } else if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/))) {
+    y = +m[1]; mo = +m[2]; d = +m[3];
+    if (m[4] != null) { h = +m[4]; mi = +m[5]; sec = m[6] ? +m[6] : 0; }
+  } else {
+    return { value: null, flag: 'timestamp_unparsed' };
+  }
+  if (!validYmd(y, mo, d) || h > 23 || mi > 59 || sec > 59) return { value: null, flag: 'timestamp_unparsed' };
+  return { value: zonedToIso(y, mo, d, h, mi, sec, tz), local: { y, mo, d } };
+}
+
+/** Col 2 Policy acknowledgment -> consented. */
+function parseConsent(raw) {
+  const s = clean(raw);
+  if (!s) return { value: false, flag: 'consent_blank' };
+  return { value: true };
+}
+
+/** Col 3 Name */
+function parseName(raw) {
+  const s = clean(raw).replace(/\s+/g, ' ');
+  if (!s) return { value: null, flag: 'name_missing' };
+  if (s.length > 200) return { value: s.slice(0, 200), flag: 'name_truncated' };
+  return { value: s };
+}
+
+/** Col 4 Email -> lowercased, or null. */
+function parseEmail(raw) {
+  const s = clean(raw).toLowerCase();
+  if (isBlankish(s)) return { value: null };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)) return { value: null, flag: 'email_invalid' };
+  return { value: s };
+}
+
+/** Col 5 Phone -> { value: display, digits } . 10-digit US numbers formatted "(555) 010-0001". */
+function parsePhone(raw) {
+  const s = clean(raw);
+  if (isBlankish(s)) return { value: null, digits: null };
+  let digits = s.replace(/\D/g, '');
+  if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+  if (digits.length === 10) {
+    return { value: `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`, digits };
+  }
+  if (digits.length >= 7 && digits.length <= 15) return { value: s.slice(0, 40), digits, flag: 'phone_unusual' };
+  return { value: null, digits: null, flag: 'phone_invalid' };
+}
+
+/** Col 6 Drop Off Type: "25 or Less" | "Bulk" | odd variants. */
+function parseDropType(raw) {
+  const s = clean(raw).toLowerCase();
+  if (!s) return { value: 'standard', flag: 'drop_type_blank' };
+  if (/^25\b/.test(s) || /25 or less/.test(s)) {
+    // "25 or Less- process as 25 or..." and similar are standard.
+    return { value: 'standard', flag: s.replace(/\s+/g, ' ') === '25 or less' ? undefined : 'drop_type_variant' };
+  }
+  if (/bulk/.test(s)) return { value: 'bulk', flag: s === 'bulk' ? undefined : 'drop_type_variant' };
+  return { value: 'standard', flag: 'drop_type_unrecognized' };
+}
+
+/** Col 7 Donate question -> 'yes' | 'no' | 'bulk' | null */
+function parseDonate(raw) {
+  const s = clean(raw).toLowerCase();
+  if (!s) return { value: null, flag: 'donate_blank' };
+  if (/^yes\b/.test(s)) return { value: 'yes' };
+  if (/^no\b/.test(s)) return { value: 'no' };
+  if (/^not applicable/.test(s) || /bulk/.test(s)) return { value: 'bulk' };
+  return { value: null, flag: 'donate_unrecognized' };
+}
+
+/** Col 9/10 T / P checkmarks. */
+function parseMark(raw) {
+  const s = clean(raw).toLowerCase();
+  if (s === 'x' || s === 'xx' || s === '✓' || s === 'y' || s === 'yes') return { value: true };
+  if (isBlankish(s)) return { value: false };
+  return { value: false, flag: 'mark_unrecognized' };
+}
+
+/**
+ * Infer a full date for a month/day written without a year, relative to the
+ * drop-off date: same year, or the following year if it would fall before the
+ * drop-off's month/day (e.g. dropped 12/28, emailed 1/3 -> next year).
+ */
+function inferYear(mo, d, ref) {
+  let y = ref.y;
+  if (mo < ref.mo || (mo === ref.mo && d < ref.d)) y += 1;
+  return y;
+}
+
+/** "10/10", "3/17", "10/10/2026" -> ISO at 12:00 shop time. */
+function parseMonthDay(text, refLocal, tz = SHOP_TZ) {
+  const m = clean(text).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if (!m) return null;
+  const mo = +m[1], d = +m[2];
+  let y = m[3] ? +m[3] : inferYear(mo, d, refLocal);
+  if (y < 100) y += 2000;
+  if (!validYmd(y, mo, d)) return null;
+  return zonedToIso(y, mo, d, 12, 0, 0, tz);
+}
+
+/** Col 11 Email Sent -> { value: iso|null, sent: bool } */
+function parseEmailSent(raw, refLocal, tz = SHOP_TZ) {
+  const s = clean(raw);
+  if (isBlankish(s)) return { value: null, sent: false };
+  const iso = parseMonthDay(s, refLocal, tz);
+  if (iso) return { value: iso, sent: true };
+  return { value: null, sent: true, flag: 'email_sent_unparsed' };
+}
+
+/** Col 12/13 currency text -> number (2dp) or null */
+function parseAmount(raw) {
+  const s = clean(raw);
+  if (isBlankish(s)) return { value: null };
+  const t = s.replace(/[$,\s]/g, '');
+  if (/^\d+(\.\d+)?$/.test(t)) return { value: Math.round(Number(t) * 100) / 100 };
+  if (/^\.\d+$/.test(t)) return { value: Math.round(Number('0' + t) * 100) / 100 };
+  return { value: null, flag: 'amount_unparsed' };
+}
+
+/**
+ * Col 14 Venmo or Credit ->
+ *   { choice: 'credit'|'cash'|'none'|null, paid: bool }
+ */
+function parsePayment(raw) {
+  const s = clean(raw).toLowerCase();
+  if (s === '' || s === '-' || s === '--') return { choice: null, paid: false };
+  if (/^credit(ed)?\b/.test(s) || /store credit/.test(s)) return { choice: 'credit', paid: true };
+  if (/^venmo(ed|'d)?\b/.test(s)) return { choice: 'cash', paid: true };
+  if (/^cash\b/.test(s)) return { choice: 'cash', paid: false, flag: 'cash_not_confirmed_paid' };
+  if (/^took none\b/.test(s) || s === 'none' || s === 'n/a' || s === 'na') return { choice: 'none', paid: false };
+  return { choice: null, paid: false, flag: 'payment_unrecognized' };
+}
+
+/**
+ * Col 15 Pick Up or Donate ->
+ *   kind: 'donated' | 'picked_up' | 'took_all' | 'picking_up' | 'bulk' | 'no_leftovers' | null
+ *   leftover: DB leftover_choice ('donate'|'pickup'|'took_all'|'bulk'|null)
+ *   done: true when the bag needs no further action on leftovers
+ */
+function parseLeftover(raw, refLocal, tz = SHOP_TZ) {
+  const s = clean(raw).toLowerCase();
+  if (s === '' || s === '-' || s === '--') return { kind: null, leftover: null, done: false };
+  if (/^donat/.test(s)) {
+    return { kind: 'donated', leftover: 'donate', done: true, date: parseMonthDay(s, refLocal, tz) };
+  }
+  if (/^picked\s*-?\s*up/.test(s)) return { kind: 'picked_up', leftover: 'pickup', done: true, date: parseMonthDay(s, refLocal, tz) };
+  // Live data uses leftover_choice 'took_all' for "took all" (32 rows Jan-May).
+  if (/^took\s*all/.test(s)) return { kind: 'took_all', leftover: 'took_all', done: true };
+  if (/^picking\s*-?\s*up/.test(s)) return { kind: 'picking_up', leftover: 'pickup', done: false };
+  if (/^bulk\b/.test(s)) return { kind: 'bulk', leftover: 'bulk', done: true };
+  if (/^no\s*left\s*overs?\b/.test(s)) return { kind: 'no_leftovers', leftover: null, done: true };
+  return { kind: null, leftover: null, done: false, flag: 'leftover_unrecognized' };
+}
+
+module.exports = {
+  SHOP_TZ, zonedToIso, localDate, clean, isBlankish,
+  parseTimestamp, parseConsent, parseName, parseEmail, parsePhone, parseDropType,
+  parseDonate, parseMark, parseEmailSent, parseAmount, parsePayment, parseLeftover,
+  parseMonthDay, inferYear,
+};
