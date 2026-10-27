@@ -64,6 +64,8 @@ a{color:inherit;text-decoration:none}
 .nav-right{margin-top:auto;padding:14px 18px;border-top:1px solid var(--charcoal-2);
   display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .nav-email{color:#d3d0ca;font-size:11px;word-break:break-all;line-height:1.4}
+.nav-role{display:inline-block;margin-left:2px;padding:1px 6px;border:1px solid #3a3a3f;border-radius:3px;
+  color:#e4e2df;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
 .nav-logout{background:none;border:1px solid #26262a;color:#e4e2df;padding:6px 12px;
   border-radius:3px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
 .nav-logout:hover{border-color:var(--accent);color:var(--accent)}
@@ -80,6 +82,9 @@ a{color:inherit;text-decoration:none}
   font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap;
   transition:border-color .12s,color .12s}
 .fab-item:hover{border-color:var(--accent);color:var(--accent)}
+.fab-item:disabled{opacity:.55;cursor:not-allowed}
+.fab-item:disabled:hover{border-color:var(--border-2);color:var(--text)}
+.fab-why{font-size:11px;font-weight:500;color:var(--muted)}
 .fab{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;
   border:none;font-size:24px;line-height:1;cursor:pointer;display:flex;
   align-items:center;justify-content:center;transition:transform .16s ease}
@@ -106,6 +111,12 @@ a{color:inherit;text-decoration:none}
 .btn-danger:hover{background:#ffffff}
 .btn-sm{padding:7px 14px;font-size:12px;border-radius:var(--radius-xs)}
 .btn-lg{padding:14px 24px;font-size:15px}
+/* Role-gated actions: visible but disabled, with a short reason line */
+.btn:disabled{cursor:not-allowed}
+.btn-stage-cta:disabled,.btn-danger:disabled{opacity:.45}
+.btn-stage-cta:disabled::after{display:none}
+.role-reason{font-size:12px;color:var(--muted);line-height:1.4;max-width:280px}
+fieldset.role-lock{border:0;padding:0;margin:0;min-width:0}
 
 /* Pronounced stage-advance CTA — the primary forward-action on the detail page */
 .btn-stage-cta{
@@ -1075,7 +1086,7 @@ a{color:inherit;text-decoration:none}
       <button class="nav-btn" id="navSettings" onclick="showView('settings')">Settings</button>
     </div>
     <div class="nav-right">
-      <span class="nav-email" id="navEmail"></span>
+      <span class="nav-email"><span id="navEmail"></span> <span class="nav-role" id="navRole" style="display:none"></span></span>
       <button class="nav-logout" id="navLogout" onclick="doLogout()" style="display:none">Sign out</button>
     </div>
   </aside>
@@ -1100,7 +1111,7 @@ a{color:inherit;text-decoration:none}
     <!-- Floating actions: identical handlers to the old toolbar buttons -->
     <div class="fab-wrap" id="fabWrap">
       <div class="fab-actions">
-        <button class="fab-item" onclick="fabDo(openWalkInModal)">+ Walk-In Drop-Off</button>
+        <button class="fab-item" id="fabWalkIn" onclick="fabDo(openWalkInModal)">+ Walk-In Drop-Off<span class="fab-why" id="fabWalkInWhy" style="display:none">Buyer, manager or owner only</span></button>
         <button class="fab-item" onclick="fabDo(copyIntakeLink)">Copy Intake Link</button>
         <button class="fab-item" onclick="fabDo(openExportModal)">Export CSV</button>
       </div>
@@ -2443,8 +2454,33 @@ sb.auth.onAuthStateChange((event) => {
 let me = null;                 // current user
 let currentTenantId = null;    // which shop this session is working in
 let currentTenantSlug = null;
-let myRole = null;             // 'owner' | 'manager' | 'staff'
+let myRole = null;             // 'owner' | 'manager' | 'buyer' | 'tagger' | 'associate'
 const isAdmin = () => myRole === 'owner' || myRole === 'manager';
+// ── Who may select / price (docs/roles-plan.md permission matrix) ──
+// Select = the Tagging step (Start Tagging, Finish Tagging + item count) and
+// Walk-In. Price = pricing lines, bulk counts, Finish Pricing. The database
+// trigger is the real lock; these just keep the screens in step with it.
+const ROLES = ['owner', 'manager', 'buyer', 'tagger', 'associate'];
+const ROLE_LABELS = { owner: 'Owner', manager: 'Manager', buyer: 'Buyer', tagger: 'Tagger', associate: 'Associate' };
+// Legacy 'staff' is a buyer; anything unrecognised is null (caller falls back to associate).
+function normalizeRole(v) {
+  if (v == null) return null;
+  const r = String(v).trim().toLowerCase();
+  if (r === 'staff') return 'buyer';
+  return ROLES.includes(r) ? r : null;
+}
+const canSelect = () => myRole === 'owner' || myRole === 'manager' || myRole === 'buyer';
+const canPrice = () => canSelect() || myRole === 'tagger';
+const SELECT_DENIED_MSG = 'Only a buyer, manager or owner can select clothes.';
+const PRICE_DENIED_MSG = 'Only a buyer, tagger, manager or owner can price clothes.';
+// Handler-side guard (defense in depth): true = refused, caller should return.
+function denyUnless(allowed, msg) {
+  if (allowed) return false;
+  toast(msg, { durationMs: 4000 });
+  return true;
+}
+// Small muted line under a disabled button explaining why.
+const roleReasonHtml = msg => `<div class="role-reason">${esc(msg)}</div>`;
 let dropoffs = [];             // all dropoffs
 let customers = [];            // all customers
 let currentDropoffId = null;
@@ -2537,9 +2573,18 @@ function isPermissionError(error) {
 }
 // Toast a plain message for a failed write. If errEl (an inline error
 // element in an open modal) is given, show the same text there too.
+// The dropoffs role trigger (migration 0007) raises 42501 with one of these
+// markers as the message. Returns the friendly text, or null if not one of them.
+function roleDeniedMsg(error) {
+  if (!error) return null;
+  const msg = String(error.message || '') + ' ' + String(error.details || '') + ' ' + String(error.hint || '');
+  if (msg.includes('BSTFLOW_ROLE_SELECT')) return SELECT_DENIED_MSG;
+  if (msg.includes('BSTFLOW_ROLE_PRICE')) return PRICE_DENIED_MSG;
+  return null;
+}
 function saveFailed(error, errEl) {
   console.error('Save failed:', error);
-  const msg = isPermissionError(error) ? SAVE_DENIED_MSG : SAVE_FAILED_MSG;
+  const msg = roleDeniedMsg(error) || (isPermissionError(error) ? SAVE_DENIED_MSG : SAVE_FAILED_MSG);
   toast(msg, { durationMs: 5000 });
   if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
 }
@@ -2608,32 +2653,56 @@ async function checkSession() {
   await initApp();
 }
 
-// Who is this person in this shop? owner | manager | staff.
+// Who is this person in this shop? owner | manager | buyer | tagger | associate.
 // The database decides what each role may write (pricing_config and settings
-// are owner/manager only); this just keeps the screens in step with that.
-// Order: memberships row → role from my_tenants → 'staff'.
-// Anything unrecognised falls back to 'staff' (read-only), never to admin.
+// are owner/manager only; selecting/pricing per docs/roles-plan.md); this just
+// keeps the screens in step with that.
+// Order: memberships row → role from my_tenants → 'associate'.
+// Legacy 'staff' counts as 'buyer'. Anything unrecognised becomes 'associate'
+// (least power), never admin.
 async function resolveMyRole() {
-  const pick = v => {
+  const raw = v => {
     if (v == null) return null;
-    if (Array.isArray(v)) return pick(v[0]);
-    if (typeof v === 'object') return pick(v.role ?? v.get_my_role ?? null);
-    const r = String(v).trim().toLowerCase();
-    return ['owner','manager','staff'].includes(r) ? r : null;
+    if (Array.isArray(v)) return raw(v[0]);
+    if (typeof v === 'object') return raw(v.role ?? v.get_my_role ?? null);
+    return String(v);
   };
   // memberships is the source of truth for roles (get_my_role reads the
   // legacy staff_profiles table, whose roles are admin/associate).
-  let role = null;
+  let fromMembership = null;   // raw role string from the memberships row, if any
   if (me && currentTenantId) {
     try {
       const { data, error } = await sb.from('memberships').select('role')
         .eq('tenant_id', currentTenantId).eq('user_id', me.id).maybeSingle();
-      if (!error) role = pick(data);
+      if (!error) fromMembership = raw(data);
       else console.warn('memberships lookup failed:', error.message);
     } catch (e) { console.warn('memberships lookup failed:', e); }
   }
-  myRole = role || pick(myRole) || 'staff';
+  // A memberships row wins outright — an unknown value there must not fall
+  // through to a stronger role from elsewhere.
+  myRole = fromMembership != null
+    ? (normalizeRole(fromMembership) || 'associate')
+    : (normalizeRole(raw(myRole)) || 'associate');
+  applyRoleUi();
   return myRole;
+}
+
+// Sidebar role label and the always-present controls (FAB Walk-In) that
+// depend on the role. Per-drop-off buttons are gated where they're rendered.
+function applyRoleUi() {
+  const label = $('navRole');
+  if (label) {
+    label.textContent = ROLE_LABELS[myRole] || '';
+    label.style.display = myRole ? '' : 'none';
+  }
+  const wi = $('fabWalkIn');
+  if (wi) {
+    const ok = canSelect();
+    wi.disabled = !ok;
+    wi.title = ok ? '' : SELECT_DENIED_MSG;
+    const why = $('fabWalkInWhy');
+    if (why) why.style.display = ok ? 'none' : '';
+  }
 }
 
 async function doLogin(e) {
@@ -3780,13 +3849,18 @@ function stageActionsHtml(d) {
   const wrap = (hint, btn) => `<div class="stage-cta-wrap"><div class="stage-cta-hint">${hint}</div>${btn}</div>`;
 
   // Buttons by stage
+  // Selecting (the Tagging step) needs a buyer, manager or owner. Other roles
+  // still see the button, disabled, with the reason underneath.
+  const sel = canSelect();
+  const selAttr = sel ? '' : ' disabled title="' + esc(SELECT_DENIED_MSG) + '"';
+  const selWhy = sel ? '' : roleReasonHtml(SELECT_DENIED_MSG);
   if (d.stage === 'intake') {
     return wrap('Next step',
-      `<button class="btn btn-stage-cta primary" onclick="advance('tagging')">Start Tagging →</button>`);
+      `<button class="btn btn-stage-cta primary" id="ctaStartTagging" onclick="advance('tagging')"${selAttr}>Start Tagging →</button>${selWhy}`);
   }
   if (d.stage === 'tagging') {
     return wrap('Next step',
-      `<button class="btn btn-stage-cta primary" onclick="markTaggedAndAdvance()">Finish Tagging →</button>`);
+      `<button class="btn btn-stage-cta primary" id="ctaFinishTagging" onclick="markTaggedAndAdvance()"${selAttr}>Finish Tagging →</button>${selWhy}`);
   }
   if (d.stage === 'pricing') {
     if (d.drop_type === 'bulk') return ''; // bulk pricing has its own save button
@@ -3794,8 +3868,11 @@ function stageActionsHtml(d) {
     // shifts to "Review & Send Offer" so it's clear pricing itself is done.
     const alreadyPriced = d.priced_at && d.venmo_amount != null;
     const label = alreadyPriced ? 'Review & Send Offer →' : 'Finish Pricing & Prepare Offer →';
+    // Anyone may send an already-priced offer; only pricers may finish pricing.
+    const ok = canPrice() || alreadyPriced;
+    const attr = ok ? '' : ' disabled title="' + esc(PRICE_DENIED_MSG) + '"';
     return wrap('Next step',
-      `<button class="btn btn-stage-cta primary" onclick="finishPricing()">${label}</button>`);
+      `<button class="btn btn-stage-cta primary" id="ctaFinishPricing" onclick="finishPricing()"${attr}>${label}</button>${ok ? '' : roleReasonHtml(PRICE_DENIED_MSG)}`);
   }
   if (d.stage === 'awaiting_customer') {
     if (!d.offer_sent_at) {
@@ -3849,6 +3926,9 @@ function pricingPanelHtml(d) {
   // Items are locked once the drop-off leaves the Pricing stage — the offer
   // the customer received must always match the item list on record.
   const locked = d.stage !== 'pricing';
+  // Not locked, but this role can't price: show the tool disabled with the
+  // reason, rather than hiding it.
+  const noPrice = !locked && !canPrice();
 
   return `
     ${locked ? `
@@ -3858,6 +3938,8 @@ function pricingPanelHtml(d) {
     </div>` : `
     <div class="card">
       <div class="card-title">Add an Item</div>
+      ${noPrice ? `<div class="role-reason" style="max-width:none;margin:-4px 0 12px">🔒 ${esc(PRICE_DENIED_MSG)}</div>` : ''}
+      <fieldset class="role-lock" id="pricingFieldset"${noPrice ? ' disabled' : ''}>
 
       <div class="toggle-row">
         <div class="toggle-info">
@@ -3940,6 +4022,7 @@ function pricingPanelHtml(d) {
         <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
         <button class="btn btn-primary btn-lg" id="addBtn" onclick="addLine()" disabled>+ Add Item</button>
       </div>
+      </fieldset>
     </div>`}
 
     <div class="card" style="margin-top:18px">
@@ -3956,7 +4039,7 @@ function pricingPanelHtml(d) {
         <table class="line-table">
           <thead><tr><th>Item</th><th>Tier</th><th>Size</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th>${locked ? '' : '<th></th>'}</tr></thead>
           <tbody id="linesBody">
-            ${lines.length === 0 ? `<tr><td colspan="${locked ? 6 : 7}" style="text-align:center;color:var(--muted);padding:28px;font-style:italic">No items yet${locked ? '' : ' — add the first one above'}.</td></tr>` : lines.map((l,i) => lineRowHtml(l,i,locked)).join('')}
+            ${lines.length === 0 ? `<tr><td colspan="${locked ? 6 : 7}" style="text-align:center;color:var(--muted);padding:28px;font-style:italic">No items yet${locked ? '' : ' — add the first one above'}.</td></tr>` : lines.map((l,i) => lineRowHtml(l,i,locked,noPrice)).join('')}
           </tbody>
         </table>
       </div>
@@ -3981,10 +4064,12 @@ function bulkPricingPanelHtml(d) {
       <div style="font-size:12px;color:var(--muted);margin-top:10px">🔒 Counts are locked once the drop-off leaves the Pricing stage.</div>
     </div>`;
   }
+  // Bulk counts are pricing: other roles see them disabled, with the reason.
+  const noPrice = !canPrice();
   return `
     <div class="card">
       <div class="card-title">Bulk Pricing</div>
-      <div class="bulk-pricing">
+      <div class="bulk-pricing"><fieldset class="role-lock" id="bulkFieldset"${noPrice ? ' disabled' : ''}>
         <h4>Quick count</h4>
         <div class="g2">
           <div class="field">
@@ -4000,10 +4085,11 @@ function bulkPricingPanelHtml(d) {
           <div class="pill"><div class="pill-lbl">Cash</div><div class="pill-val" id="bulkCash">${fmt$(total)}</div></div>
           <div class="pill"><div class="pill-lbl">Credit</div><div class="pill-val" id="bulkCredit">${fmt$(total)}</div></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px">
-          <button class="btn btn-primary" onclick="saveBulkAndAdvance()">Save & Prepare Offer →</button>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="bulkSaveBtn" onclick="saveBulkAndAdvance()">Save & Prepare Offer →</button>
+          ${noPrice ? roleReasonHtml(PRICE_DENIED_MSG) : ''}
         </div>
-      </div>
+      </fieldset></div>
     </div>
   `;
 }
@@ -4017,6 +4103,7 @@ function recalcBulk() {
 }
 
 async function saveBulkAndAdvance() {
+  if (denyUnless(canPrice(), PRICE_DENIED_MSG)) return;
   const d = getDropoff(currentDropoffId);
   if (!d || d.stage !== 'pricing') { toast('Counts are locked once the drop-off leaves Pricing.'); return; }
   const items = Number($('bulkItems').value) || 0;
@@ -4026,15 +4113,19 @@ async function saveBulkAndAdvance() {
     { brand: 'Bulk', type: 'Regular items', size: '—', tier: 'Bulk', price: settings?.bulk_item_price || 0.5, qty: items },
     { brand: 'Bulk', type: 'Onesies/Baby pants', size: '—', tier: 'Bulk', price: settings?.bulk_onesie_price || 0.25, qty: onesies }
   ];
-  const { error } = await sb.from('dropoffs').update({
+  const update = {
     pricing_lines: lines,
     venmo_amount: total,
     credit_amount: total,
-    item_count: items + onesies,
     priced_at: new Date().toISOString(),
     priced_by: me.email,
     stage: 'awaiting_customer'
-  }).eq('id', currentDropoffId);
+  };
+  // item_count is a select-guarded field (set at Finish Tagging). A tagger
+  // pricing a bulk bag keeps the buyer's count rather than tripping the
+  // BSTFLOW_ROLE_SELECT guard; buyers/managers/owners still overwrite it.
+  if (canSelect()) update.item_count = items + onesies;
+  const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
   if (error) { saveFailed(error); return; }
   await logActivity('priced', { items, onesies, total });
   await refreshDropoff(currentDropoffId);
@@ -4046,6 +4137,7 @@ async function saveBulkAndAdvance() {
 //  Stage transitions
 // ============================================================
 async function advance(toStage) {
+  if (toStage === 'tagging' && denyUnless(canSelect(), SELECT_DENIED_MSG)) return;
   const update = { stage: toStage };
   if (toStage === 'tagging') update.tagged_at = null; // will set later
   const { error } = await sb.from('dropoffs').update(update).eq('id', currentDropoffId);
@@ -4056,6 +4148,7 @@ async function advance(toStage) {
 }
 
 async function markTaggedAndAdvance() {
+  if (denyUnless(canSelect(), SELECT_DENIED_MSG)) return;
   // Open the styled item-count modal; actual save happens in submitItemCount().
   $('itemCountInput').value = '';
   $('itemCountErr').style.display = 'none';
@@ -4068,6 +4161,7 @@ function closeItemCountModal() {
 }
 
 async function submitItemCount() {
+  if (denyUnless(canSelect(), SELECT_DENIED_MSG)) { closeItemCountModal(); return; }
   const raw = $('itemCountInput').value.trim();
   let itemCount = null;
   if (raw !== '') {
@@ -4095,6 +4189,25 @@ async function submitItemCount() {
 
 async function finishPricing() {
   const d = getDropoff(currentDropoffId);
+  if (!d) return;
+  if (!canPrice()) {
+    // Non-pricers (associates) may still review and send an offer that a
+    // pricer already finished — but only if the stored totals still match the
+    // item list (a line added after Finish Pricing would make them stale).
+    const lines = d.pricing_lines || [];
+    const resale = lines.reduce((a, l) => a + (l.qty||0) * (l.price||0), 0);
+    const fresh = d.priced_at && d.venmo_amount != null && d.credit_amount != null
+      && cents(resale * (settings?.cash_pct ?? 0.30)) === cents(d.venmo_amount)
+      && cents(resale * (settings?.credit_pct ?? 0.40)) === cents(d.credit_amount);
+    if (!fresh) {
+      toast(d.priced_at
+        ? 'The offer totals are out of date — a buyer, tagger, manager or owner needs to finish pricing again.'
+        : PRICE_DENIED_MSG, { durationMs: 5000 });
+      return;
+    }
+    openReviewOverlay();
+    return;
+  }
   if (!d.pricing_lines || d.pricing_lines.length === 0) {
     if (!confirm('No items priced. This means we are taking nothing from this drop-off. Continue?')) return;
   }
@@ -4233,11 +4346,12 @@ function reviewLineRowHtml(l, i) {
     <td class="num">${l.qty}</td>
     <td class="num">${fmt$(l.price)}</td>
     <td class="num"><strong>${fmt$(l.price * l.qty)}</strong></td>
-    <td class="act"><button class="btn btn-danger btn-sm" onclick="reviewRemoveLine(${i})" title="Remove">×</button></td>
+    <td class="act"><button class="btn btn-danger btn-sm" onclick="reviewRemoveLine(${i})" ${canPrice() ? 'title="Remove"' : `disabled title="${esc(PRICE_DENIED_MSG)}"`}>×</button></td>
   </tr>`;
 }
 
 async function reviewRemoveLine(i) {
+  if (denyUnless(canPrice(), PRICE_DENIED_MSG)) return;
   const d = getDropoff(currentDropoffId);
   // Re-fetch the latest lines so a stale copy can't clobber concurrent edits
   // (and a stale row index can't remove the wrong item).
@@ -4498,6 +4612,8 @@ async function submitOverride() {
 //  Walk-In Drop-Off (same-day, fully manual, creates resolved drop-off)
 // ============================================================
 function openWalkInModal() {
+  // Walk-In selects and prices in one go.
+  if (denyUnless(canSelect(), SELECT_DENIED_MSG)) return;
   $('wiName').value = '';
   $('wiEmail').value = '';
   $('wiPhone').value = '';
@@ -4547,6 +4663,8 @@ function onWiNameInput() {
 async function submitWalkIn() {
   const err = $('wiErr');
   err.style.display = 'none';
+  // Check before creating the customer, so a refused save leaves nothing behind.
+  if (!canSelect()) { err.textContent = SELECT_DENIED_MSG; err.style.display = 'block'; toast(SELECT_DENIED_MSG, { durationMs: 4000 }); return; }
 
   const name = $('wiName').value.trim();
   const email = $('wiEmail').value.trim();
@@ -4647,7 +4765,12 @@ async function submitWalkIn() {
   };
 
   const { data: dropResult, error: derr } = await sb.from('dropoffs').insert(dropoff).select().single();
-  if (derr) { err.textContent = 'Could not save drop-off: ' + derr.message; err.style.display = 'block'; return; }
+  if (derr) {
+    const roleMsg = roleDeniedMsg(derr);
+    if (roleMsg) { console.error('Save failed:', derr); toast(roleMsg, { durationMs: 5000 }); }
+    err.textContent = roleMsg || ('Could not save drop-off: ' + derr.message);
+    err.style.display = 'block'; return;
+  }
 
   await sb.from('activity_log').insert({
     tenant_id: currentTenantId,
@@ -5146,6 +5269,7 @@ function clearForm() {
 }
 
 async function addLine() {
+  if (denyUnless(canPrice(), PRICE_DENIED_MSG)) return;
   const config = pricingConfig();
   const P = window.DandelionPricing;
   const item = buildFormItem();
@@ -5183,7 +5307,7 @@ async function addLine() {
   initPricingTool(getDropoff(currentDropoffId));
 }
 
-function lineRowHtml(l, i, locked = false) {
+function lineRowHtml(l, i, locked = false, noPrice = false) {
   const metaBits = [esc(l.type)];
   if (l.condition) metaBits.push(`<span style="color:var(--accent-dark);font-weight:700">${esc(l.condition)}</span>`);
   if (l.retail_price) metaBits.push(`<span style="color:var(--muted)">retail ${fmt$(l.retail_price)}</span>`);
@@ -5197,11 +5321,12 @@ function lineRowHtml(l, i, locked = false) {
     <td class="num">${l.qty}</td>
     <td class="num">${fmt$(l.price)}</td>
     <td class="num"><strong>${fmt$(l.price * l.qty)}</strong></td>
-    ${locked ? '' : `<td class="act"><button class="btn btn-danger btn-sm" onclick="removeLine(${i})" title="Remove">×</button></td>`}
+    ${locked ? '' : `<td class="act"><button class="btn btn-danger btn-sm" onclick="removeLine(${i})" ${noPrice ? `disabled title="${esc(PRICE_DENIED_MSG)}"` : 'title="Remove"'}>×</button></td>`}
   </tr>`;
 }
 
 async function removeLine(i) {
+  if (denyUnless(canPrice(), PRICE_DENIED_MSG)) return;
   const d = getDropoff(currentDropoffId);
   if (!d || d.stage !== 'pricing') { toast('Items are locked once the drop-off leaves Pricing.'); return; }
   // Re-fetch the latest lines from the server so we never clobber another
@@ -6573,7 +6698,7 @@ let matrixShowEmpty = true;
 
 // ─── EDIT PERMISSIONS (role-based) ───
 // Owners and managers can edit pricing, rules and settings, and run the
-// importer. Staff see the same screens read-only. The database enforces the
+// importer. Buyers, taggers and associates see the same screens read-only. The database enforces the
 // same rule (pricing_config/settings writes need owner or manager), so this
 // only keeps staff out of editors whose saves would be refused anyway.
 // myRole is set at sign-in by resolveMyRole().

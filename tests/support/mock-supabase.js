@@ -67,6 +67,11 @@ const DROPOFFS = [
     payment_choice: 'cash', leftover_choice: 'pickup', venmo_amount: 3.6, credit_amount: 4.8 },
   { stage: 'awaiting_pickup', paid_at: daysAgo(5), payment_choice: 'credit', leftover_choice: 'pickup', venmo_amount: 3, credit_amount: 4 },
   { stage: 'resolved', paid_at: daysAgo(8), resolved_at: daysAgo(8), payment_choice: 'cash', leftover_choice: 'donate', venmo_amount: 9, credit_amount: 12 },
+  // Already priced (totals match the lines at 30% / 40%), offer not sent yet.
+  { stage: 'pricing', tagged_at: daysAgo(2), item_count: 2, priced_at: daysAgo(1), venmo_amount: 3.6, credit_amount: 4.8,
+    pricing_lines: [{ brand: 'Test Brand', type: 'Tshirt', size: 'Kid', tier: 'Good', price: 6, qty: 2 }] },
+  // Bulk bag waiting for its counts.
+  { stage: 'pricing', drop_type: 'bulk', tagged_at: daysAgo(2), item_count: 40 },
 ].map((d, i) => Object.assign({
   id: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, '0')}`,
   tenant_id: TENANT_ID, customer_id: CUSTOMER.id, customer: CUSTOMER,
@@ -91,10 +96,10 @@ const SETTINGS = {
   baby_carrier_divisor: 3, hat_flat_price: 4, business_rules: {}, admin_password_hash: null,
 };
 
-function rpcResponse(name) {
+function rpcResponse(name, opts = {}) {
   switch (name) {
     case 'my_tenants':
-      return [{ tenant_id: TENANT_ID, slug: 'test-shop', name: 'Test Shop', role: 'owner', onboarded_at: daysAgo(30) }];
+      return [{ tenant_id: TENANT_ID, slug: 'test-shop', name: 'Test Shop', role: opts.role || 'owner', onboarded_at: daysAgo(30) }];
     case 'get_shop_public':
       return [{ name: 'Test Shop', slug: 'test-shop' }];
     case 'get_offer_by_token':
@@ -109,9 +114,10 @@ function rpcResponse(name) {
   }
 }
 
-function restResponse(table, wantsObject, params) {
+function restResponse(table, wantsObject, params, opts = {}) {
   let rows;
-  if (table === 'pricing_config') rows = [PRICING_CONFIG];
+  if (table === 'memberships') rows = opts.role ? [{ tenant_id: TENANT_ID, user_id: USER.id, role: opts.role }] : [];
+  else if (table === 'pricing_config') rows = [PRICING_CONFIG];
   else if (table === 'settings') rows = [SETTINGS];
   else if (table === 'dropoffs') rows = DROPOFFS;
   else if (table === 'customers') rows = [CUSTOMER];
@@ -137,11 +143,16 @@ function restResponse(table, wantsObject, params) {
 
 /**
  * Install all offline routes on a BrowserContext.
- * Returns a `log` object recording which Supabase project refs were contacted
- * and any request that tried to invoke an Edge Function.
+ * Returns a `log` object recording which Supabase project refs were contacted,
+ * any request that tried to invoke an Edge Function, and every REST write.
+ *
+ * opts.role           -> the signed-in user's memberships / my_tenants role
+ *                        (default: no memberships row, my_tenants says owner)
+ * opts.dropoffWriteError -> if set, writes to `dropoffs` fail with this
+ *                        PostgREST error body (e.g. the role trigger's 42501)
  */
-async function installMocks(context) {
-  const log = { refs: new Set(), functionCalls: [], unexpectedHosts: new Set() };
+async function installMocks(context, opts = {}) {
+  const log = { refs: new Set(), functionCalls: [], unexpectedHosts: new Set(), writes: [] };
 
   await context.route('https://cdn.jsdelivr.net/**', async route => {
     const url = route.request().url();
@@ -183,11 +194,15 @@ async function installMocks(context) {
       if (p.endsWith('/logout')) return route.fulfill({ status: 204, body: '' });
       return json({});
     }
-    if (p.startsWith('/rest/v1/rpc/')) return json(rpcResponse(p.split('/').pop()));
+    if (p.startsWith('/rest/v1/rpc/')) return json(rpcResponse(p.split('/').pop(), opts));
     if (p.startsWith('/rest/v1/')) {
       const table = p.split('/')[3];
       const wantsObject = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
-      if (req.method() === 'GET' || req.method() === 'HEAD') return json(restResponse(table, wantsObject, url.searchParams));
+      if (req.method() === 'GET' || req.method() === 'HEAD') return json(restResponse(table, wantsObject, url.searchParams, opts));
+      let body = null;
+      try { body = req.postDataJSON(); } catch (_) {}
+      log.writes.push({ method: req.method(), table, body });
+      if (table === 'dropoffs' && opts.dropoffWriteError) return json(opts.dropoffWriteError, 403);
       return json(wantsObject ? {} : []);  // writes: pretend success
     }
     return json({});
