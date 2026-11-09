@@ -10,5 +10,15 @@
       "destination": "/intake.html?shop=dandelion-kids",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/walkthrough",
+      "destination": "/walkthrough.html"
+    },
+    {
+      "source": "/walkthrough/",
+      "destination": "/walkthrough.html"
+    }
   ]
 }
