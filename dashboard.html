@@ -6971,6 +6971,9 @@ function setMatrixCell(input) {
   const size = input.dataset.size;
   const tier = input.dataset.tier;
   const val = input.value === '' ? null : Number(input.value);
+  // Keep the "empty" (greyed-out) style in step with the value, so a price
+  // typed into a blank cell shows normally right away instead of after a re-render.
+  input.classList.toggle('empty', val == null);
   if (!pricingData.pricing[tier]) pricingData.pricing[tier] = {};
   if (!pricingData.pricing[tier][type]) pricingData.pricing[tier][type] = {};
   pricingData.pricing[tier][type][size] = val;
