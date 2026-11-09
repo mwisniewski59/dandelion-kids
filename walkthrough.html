@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>BST Flow — See it in action</title>
-<meta name="description" content="Watch one bag go from drop-off to payout in BST Flow, the buy-sell-trade software for resale shops. 3-minute walkthrough."/>
+<meta name="description" content="Watch one bag go from drop-off to payout in BST Flow, the buy-sell-trade software for resale shops, then see how an owner sets up prices and rules."/>
 <link rel="canonical" href="https://bstflow.com/walkthrough">
 <meta property="og:type" content="video.other">
 <meta property="og:title" content="BST Flow — See it in action">
@@ -43,8 +43,14 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:48px;lin
 .player{position:relative;border-radius:12px;overflow:hidden;background:#000;
   box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(240,239,236,.08)}
 .player video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#000}
-.chapters{margin:36px 0 12px}
-.chapters h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.video-sec{margin-top:8px}
+.video-sec + .video-sec{margin-top:64px;padding-top:48px;border-top:1px solid var(--charcoal-3)}
+.sec-head{display:flex;gap:16px;align-items:center;margin-bottom:20px}
+.sec-num{flex:none;width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--charcoal);font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+.sec-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.6px;line-height:1.15}
+.sec-sub{color:var(--muted);font-size:15px;margin-top:2px}
+.chapters{margin:28px 0 12px}
+.chapters .ch-head{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 .ch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .ch{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;cursor:pointer;
   background:var(--charcoal-2);border:1px solid var(--charcoal-3);border-radius:var(--radius);padding:14px 16px;color:inherit;font:inherit;
@@ -63,6 +69,8 @@ footer img{height:28px;width:auto;opacity:.9}
 footer .spacer{flex:1}
 @media (max-width:820px){.ch-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){
+  .sec-title{font-size:22px}
+  .video-sec + .video-sec{margin-top:44px;padding-top:36px}
   .wrap{padding:0 16px}
   header{padding:22px 0 0} header img{height:46px}
   .hero{padding:26px 0 20px}
@@ -78,22 +86,31 @@ footer .spacer{flex:1}
   <header><img src="assets/logo-light.png" alt="BST Flow" width="560" height="396"></header>
 
   <section class="hero">
-    <div class="eyebrow">See it in action · 3 minutes</div>
+    <div class="eyebrow">See it in action · 2 short videos</div>
     <h1>From drop-off to payout, in one flow.</h1>
-    <p class="sub">Follow one bag through BST Flow, the buy-sell-trade software for resale shops: intake, tagging, pricing, the offer, and payout. Then see how it handles bulk bags, walk-ins and the off-script stuff.</p>
+    <p class="sub">Follow one bag through BST Flow, the buy-sell-trade software for resale shops: intake, tagging, pricing, the offer, and payout. Then see how an owner sets up prices, rules and settings.</p>
   </section>
 
-  <div class="player">
-    <video id="vid" controls playsinline preload="metadata"
-           poster="assets/video/bst-flow-walkthrough-poster.jpg">
-      <source src="assets/video/bst-flow-walkthrough.mp4" type="video/mp4">
-      Your browser can't play this video. <a href="assets/video/bst-flow-walkthrough.mp4" style="color:#d9a54e">Download it instead.</a>
-    </video>
-  </div>
+  <section class="video-sec">
+    <div class="sec-head"><span class="sec-num">1</span><div><h2 class="sec-title">From drop-off to payout</h2><div class="sec-sub">One bag, start to finish, then the special cases · 3:12</div></div></div>
+    <div class="player">
+      <video id="vidFlow" controls playsinline preload="metadata" poster="assets/video/bst-flow-walkthrough-poster.jpg">
+        <source src="assets/video/bst-flow-walkthrough.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="assets/video/bst-flow-walkthrough.mp4" style="color:#d9a54e">Download it instead.</a>
+      </video>
+    </div>
+    <div class="chapters"><h3 class="ch-head">Jump to a chapter</h3><div class="ch-grid" id="chFlow"></div></div>
+  </section>
 
-  <section class="chapters" aria-labelledby="chTitle">
-    <h2 id="chTitle">Jump to a chapter</h2>
-    <div class="ch-grid" id="chGrid"></div>
+  <section class="video-sec" id="setup">
+    <div class="sec-head"><span class="sec-num">2</span><div><h2 class="sec-title">Setting up your shop</h2><div class="sec-sub">Settings, brands and tiers, the pricing matrix, rules, and going live · 1:46</div></div></div>
+    <div class="player">
+      <video id="vidSetup" controls playsinline preload="metadata" poster="assets/video/bst-flow-shop-setup-poster.jpg">
+        <source src="assets/video/bst-flow-shop-setup.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="assets/video/bst-flow-shop-setup.mp4" style="color:#d9a54e">Download it instead.</a>
+      </video>
+    </div>
+    <div class="chapters"><h3 class="ch-head">Jump to a chapter</h3><div class="ch-grid" id="chSetup"></div></div>
   </section>
 
   <footer>
@@ -106,43 +123,58 @@ footer .spacer{flex:1}
 
 <script>
 (function () {
-  // Chapter start times (seconds) match the video's chapter transitions.
-  var CHAPTERS = [
-    { t: 0,     title: 'Customer drop-off',     who: 'Customer' },
-    { t: 35.1,  title: 'Tagging',               who: 'Buyer' },
-    { t: 53.2,  title: 'Pricing',               who: 'Buyer or pricer' },
-    { t: 81.5,  title: 'Sending the offer',     who: 'Anyone on the team' },
-    { t: 96.8,  title: 'The customer chooses',  who: 'Customer' },
-    { t: 116.2, title: 'Paying out & closing',  who: 'Anyone on the team' },
-    { t: 132.2, title: 'Bulk drop-offs',        who: 'Buyer or pricer', special: true },
-    { t: 148.4, title: 'Walk-in drop-offs',     who: 'Buyer', special: true },
-    { t: 167.0, title: 'Manual resolution',     who: 'Anyone on the team', special: true }
+  // Chapter start times (seconds) match each video's chapter transitions.
+  var VIDEOS = [
+    { video: 'vidFlow', grid: 'chFlow', chapters: [
+      { t: 0,     title: 'Customer drop-off',     who: 'Customer', group: 'One bag, start to finish' },
+      { t: 35.1,  title: 'Tagging',               who: 'Buyer' },
+      { t: 53.2,  title: 'Pricing',               who: 'Buyer or pricer' },
+      { t: 81.5,  title: 'Sending the offer',     who: 'Anyone on the team' },
+      { t: 96.8,  title: 'The customer chooses',  who: 'Customer' },
+      { t: 116.2, title: 'Paying out & closing',  who: 'Anyone on the team' },
+      { t: 132.2, title: 'Bulk drop-offs',        who: 'Buyer or pricer', group: 'Special cases' },
+      { t: 148.4, title: 'Walk-in drop-offs',     who: 'Buyer' },
+      { t: 167.0, title: 'Manual resolution',     who: 'Anyone on the team' }
+    ]},
+    { video: 'vidSetup', grid: 'chSetup', chapters: [
+      { t: 0,    title: 'Shop settings',       who: 'Owner or manager' },
+      { t: 19.0, title: 'Brands & tiers',      who: 'Owner or manager' },
+      { t: 29.8, title: 'Types & sizes',       who: 'Owner or manager' },
+      { t: 41.6, title: 'The pricing matrix',  who: 'Owner or manager' },
+      { t: 59.8, title: 'Rules & do-not-buy',  who: 'Owner or manager' },
+      { t: 82.9, title: 'Go live',             who: 'Owner or manager' }
+    ]}
   ];
-  var vid = document.getElementById('vid');
-  var grid = document.getElementById('chGrid');
   function fmt(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-  var buttons = [];
-  CHAPTERS.forEach(function (c, i) {
-    if (i === 0) grid.insertAdjacentHTML('beforeend', '<div class="group-label">One bag, start to finish</div>');
-    if (c.special && !CHAPTERS[i - 1].special) grid.insertAdjacentHTML('beforeend', '<div class="group-label">Special cases</div>');
-    var b = document.createElement('button');
-    b.className = 'ch'; b.type = 'button';
-    b.innerHTML = '<span class="num">' + (i + 1) + '</span><span><span class="t">' + c.title +
-      '</span><span class="meta" style="display:block"><b>' + fmt(c.t) + '</b> · ' + c.who + '</span></span>';
-    b.addEventListener('click', function () {
-      vid.currentTime = c.t + 0.05;
-      var p = vid.play(); if (p && p.catch) p.catch(function () {});
-      vid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  var players = [];
+  VIDEOS.forEach(function (v) {
+    var vid = document.getElementById(v.video), grid = document.getElementById(v.grid), buttons = [];
+    players.push(vid);
+    v.chapters.forEach(function (c, i) {
+      if (c.group) grid.insertAdjacentHTML('beforeend', '<div class="group-label">' + c.group + '</div>');
+      var b = document.createElement('button');
+      b.className = 'ch'; b.type = 'button';
+      b.innerHTML = '<span class="num">' + (i + 1) + '</span><span><span class="t">' + c.title +
+        '</span><span class="meta" style="display:block"><b>' + fmt(c.t) + '</b> · ' + c.who + '</span></span>';
+      b.addEventListener('click', function () {
+        vid.currentTime = c.t + 0.05;
+        var p = vid.play(); if (p && p.catch) p.catch(function () {});
+        vid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      grid.appendChild(b); buttons.push(b);
     });
-    grid.appendChild(b); buttons.push(b);
+    function sync() {
+      var t = vid.currentTime, cur = 0;
+      for (var i = 0; i < v.chapters.length; i++) if (t >= v.chapters[i].t) cur = i;
+      buttons.forEach(function (b, i) { b.classList.toggle('active', i === cur && t > 0); });
+    }
+    vid.addEventListener('timeupdate', sync);
+    vid.addEventListener('seeked', sync);
   });
-  function sync() {
-    var t = vid.currentTime, cur = 0;
-    for (var i = 0; i < CHAPTERS.length; i++) if (t >= CHAPTERS[i].t) cur = i;
-    buttons.forEach(function (b, i) { b.classList.toggle('active', i === cur && t > 0); });
-  }
-  vid.addEventListener('timeupdate', sync);
-  vid.addEventListener('seeked', sync);
+  // Only one video plays at a time.
+  players.forEach(function (vid) {
+    vid.addEventListener('play', function () { players.forEach(function (o) { if (o !== vid && !o.paused) o.pause(); }); });
+  });
 })();
 </script>
 </body>
